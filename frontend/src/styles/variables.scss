@@ -1,1 +1,14 @@
-$primary-color: #3498db;
+$primary-color: #3b3b3b;
+$input-color: #4e4e4e;
+$border-color: #242424;
+$font-color: #fff;
+
+%flex-base {
+    display: flex;
+    flex-direction: row;
+}
+
+%flex-col {
+    display: flex;
+    flex-direction: column;
+}

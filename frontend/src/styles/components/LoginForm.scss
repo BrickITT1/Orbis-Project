@@ -1,0 +1,6 @@
+@use '../variables' as *;
+
+.login-main form {
+    @extend %flex-col !optional;
+    background-color: $border-color;
+}
