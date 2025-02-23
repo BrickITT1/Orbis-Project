@@ -1,7 +1,14 @@
 $primary-color: #3b3b3b;
-$input-color: #4e4e4e;
-$border-color: #242424;
-$font-color: #fff;
+$input-color: #1f1e1e;
+$form-color: #2b2a2a;
+$font-color: #dad9d9;
+
+
+$mobile: 320px;
+$tablet: 768px;
+$desktop: 1200px;
+$normal: 1440px;
+$big: 2080;
 
 %flex-base {
     display: flex;
@@ -11,4 +18,18 @@ $font-color: #fff;
 %flex-col {
     display: flex;
     flex-direction: column;
+}
+
+@mixin respond-to($breakpoint) {
+    @if $breakpoint == mobile {
+        @media (max-width: ($tablet - 1)) { @content; }
+    } @else if $breakpoint == tablet {
+        @media (min-width: $tablet) and (max-width: ($desktop - 1)) { @content; }
+    } @else if $breakpoint == desktop {
+        @media (min-width: $desktop) { @content; }
+    } @else if $breakpoint == $normal {
+        @media (min-width: $desktop) { @content; }
+    } @else if $breakpoint == $big {
+        @media (min-width: $desktop) { @content; }
+    }
 }

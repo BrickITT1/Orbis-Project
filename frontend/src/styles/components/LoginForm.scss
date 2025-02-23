@@ -1,6 +1,35 @@
 @use '../variables' as *;
 
+.login-main {
+    max-width: 520px;
+    margin: 0 auto;
+}
+
+.login-main form label, .login-main a {
+    padding: 0.1em;
+    color: $font-color;
+}
+
 .login-main form {
     @extend %flex-col !optional;
-    background-color: $border-color;
+    background-color: $form-color;
+    width: 100%;
+    padding: 1em;
+}
+
+.login-main form input {
+    padding: 0.7em;
+}
+
+.login-main form button {
+    padding: 0.7em;
+}
+
+.login-main h1 {
+    text-align: center;
+    padding: 0.3em;
+}
+
+.login-main a {
+    text-align: center;
 }

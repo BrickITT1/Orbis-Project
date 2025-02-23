@@ -1,7 +1,38 @@
 @use './variables' as *;
-
-body {
-    background-color: $primary-color; // Использование переменной
-    color: $font-color;
+@font-face {
+    font-family: 'Poppins-Regular';
+    src: url('/fonts/SegoeUILight.ttf');
 }
 
+body, input, ul, li, h1, h2, h3, h4  {
+    margin: 0;
+    padding: 0;
+}
+
+body, input{
+    background-color: $primary-color; // Использование переменной
+    color: $font-color;
+    font-family: Poppins-Regular;
+}
+
+input, button, textarea {
+    box-sizing: border-box;
+    font-family: Poppins-Regular;
+    background-color: transparent;
+    border: none;
+    outline: none;
+    width: 100%;
+    background-color: $input-color;
+    color: $font-color;
+    font-size: 14px;
+}
+
+button {
+    cursor: pointer;
+    transition: filter 0.2s ease-in-out;
+    font-weight: bold;
+}
+
+button:hover {
+    filter: brightness(0.9);
+}

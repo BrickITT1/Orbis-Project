@@ -27,7 +27,8 @@ export const Login = () =>  {
     return ( 
         <>
             <form action="" method='POST' onSubmit={(e) => e.preventDefault()}>
-                <label htmlFor="">Алрес электронной почты или номер телефона</label>
+                <h1>Авторизация</h1>
+                <label htmlFor="">Адрес электронной почты или номер телефона</label>
                 <div className="">
                     <input type="text" />
                 </div>
@@ -40,7 +41,7 @@ export const Login = () =>  {
                 <div className="">
                     <button onClick={() => onSubmit({})}>Вход</button>
                 </div>
-                <span>Нужна учетная запись? <a href="">Зарегистрироваться</a></span>
+                <span><a href="">Нет аккаунта</a></span>
 
             </form>
         </> 
