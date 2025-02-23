@@ -1,23 +1,24 @@
-import { schema } from "../utils/validation";
-import { z } from "zod";
-
 export type User = {
     login: string;
     password: string;
 };
 
-export type LoginForm = z.infer<typeof schema>;
+export type LoginForm = {
+    email?: string;
+    password?: string;
+}
 
 export type RegisterForm = {
     email?: string;
     username?: string;
+    name?: string;
     password?: string;
     phoneNumber?: string;
-
-    name?: string;
-    secondName?: string;
-    age?: number;
-    gender?: string;
-
-    aboutUser?: string;
+    age?: age;
 };
+
+export type age = {
+    day?: number;
+    month?: number;
+    year?: number;
+}

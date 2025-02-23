@@ -4,9 +4,24 @@
     src: url('/fonts/SegoeUILight.ttf');
 }
 
+#root {
+    background: url('/img/background.jpg');
+    width: 100%;
+}
+
+.container {
+    max-width: 1440px;
+    margin: 0 auto;
+}
+
+body {
+    overflow-x: hidden;
+}
+
 body, input, ul, li, h1, h2, h3, h4  {
     margin: 0;
     padding: 0;
+    list-style: none;
 }
 
 body, input{
@@ -27,6 +42,12 @@ input, button, textarea {
     font-size: 14px;
 }
 
+input[type="checkbox"] {
+    opacity: 0;
+    position: absolute;
+    z-index: -3;
+}
+
 button {
     cursor: pointer;
     transition: filter 0.2s ease-in-out;
@@ -36,3 +57,13 @@ button {
 button:hover {
     filter: brightness(0.9);
 }
+
+.flex-row {
+    @extend %flex-base;
+}
+
+.hide {
+    z-index: -10 !important;
+    opacity: 0;
+}
+

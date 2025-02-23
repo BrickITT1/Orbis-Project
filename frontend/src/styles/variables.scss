@@ -3,7 +3,6 @@ $input-color: #1f1e1e;
 $form-color: #2b2a2a;
 $font-color: #dad9d9;
 
-
 $mobile: 320px;
 $tablet: 768px;
 $desktop: 1200px;
@@ -33,3 +32,14 @@ $big: 2080;
         @media (min-width: $desktop) { @content; }
     }
 }
+
+@keyframes fadeIn {
+    from {
+        margin-bottom: 150px;
+      opacity: 0;
+    }
+    to {
+        margin-bottom: 0px;
+      opacity: 1;
+    }
+  }

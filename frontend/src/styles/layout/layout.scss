@@ -1,0 +1,83 @@
+@use '../variables' as *;
+@font-face {
+    font-family: 'Sarpanch';
+    src: url('/fonts/Sarpanch-Regular.ttf');
+}
+
+header {
+    height: 100px;
+    padding: 0 50px;
+    font-size: 18px;
+    align-items: center;
+    justify-content: space-between;
+    color: #fff;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+header:not(.header-background) *{
+    z-index: 2;
+}
+
+header ul {
+    gap: 1em;
+    font-weight: bold;
+}
+
+header ul li{
+    padding: 1em;
+    cursor: pointer;
+    user-select: none;
+}
+
+header ul li:hover {
+    filter: brightness(0.9);
+    text-decoration: underline;
+}
+
+.header-title-app {
+    align-items: center;
+    position: relative;
+    font-family: Sarpanch;
+    gap: 1em;
+    cursor: pointer;
+    user-select: none;
+}
+
+header .header-logo {
+    background: url('/img/ico.svg');
+    background-size: cover;
+    width: 83px;
+    height: 85px;
+}
+
+header .logo-background {
+    background-color: #04122f94;
+    position: absolute;
+    width: 90%;
+    height: 100px;
+    z-index: -1;
+    left: 2em;
+}
+
+header .header-title {
+    font-size: 32px;
+    line-height: 100px;
+    height: 100%;
+}
+
+.header-background {
+    background: linear-gradient(to left, #2663df 0% ,  #0E182D 50%,  #042568 100%);
+    opacity: 0.7;
+    position: absolute;
+    width: 100%;
+    height: 100px;
+    z-index: 1;
+    left: 0;
+}
+
+header .header-button button {
+    font-size: 32px;
+    background-color: #04122f94;
+    padding: 28px;
+    font-family: Sarpanch;
+}
