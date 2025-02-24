@@ -1,0 +1,47 @@
+version: "3.8"
+
+services:
+  app:
+    build: .  # Указывает на текущую директорию, где находится Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=ecto://postgres:admin@db/backend_dev  # Формат, который ожидает Phoenix
+      - SECRET_KEY_BASE=BS1/XQLp6RDVdXARg8xM2pDy+Rq2GfwdOP4aLFi9IZY7ZJ/O6uts2T38qWY/6SFo
+      - PG_USERNAME=postgres
+      - PG_PASSWORD=admin
+      - PG_DBNAME=backend_dev
+      - PG_HOST=db
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: backend_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+volumes:
+  postgres_data:
+  redis_data:
