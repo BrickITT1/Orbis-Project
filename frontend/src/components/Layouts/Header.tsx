@@ -1,10 +1,23 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export const Header = () => {
     const navigator = useNavigate();
+    const [burgerActive, setBurgerActive] = useState(true);
 
+    useEffect(() => {
+        const handleResize = () => {
+            setBurgerActive(window.innerWidth > 1199);
+            setBurgerActive(true)
+        };
+
+        window.addEventListener('resize', handleResize);
+        
+        return () => {
+            window.removeEventListener('resize', handleResize);
+        };
+    }, []);
     return (
 
         <>
@@ -18,8 +31,10 @@ export const Header = () => {
                         ORBIS
                     </div>
                 </div>
+                <button className='burger' onClick={()=>(setBurgerActive(!burgerActive))}><img src="/img/burger.svg" alt="" /></button>
                 <nav>
-                    <ul className='flex-row'>
+                    
+                    <ul className={burgerActive ?'flex-row' : 'importantdisplay flex-col'}>
                         <li >
                             Загрузить
                         </li>

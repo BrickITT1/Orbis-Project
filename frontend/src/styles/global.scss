@@ -18,7 +18,7 @@ body {
     overflow-x: hidden;
 }
 
-body, input, ul, li, h1, h2, h3, h4  {
+body, input, ul, li, h1, h2, h3, h4, p  {
     margin: 0;
     padding: 0;
     list-style: none;
@@ -62,8 +62,55 @@ button:hover {
     @extend %flex-base;
 }
 
+.flex-col {
+    @extend %flex-col;
+}
+
 .hide {
     z-index: -10 !important;
     opacity: 0;
 }
 
+.block-2 {
+    min-height: 50vh;
+    
+    background: rgba(38, 100, 223, 0.377)
+}
+
+.block-1 {
+    min-height: 100vh;
+    
+}
+
+.main-home .main-home__bg {
+    @extend %grid-2;
+    grid-template-columns: 3fr 5fr;
+    padding: 1em;
+    min-height: 70vh;
+    @include respond-to(mobile) {
+        grid-template-columns: 1fr;
+        grid-template-rows: 5fr 3fr;
+    }
+}
+
+.main-home__img {
+    @include respond-to(mobile) {
+        grid-row: 1;
+    }
+}
+
+.main-home__button-container button{
+    width: 300px;
+    background-color:rgba(16, 71, 189, 0.733);
+    padding: 1em;
+}
+
+.main-home__desc, .main-home__buttons {
+    justify-content: center;
+    gap: 1em;
+    flex-wrap: wrap;
+}
+
+.main-home__img {
+    width: 6;
+}

@@ -14,6 +14,12 @@ $big: 2080;
     flex-direction: row;
 }
 
+%grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+}
+
+
 %flex-col {
     display: flex;
     flex-direction: column;
@@ -25,10 +31,10 @@ $big: 2080;
     } @else if $breakpoint == tablet {
         @media (min-width: $tablet) and (max-width: ($desktop - 1)) { @content; }
     } @else if $breakpoint == desktop {
+        @media (min-width: $desktop) and (max-width: ($normal - 1)) { @content; }
+    } @else if $breakpoint == normal {
         @media (min-width: $desktop) { @content; }
-    } @else if $breakpoint == $normal {
-        @media (min-width: $desktop) { @content; }
-    } @else if $breakpoint == $big {
+    } @else if $breakpoint == big {
         @media (min-width: $desktop) { @content; }
     }
 }
