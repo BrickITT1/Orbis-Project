@@ -62,7 +62,9 @@ if config_env() == :prod do
       keyfile: "priv/cert/selfsigned_key.pem",
       certfile: "priv/cert/selfsigned.pem"
     ],
-    secret_key_base: secret_key_base
+    secret_key_base: secret_key_base,
+    cache_static_manifest: "priv/static/cache_manifest.json",
+    root: "priv/static"
 
   # ## SSL Support
   #

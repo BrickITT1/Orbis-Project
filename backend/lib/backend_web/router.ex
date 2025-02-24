@@ -26,7 +26,7 @@ defmodule BackendWeb.Router do
     pipe_through :browser
 
     # Открываем index.html по корневому пути
-    get "/", PageController, :index
+    get "/*path", PageController, :index
   end
 
 end
