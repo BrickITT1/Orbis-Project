@@ -15,6 +15,13 @@ const authSlice = createSlice({
     name: "Auth",
     initialState,
     reducers: {
+        registerStart(state, action: PayloadAction<RegisterForm>) {
+            state.user = action.payload;
+        },
+        registerConfirm(state, action: PayloadAction<RegisterForm>) {
+            state.isAuthentification = true;
+            state.user = undefined;
+        },
         loginSuccess(state, action: PayloadAction<RegisterForm>) {
             state.isAuthentification = true;
             state.user = action.payload;
@@ -29,6 +36,6 @@ const authSlice = createSlice({
     },
 });
 
-export const { loginSuccess, logout, setUser } = authSlice.actions;
+export const { loginSuccess, logout, setUser, registerStart } = authSlice.actions;
 
 export default authSlice.reducer;

@@ -9,12 +9,13 @@ export type LoginForm = {
 }
 
 export type RegisterForm = {
-    email?: string;
-    username?: string;
-    name?: string;
-    password?: string;
-    phoneNumber?: string;
-    age?: age;
+    email?: {email: string, error: string | null};
+    username?: {username: string, error: string | null};
+    name?: {name: string, error: string | null};
+    password?: {password: string, error: string | null};
+    phoneNumber?: {phoneNumber: string, error: string | null};
+    age?: {age: age, error: string | null};
+    confirmPolitical?: {confirmPolitical: boolean, error: string | null}
 };
 
 export type age = {

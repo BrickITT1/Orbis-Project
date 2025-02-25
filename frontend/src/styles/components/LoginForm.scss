@@ -84,6 +84,7 @@
     width: 100px;
     z-index: 1;
     overflow: scroll;
+    overflow-x: hidden;
 }
 
 .login-main .custom-option {
@@ -107,4 +108,16 @@
 
 .email-confirm input{
     display: block;
+    text-align: center;
+}
+
+.require {
+    color: #ffa0a0;
+    font-size: 14px;
+}
+
+.errors-container {
+    color: #ffa0a0;
+    font-size: 14px;
+    text-align: center;
 }
