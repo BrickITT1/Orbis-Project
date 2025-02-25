@@ -43,14 +43,14 @@ export const Login = () =>  {
                 <div className="input-container">
                     <label htmlFor="">Адрес электронной почты</label>
                     <div className="">
-                        <input type="text" name="email" value={LoginForm.email} onChange={(e) => handlerChange(e)} />
+                        <input type="text" name="email" value={LoginForm.email} onChange={(e) => handlerChange(e)} required/>
                         
                     </div>
                 </div>
                 <div className="input-container">
                     <label htmlFor="">Пароль</label>
                     <div className="">
-                        <input type="password" name="password" value={LoginForm.password} onChange={(e) => handlerChange(e)}/>
+                        <input type="password" name="password" value={LoginForm.password} onChange={(e) => handlerChange(e)} required/>
                     </div>
                 </div>
                 <span><a href="" onClick={(e) => e.preventDefault()}>Забыли пароль</a></span>

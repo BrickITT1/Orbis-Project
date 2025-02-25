@@ -9,6 +9,27 @@ interface authState {
 
 const initialState: authState = {
     isAuthentification: false,
+    user: {
+            email: {email: "", error: {
+                blocked: "",
+                format: ""
+            }},
+            username: {username: "", error: ""},
+            name: {name: "", error: ""},
+            password: {password: "", error: {
+                format: "",
+                blocked: ""
+            }},
+            age: {
+                age: {
+                    day: undefined,
+                    month: undefined,
+                    year: undefined,
+                },
+                error: ""
+            },
+            confirmPolitical: {confirmPolitical: false, error: ""}
+        }
 };
 
 const authSlice = createSlice({
@@ -19,8 +40,8 @@ const authSlice = createSlice({
             state.user = action.payload;
         },
         registerConfirm(state, action: PayloadAction<RegisterForm>) {
-            state.isAuthentification = true;
-            state.user = undefined;
+            state.isAuthentification = false;
+            state.user = initialState.user;
         },
         loginSuccess(state, action: PayloadAction<RegisterForm>) {
             state.isAuthentification = true;
@@ -36,6 +57,6 @@ const authSlice = createSlice({
     },
 });
 
-export const { loginSuccess, logout, setUser, registerStart } = authSlice.actions;
+export const { loginSuccess, logout, setUser, registerStart, registerConfirm } = authSlice.actions;
 
 export default authSlice.reducer;

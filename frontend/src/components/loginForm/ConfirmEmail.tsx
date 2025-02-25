@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
+import { registerConfirm } from '../../features/auth/authSlices';
 
 export const ConfirmEmail = () => {
     const navigator = useNavigate();
@@ -8,6 +9,7 @@ export const ConfirmEmail = () => {
     const registerData = useAppSelector(state => state.auth.user);
     const [code, setCode] = useState(Array(5).fill('')); // Инициализация пустыми строками
     const inputRefs = useRef<(HTMLInputElement | null)[]>([]); // Рефы для input
+    
 
     const handlerChange = (e: React.ChangeEvent<HTMLInputElement>, idx: number) => {
         const { value } = e.target;
@@ -58,7 +60,8 @@ export const ConfirmEmail = () => {
     };
 
     const handleRegister = () => {
-        
+        dispatch(registerConfirm({}))
+        navigator('/')
     }
 
     return (
@@ -90,7 +93,7 @@ export const ConfirmEmail = () => {
                 </div>
 
                 <div className="">
-                    <button>Зарегистрироваться</button>
+                    <button onClick={handleRegister}>Зарегистрироваться</button>
                 </div>
 
                 <span>

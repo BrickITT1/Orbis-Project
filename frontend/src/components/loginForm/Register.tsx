@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { RegisterForm } from '../../services/types';
-import { getDaysInMonth } from '../../utils/check';
+import { getDaysInMonth, validateRegisterData } from '../../utils/check';
 import { registerStart } from '../../features/auth/authSlices';
-import { useAppDispatch } from '../../app/hooks';
+import { useAppDispatch, useAppSelector } from '../../app/hooks';
+import { useCheckEmailQuery, useCheckUserQuery } from '../../services/auth';
 
 interface datebirth {
     day: boolean;
@@ -11,129 +12,189 @@ interface datebirth {
     year: boolean;
 }
 
-interface datesbirth {
-    mounth: number[];
-    year: number[];
-}
+const initialDateState = { day: false, mounth: false, year: false };
 
-const dateActiveInit: datebirth = {
-    day: false,
-    mounth: false,
-    year: false
-}
+type FieldType = 'name' | 'email' | 'password';
 
-let dateNumbs: datesbirth = {
-    mounth: [],
-    year: []
-};
+const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
-// Заполнение массива годов
-for (let year = new Date().getFullYear(); year >= 1900; year--) {
-    dateNumbs.year.push(year);
-}
+const passwordRegex = /^(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?])(?=.*[A-Z])(?=.*\d).+$/;
 
-// Заполнение массива месяцев (от 1 до 12)
-for (let month = 1; month <= 12; month++) {
-    dateNumbs.mounth.push(month);
-}
+const useDebounce = <T extends unknown>(value: T, delay: number): T => {
+    const [debouncedValue, setDebouncedValue] = useState<T>(value);
+  
+    useEffect(() => {
+      const handler = setTimeout(() => {
+        setDebouncedValue(value);
+      }, delay);
+  
+      return () => {
+        clearTimeout(handler);
+      };
+    }, [value, delay]);
+  
+    return debouncedValue;
+  };
 
 export const Register = () =>  {
     const navigator = useNavigate();
     const dispatch = useAppDispatch();
-    const [dateActive, setDateActive] = useState<datebirth>(dateActiveInit)
-    const [registerData, setRegisterData] = useState<RegisterForm>({
-        email: {email: "", error: ""},
-        username: {username: "", error: ""},
-        name: {name: "", error: ""},
-        password: {password: "", error: ""},
-        phoneNumber: {phoneNumber: "", error: ""},
-        age: {
-            age: {
-                day: undefined,
-                month: undefined,
-                year: undefined,
-            },
-            error: ""
-        },
-        confirmPolitical: {confirmPolitical: false, error: ""}
-    })
+    
+    const saveData = useAppSelector(state => state.auth.user)
+    const [dateActive, setDateActive] = useState<datebirth>(initialDateState)
+
+    const [registerData, setRegisterData] = useState<RegisterForm>(saveData as RegisterForm)
     const [Days, setDays] = useState<string[]>([]);
+    const debouncedUsername = useDebounce(registerData.name?.name || '', 300);
+    const debouncedEmail = useDebounce(registerData.email?.email || '', 300);
+    const debouncedPassword = useDebounce(registerData.password?.password || '', 300);
+
+    const { data: checkUsername, refetch: checkUsernameAPI, isLoading, isError: isErrorName } = useCheckUserQuery(debouncedUsername || "", { skip: !debouncedUsername });
+    const { data: checkEmail, refetch: checkEmailAPI , isLoading: isLoadingEmail, isError: isErrorEmail } = useCheckEmailQuery(debouncedEmail || "", { skip: !debouncedEmail });
+    
+    const dateNumbs = useMemo(() => ({
+        mounth: Array.from({ length: 12 }, (_, i) => i + 1),
+        year: Array.from({ length: new Date().getFullYear() - 1899 }, (_, i) => new Date().getFullYear() - i)
+      }), []);
+
+    const updateError = (field: FieldType, error: string | { format: string; blocked: string }) => {
+        setRegisterData(prev => ({
+            ...prev,
+            [field]: {
+                ...prev[field],
+                error: typeof error === 'string' ? { format: error, blocked: '' } : error
+            }
+        }));
+    };
+    
+    useEffect(() => {
+        if (isErrorName) {
+            updateError("name", "Username is invalid");
+        }
+    }, [isErrorName]);
 
     useEffect(() => {
-        if (registerData.age && registerData.age.age.month && registerData.age.age.year) {
-            const daysInMonth = getDaysInMonth(Number(registerData.age.age.year), Number(registerData.age.age.month) - 1);
-            setDays(daysInMonth);
-            
-            if (registerData.age.age.day && registerData.age.age.day > daysInMonth.length) {
-                setRegisterData({ ...registerData, age: {...registerData.age, age: {...registerData.age.age, day: daysInMonth.length }} });
-            }
+        if (isErrorEmail) {
+            updateError('email', { format: registerData.email?.error.format || '' , blocked: 'This Email blocked' });
         }
-    }, [registerData.age]);
+    }, [isErrorEmail]);
 
-    const handleInputFocus = (target: keyof datebirth) => {
-        setDateActive(dateActiveInit)
-        setDateActive({...dateActive, [target]: true})
-    }
-
-    const handleInputBlur = (target: keyof datebirth) => {
-        setDateActive(dateActiveInit)
-        setDateActive({...dateActive, [target]: false})
-    }
-
-    const handlerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
+    useEffect(() => {
+        
+        if (!emailRegex.test(debouncedEmail)) {
+          updateError('email', { format: 'uncorrect format', blocked: registerData.email?.error.blocked || '' });
+        }
+      }, [debouncedEmail]);
     
-        // Use type assertion to specify that name is a key of RegisterForm
+    useEffect(() => {
+        const errors = {
+            format: !passwordRegex.test(debouncedPassword) ? 'un correct format' : '',
+            blocked: debouncedPassword.length < 8 ? 'min length 8' : ''
+        };
+
+        if (errors.format || errors.blocked) {
+            updateError('password', errors);
+        }
+    }, [debouncedPassword]);
+
+    const daysInMonth = useMemo(() => {
+        if (registerData.age?.age?.month && registerData.age?.age?.year) {
+          return getDaysInMonth(
+            Number(registerData.age.age.year),
+            Number(registerData.age.age.month) - 1
+          );
+        }
+        return [];
+    }, [registerData.age?.age?.month, registerData.age?.age?.year]);
+
+    useEffect(() => {
+        setDays(daysInMonth);
+    }, [daysInMonth]);
+
+    const handleInputFocus = useCallback((target: keyof datebirth) => {
+        setDateActive(initialDateState)
+        setDateActive({...dateActive, [target]: true})
+    }, [])
+
+    const handleInputBlur = useCallback((target: keyof datebirth) => {
+        setDateActive(initialDateState)
+        setDateActive({...dateActive, [target]: false})
+    }, [])
+
+    const handlerChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target;   
+
         setRegisterData(prevState => ({
             ...prevState,
             [name]: {
                 ...prevState[name as keyof RegisterForm], // Assert name as a key of RegisterForm
                 [name]: value,
-                error: "" // Optionally reset the error if needed
+                error: name === 'email' || name === 'password' 
+                    ? { format: '', blocked: '' } 
+                    : '' 
             }
         }));
-    };
+        
+    }, []);
 
     const handlerChangeCheckBox = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setRegisterData({ ...registerData, [e.target.name]: !registerData.confirmPolitical });
+        setRegisterData({ ...registerData, 
+            confirmPolitical: {
+                confirmPolitical: !registerData.confirmPolitical?.confirmPolitical,
+                error: ""
+        } });
     };
 
     const handlerChangeAge = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setDateActive(dateActiveInit)
-        setDateActive({...dateActive, [e.target.name]: true})
-        const value = e.target.value.replace(/[a-zA-Zа-яА-ЯёЁ]/g, '');
-
-        if (value[value.length - 1] && !value[value.length - 1].match(/^[0-9]+$/)) {
-            setRegisterData({ ...registerData, age: {age: { ...registerData.age?.age, [e.target.name]: 0 }, error: "" }});
+        const { name, value } = e.target;
+        const cleanedValue = value.replace(/[^0-9]/g, ''); // Удаляем все символы, кроме цифр
+    
+        // Устанавливаем начальное состояние для dateActive
+        setDateActive(prev => ({ ...initialDateState, [name]: true }));
+    
+        // Функция для обновления registerData
+        const updateRegisterData = (newValue: number | string, resetDay: boolean = false) => {
+            setRegisterData(prev => ({
+                ...prev,
+                age: {
+                    age: {
+                        ...prev.age?.age,
+                        [name]: newValue,
+                        ...(resetDay && { day: 1 }), // Сбрасываем день на 1, если resetDay = true
+                    },
+                    error: ""
+                }
+            }));
+        };
+    
+        // Проверка на валидность значения
+        if (!cleanedValue || !cleanedValue.match(/^[0-9]+$/)) {
+            updateRegisterData(0, true);
             return;
         }
-
-        if (e.target.name == 'year' && Number(value) > new Date().getFullYear()) {
-            setRegisterData({ ...registerData, age: {age: { ...registerData.age?.age, [e.target.name]: new Date().getFullYear() }, error: "" }});
-            return
+    
+        const numericValue = Number(cleanedValue);
+        let finalValue = numericValue;
+    
+        // Проверка на максимальные значения для года, месяца и дня
+        if (name === 'year') {
+            finalValue = Math.min(numericValue, new Date().getFullYear());
+            updateRegisterData(finalValue, true); // Сбрасываем день при изменении года
+        } else if (name === 'month') {
+            finalValue = Math.min(numericValue, 12);
+            updateRegisterData(finalValue, true); // Сбрасываем день при изменении месяца
+        } else if (name === 'day') {
+            finalValue = Math.min(numericValue, Days.length);
+            updateRegisterData(finalValue);
         }
-
-        if (e.target.name == 'month' && Number(value) > 12) {
-            
-            setRegisterData({ ...registerData, age: {age: { ...registerData.age?.age, [e.target.name]: 12 }, error: "" }});
-            return
-        }
-
-        if (e.target.name == 'day' && Number(value) > Days.length) {
-            
-            setRegisterData({ ...registerData, age: {age: { ...registerData.age?.age, [e.target.name]: Days.length }, error: "" }});
-            return
-        }
-
-        setRegisterData({ ...registerData, age: {age: { ...registerData.age?.age, [e.target.name]: value }, error: "" }});
-        
-        
     };
 
     const checkData = () => {
-        
-        dispatch(registerStart(registerData));
-        navigator('/confirm')
+        if (validateRegisterData(registerData)) {
+            console.log(registerData)
+            dispatch(registerStart(registerData));
+            navigator('/confirm')
+        }
     }
 
     return ( 
@@ -142,12 +203,14 @@ export const Register = () =>  {
                 <h1>Создать учётную запись</h1>
                 <div className="input-container">
                     <label htmlFor="">E-mail <span className='require'>*</span> </label>
-                    <input type="text" name='email' onChange={(e) => handlerChange(e)}/>
+                    <input type="text" name='email' onChange={(e) => handlerChange(e)} required value={registerData.email?.email}/>
+                    {!(registerData.email?.error.blocked === "") && (debouncedEmail !== "") ? <span className='require'>Это почта используется.</span> : null}
+                    {!(registerData.email?.error.format === "") && (debouncedEmail !== "") ? <span className='require'>Не правильный формат почты.</span> : null}
                 </div>
                 <div className="input-container">
                     <label htmlFor="">Отображаемое Имя</label>
                     <div className="">
-                        <input type="text" name='username' onChange={(e) => handlerChange(e)}/>
+                        <input type="text" name='username' onChange={(e) => handlerChange(e)} value={registerData.username?.username}/>
                     </div>
 
                 </div>
@@ -155,18 +218,18 @@ export const Register = () =>  {
                 <div className="input-container">
                     <label htmlFor="">Имя пользователя <span className='require'>*</span></label>
                     <div className="">
-                        <input type="text" name='name' onChange={(e) => handlerChange(e)}/>
+                        <input type="text" name='name' onChange={(e) => handlerChange(e)} required value={registerData.name?.name}/>
                     </div>
-                    <span className='require'>Это имя занято. Попробуйте добавить цифры, буквы, нижнее подчёркивание</span>
+                    {!(registerData.name?.error === "") ? <span className='require'>Это имя занято. Попробуйте добавить цифры, буквы, нижнее подчёркивание</span> : null}
                 </div>
 
                 <div className="input-container">
                     <label htmlFor="">Пароль <span className='require'>*</span></label>
                     <div className="">
-                        <input type="password" name='password' onChange={(e) => handlerChange(e)}/>
+                        <input type="password" name='password' onChange={(e) => handlerChange(e)} required value={registerData.password?.password}/>
                     </div>
-                    <span className='require'>Введите не менее 8 символов</span><br />
-                    <span className='require'>Пароль не надёжный</span>
+                    {!(registerData.password?.error.blocked === "") && debouncedPassword !== "" ? <><span className='require'>Введите не менее 8 символов</span><br /></>: null}
+                    {!(registerData.password?.error.format === "") && debouncedPassword !== "" ? <><span className='require'>Пароль не надёжный: 1-цифра, 1-Капс, 1-Спец символ</span><br /></>: null}
                 </div>
 
                 <div className="date-container">
@@ -180,6 +243,7 @@ export const Register = () =>  {
                                 onFocus={() => handleInputFocus("year")}
                                 onBlur={() => handleInputBlur("year")}
                                 onChange={(e) => handlerChangeAge(e)}
+                                required
                                 />
                             <div className={dateActive.year ? "custom-select" : "custom-select hide"}>
                                 {dateNumbs.year.map((val: number)=>(
@@ -196,8 +260,9 @@ export const Register = () =>  {
                                                     error: ""
                                                 },
                                                 age: {
-                                                    ...prevState.age?.age, // Use optional chaining to safely access age
-                                                    year: val // Set the year to val
+                                                    ...prevState.age?.age, 
+                                                    year: val, 
+                                                    ...({ day: 1 })
                                                 },
                                                 error: "" // Optionally reset the error if needed
                                             }
@@ -216,6 +281,7 @@ export const Register = () =>  {
                                 onFocus={() => handleInputFocus("mounth")}
                                 onBlur={() => handleInputBlur("mounth")}
                                 onChange={(e) => handlerChangeAge(e)}
+                                required
                             />
                             <div className={dateActive.mounth ? "custom-select" : "custom-select hide"}>
                                 {dateNumbs.mounth.map((val: number)=>(
@@ -233,7 +299,8 @@ export const Register = () =>  {
                                                 },
                                                 age: {
                                                     ...prevState.age?.age, // Use optional chaining to safely access age
-                                                    month: val // Set the year to val
+                                                    month: val, // Set the year to val
+                                                    ...({ day: 1 }),
                                                 },
                                                 error: "" // Optionally reset the error if needed
                                             }
@@ -249,7 +316,7 @@ export const Register = () =>  {
                                 value={registerData.age?.age.day === undefined ? "Дата" : registerData.age?.age.day} 
                                 onFocus={() => handleInputFocus("day")}
                                 onBlur={() => handleInputBlur("day")}
-                                
+                                required
                                 onChange={(e) => handlerChangeAge(e)}
                                 disabled={registerData.age?.age.month && registerData.age.age.year ? false: true}
                             />
@@ -269,13 +336,15 @@ export const Register = () =>  {
                     </div>
                 </div>
                 <div className="">
-                    <input 
-                        type="checkbox" 
-                        name="confirmPolitical" 
-                        id="first-confirm" 
-                        checked={registerData.confirmPolitical?.confirmPolitical} 
-                        onChange={(e) => handlerChangeCheckBox(e)}
-                    /> 
+                <input 
+                    type="checkbox" 
+                    name="confirmPolitical" 
+                    id="first-confirm" 
+                    checked={registerData.confirmPolitical?.confirmPolitical} 
+                    onChange={(e) => handlerChangeCheckBox(e)}
+                    required
+                />
+
                     <label 
                         htmlFor="first-confirm"
                     >Подтверждаю ознакомление и согласие с <a href="">Условиями пользования</a> и <a href="">Политикой конфидинциальности</a> Orbis
@@ -283,8 +352,9 @@ export const Register = () =>  {
                 </div>
 
                 <div className="">
-                    <button onClick={(e) => {
-                        e.preventDefault();checkData()
+                    <button type='submit' onClick={(e) => {
+                        e.preventDefault();
+                        checkData()
                     }}>Продолжить</button>
                 </div>
                 <span><a href="" onClick={(e) => {

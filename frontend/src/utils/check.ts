@@ -1,14 +1,50 @@
 import { LoginForm, RegisterForm } from "../services/types";
 
 export const loginFormChecker = (form: LoginForm) => {
-    if (form.email == "" || form.password == "") {
-        return ""
+    if (!form.email || !form.password) {
+        return false
     }
 }
 
-export const RegisterFormChecker = (form: RegisterForm) => {
+export const errors = {
+    all: ["require"],
+    password: ["length", "format"],
+    username: ["blocked"],
+    email: ["format"]
+};
+
+export const validateRegisterData = (registerData: RegisterForm): boolean => {
+    if (!registerData.email?.email || registerData.email.error.format || registerData.email.error.blocked) {
+        return false;
+    }
+
+    if (!registerData.username?.username || registerData.username.error) {
+        return false;
+    }
     
-}
+    if (!registerData.name?.name || registerData.name.error) {
+        return false;
+    }   
+
+    if (!registerData.password?.password || registerData.password.error.format || registerData.password.error.blocked) {
+        return false;
+    }
+    
+    if (
+        !registerData.age?.age.day ||
+        !registerData.age.age.month ||
+        !registerData.age.age.year ||
+        registerData.age.error
+    ) {
+        return false;
+    }
+
+    if (registerData.confirmPolitical) {
+        return false;
+    }
+
+    return true;
+};
 
 
 export const getDaysInMonth = (year: number, month: number) => {
