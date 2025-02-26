@@ -14,6 +14,25 @@ export const userApi = createApi({
                 body: data,
             }),
         }),
+        checkUser: builder.query({
+            query: (name: string) => ({
+                url: `/checkname/?name=${name}`,
+                method: "GET",
+            }),
+        }),
+        checkEmail: builder.query({
+            query: (email: string) => ({
+                url: `/checkemail/?email=${email}`,
+                method: "GET",
+            }),
+        }),
+        confirmUser: builder.mutation({
+            query: (data) => ({
+                url: `/confirm`,
+                method: "POST",
+                body: data,
+            }),
+        }),
         logoutUser: builder.mutation({
             query: () => ({
                 url: `/logout`,
@@ -41,4 +60,6 @@ export const {
     useLogoutUserMutation,
     useRegisterUserMutation,
     useCheckAuthQuery,
+    useCheckUserQuery,
+    useCheckEmailQuery
 } = userApi;
