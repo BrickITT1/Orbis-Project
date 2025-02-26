@@ -5,6 +5,7 @@ import { LoginPage } from "./pages/LoginPage";
 import { store } from "./app/store";
 import { Provider } from "react-redux";
 import { PagesRouter } from "./router/PagesRouter";
+import { Main } from "./components/Layouts/Main";
 
 // Найдите корневой элемент
 const rootElement: HTMLElement | null = document.getElementById("root");
@@ -15,6 +16,7 @@ if (rootElement) {
     root.render(
         <StrictMode>
             <Provider store={store}>
+                <Main></Main>
                 <div className="container">
                     <PagesRouter />
                 </div>
