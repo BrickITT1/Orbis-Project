@@ -1,13 +1,5 @@
 @use '../variables' as *;
 
-.login-main {
-    max-width: 520px;
-    margin: 0 auto;
-    display: grid;
-    align-items: center;
-    min-height: 100vh;
-}
-
 .logib-logo {
     position: absolute;
     top: 1em;
@@ -16,120 +8,158 @@
     user-select: none;
 }
 
-.login-main form label, .login-main a {
-    padding: 0.1em;
-    color: $font-color;
+.login-main {
+    max-width: 520px;
+    margin: 0 auto;
+    display: grid;
+    align-items: center;
+    min-height: 100vh;
+
+        
+    form label, a {
+        padding: 0.1em;
+        color: $font-color;
+    }
+    
+    form {
+        @extend %flex-col !optional;
+        background: linear-gradient( #04122f7c, #1025687c, #04122f7c);
+        width: 100%;
+        padding: 2em;
+        animation: fadeIn 0.3s ease-in-out;
+        gap: 2em;
+    }
+    
+    input, button {
+        padding: 0.7em;
+        background-color: transparent;
+        
+    }
+
+    input {
+        border-bottom: 1px solid #fff;
+    }
+
+    button {
+        background: linear-gradient(to left, #04122f, #102568, #04122f);
+        border-radius: 5px;
+        width: 50%;
+    }
+    
+    div.but:has(button) {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    h1 {
+        text-align: center;
+        padding: 0.3em;
+    }
+    
+    label[for="first-confirm"] {
+        position: relative;
+        text-indent: 15px;
+        display: block;
+        cursor: pointer;
+        user-select: none;
+    }
+    
+    label[for="first-confirm"]::before {
+        content: '';
+        width: 10px;
+        height: 10px;
+        left: 2px;
+        top: 8px;
+        position: absolute;
+        border: 1px solid #fff;
+    }
+    
+    input[type="checkbox"]:checked + label[for="first-confirm"]::before {
+        background-color: #fff;
+    }
+    
+    .date-container input{
+        width: 100px;
+    }
+    
+    .custom-date {
+        gap: 1em;
+    }
+    
+    .custom-select {
+        height: 190px;
+        background-color: $input-color;
+        position: absolute;
+        width: 100px;
+        z-index: 1;
+        overflow: scroll;
+        overflow-x: hidden;
+    }
+
+    .custom-select input {
+        border: 1px solid #fff;
+    }
+    
+    .custom-option {
+        padding: 0.5em;
+        background-color: $input-color;
+        cursor: pointer;
+        width: 100%;
+    }
+    
+    .custom-option:hover {
+        filter: brightness(1.3);
+    }
+    
+   .custom-input__select {
+        position: relative;
+    }
+    
+    .email-confirm {
+        gap: 1em;
+    }
+    
+    .email-confirm input{
+        display: block;
+        text-align: center;
+    }
+    
+    .require {
+        color: #ffa0a0;
+        font-size: 14px;
+    }
+    
+    .errors-container {
+        color: #ffa0a0;
+        font-size: 14px;
+        text-align: center;
+    }
+    
+    .input-container label:has(span.require-err), .date-container label:has(span.require-err){ 
+        color:  #ffa0a0;
+    }
+    
+    .form-timer {
+        position: absolute;
+        font-size: 10px;
+        right: 220px;
+        top: 0;
+        user-select: none;
+    }
+    
+    .code-button {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 200px;
+    }
+
+    .code-button button {
+        width: 100%;
+        background: transparent;
+        outline: 1px solid #fff;
+        border-radius: 0%;
+    }
 }
 
-.login-main form {
-    @extend %flex-col !optional;
-    background-color: $form-color;
-    width: 100%;
-    padding: 1em;
-    gap: 0.5em;
-    animation: fadeIn 0.3s ease-in-out;
-}
-
-.login-main form input {
-    padding: 0.7em;
-}
-
-.login-main form button {
-    padding: 0.7em;
-}
-
-.login-main h1 {
-    text-align: center;
-    padding: 0.3em;
-}
-
-.login-main a {
-    text-align: center;
-}
-
-.login-main label[for="first-confirm"] {
-    position: relative;
-    text-indent: 15px;
-    display: block;
-    cursor: pointer;
-    user-select: none;
-}
-
-.login-main label[for="first-confirm"]::before {
-    content: '';
-    width: 10px;
-    height: 10px;
-    left: 2px;
-    top: 8px;
-    position: absolute;
-    border: 1px solid #fff;
-}
-
-.login-main input[type="checkbox"]:checked + label[for="first-confirm"]::before {
-    background-color: #fff;
-}
-
-.login-main .date-container input{
-    width: 100px;
-}
-
-.login-main .custom-date {
-    gap: 1em;
-}
-
-.login-main .custom-select {
-    height: 190px;
-    background-color: $input-color;
-    position: absolute;
-    width: 100px;
-    z-index: 1;
-    overflow: scroll;
-    overflow-x: hidden;
-}
-
-.login-main .custom-option {
-    padding: 0.5em;
-    background-color: $input-color;
-    cursor: pointer;
-    width: 100%;
-}
-
-.login-main .custom-option:hover {
-    filter: brightness(0.9);
-}
-
-.login-main .custom-input__select {
-    position: relative;
-}
-
-.email-confirm {
-    gap: 1em;
-}
-
-.email-confirm input{
-    display: block;
-    text-align: center;
-}
-
-.require {
-    color: #ffa0a0;
-    font-size: 14px;
-}
-
-.errors-container {
-    color: #ffa0a0;
-    font-size: 14px;
-    text-align: center;
-}
-
-.input-container label:has(span.require-err), .date-container label:has(span.require-err){ 
-    color:  #ffa0a0;
-}
-
-.form-timer {
-    position: absolute;
-    font-size: 10px;
-    right: 0;
-    top: 0;
-    user-select: none;
-}

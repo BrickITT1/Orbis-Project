@@ -69,7 +69,7 @@ export const Login = () =>  {
                 </div>
                 <div className="">
                     <span><a href="" onClick={(e) => e.preventDefault()}>Забыли пароль</a></span>
-                    <div className="">
+                    <div className="but">
                         <button onClick={() => onLogIn()}>Вход</button>
                     </div>
                 </div>

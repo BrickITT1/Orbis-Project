@@ -108,38 +108,42 @@ export const ConfirmEmail = () => {
         <>
             <form action="" method='POST' onSubmit={(e) => e.preventDefault()}>
                 <h1>Подтверждение E-mail</h1>
-                <label htmlFor="">Ваша Почта</label>
-                <div className="relative">
-                    <input type="text" readOnly value={registerData?.email?.email || ''} />
-                    {
-                    isCode ? <Timer /> : null
-                }
-                </div>
-                <div className="">
-                    <button onClick={handleGetCode}>Отправить код</button>
-                </div>
-                <label htmlFor="">Введите код</label>
-                <div className="email-confirm flex-row">
-                    {code.map((_, index) => (
-                        <div key={index}>
-                            <input
-                                type="text"
-                                value={code[index]}
-                                onChange={(e) => handlerChange(e, index)}
-                                onFocus={() => handleFocus(index)}
-                                onKeyDown={(e) => handleKeyDown(e, index)}
-                                maxLength={1} // Ограничиваем ввод одним символом
-                                ref={(el) => (inputRefs.current[index] = el)} // Сохраняем ref
-                            />
+                    <div className="">
+                        <label htmlFor="">Ваша Почта</label>
+                        <div className="relative">
+                            <input type="text" style={{width: "320px"}} readOnly value={registerData?.email?.email || ''} />
+                            {
+                            isCode ? <Timer /> : null
+                        }
+                        <div className="code-button">
+                            <button onClick={handleGetCode}>Отправить код</button>
                         </div>
-                    ))}
-                </div>
+                    </div>
                 
-                <div className="">
+                    </div>
+                    <div className="">
+                    <label htmlFor="">Введите код</label>
+                        <div className="email-confirm flex-row">
+                            {code.map((_, index) => (
+                                <div key={index}>
+                                    <input
+                                        type="text"
+                                        value={code[index]}
+                                        onChange={(e) => handlerChange(e, index)}
+                                        onFocus={() => handleFocus(index)}
+                                        onKeyDown={(e) => handleKeyDown(e, index)}
+                                        maxLength={1} // Ограничиваем ввод одним символом
+                                        ref={(el) => (inputRefs.current[index] = el)} // Сохраняем ref
+                                    />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                
+                
+                <div className="flex-col but" style={{gap: "2em"}}>
                     <button onClick={handleRegister}>Зарегистрироваться</button>
-                </div>
-
-                <span>
+                    <span style={{width: '100%'}}>
                     <a
                         href=""
                         onClick={(e) => {
@@ -150,6 +154,9 @@ export const ConfirmEmail = () => {
                         Назад
                     </a>
                 </span>
+                </div>
+
+                
             </form>
         </>
     );

@@ -281,7 +281,7 @@ export const Register = () =>  {
                 <div className="date-container">
                     <label >
                         Дата рождения 
-                        <span className='require '>*</span>
+                        <span className='require '> *</span>
                         {registerData.age?.error?.require === 'require' ? <span className='require require-err'> Обязательно</span> : null}
                     </label>
                     <div className="flex-row custom-date">
@@ -407,7 +407,7 @@ export const Register = () =>  {
                     </label>
                 </div>
 
-                <div className="">
+                <div className="but">
                     <button type='submit' onClick={(e) => {
                         e.preventDefault();
                         checkData()

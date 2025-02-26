@@ -103,8 +103,9 @@ button:hover {
 
 .main-home__button-container button{
     width: 300px;
-    background-color:rgba(16, 71, 189, 0.733);
+    background: linear-gradient(to left, #04122f, #102568, #04122f);
     padding: 1em;
+    box-shadow: 0px 0px 30px 10px #ffffff18;
 }
 
 .main-home__desc, .main-home__buttons {
@@ -113,8 +114,22 @@ button:hover {
     flex-wrap: wrap;
 }
 
+.main-home__buttons {
+    gap: 3em;
+}
+
 .main-home__img {
     width: 6;
+}
+
+.main-title {
+    font-size: 3rem;
+    text-shadow: 0 0px 10px #5788EB;
+}
+
+.main-description {
+    
+    text-shadow: 0 0px 10px #5788EB;
 }
 
 .importantdisplay {
