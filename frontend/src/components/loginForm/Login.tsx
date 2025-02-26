@@ -17,13 +17,27 @@ export const Login = () =>  {
     const dispatch = useAppDispatch();
     const navigator = useNavigate();
 
+    // useEffect(() => {
+    //         const handleContextMenu = (event: MouseEvent) => {
+    //           event.preventDefault();
+    //         };
+        
+    //         document.addEventListener('contextmenu', handleContextMenu);
+        
+    //         return () => {
+    //           document.removeEventListener('contextmenu', handleContextMenu);
+    //         };
+    //       }, []);
+
     const onLogIn = async () => {
         try {
-            
-            const response = await loginUser(LoginForm).unwrap();
+            if (LoginForm.email && LoginForm.password) {
+                const response = await loginUser(LoginForm).unwrap();
                 
-            //dispatch(loginSuccess(response?.user));
-            navigator("/");
+                //dispatch(loginSuccess(response?.user));
+                navigator("/");
+            }
+            
         } catch (err: any) {
             setError(true)
         }
@@ -41,22 +55,25 @@ export const Login = () =>  {
                     Неверное имя пользователя или пароль 
                 </div>
                 <div className="input-container">
-                    <label htmlFor="">Адрес электронной почты</label>
+                    <label htmlFor="">Адрес электронной почты <span className='require'>*</span></label>
                     <div className="">
                         <input type="text" name="email" value={LoginForm.email} onChange={(e) => handlerChange(e)} required/>
                         
                     </div>
                 </div>
                 <div className="input-container">
-                    <label htmlFor="">Пароль</label>
+                    <label htmlFor="">Пароль <span className='require'>*</span></label>
                     <div className="">
                         <input type="password" name="password" value={LoginForm.password} onChange={(e) => handlerChange(e)} required/>
                     </div>
                 </div>
-                <span><a href="" onClick={(e) => e.preventDefault()}>Забыли пароль</a></span>
                 <div className="">
-                    <button onClick={() => onLogIn()}>Вход</button>
+                    <span><a href="" onClick={(e) => e.preventDefault()}>Забыли пароль</a></span>
+                    <div className="">
+                        <button onClick={() => onLogIn()}>Вход</button>
+                    </div>
                 </div>
+                
                 <span><a href="" onClick={(e) => {
                     e.preventDefault();
                     navigator("/register")

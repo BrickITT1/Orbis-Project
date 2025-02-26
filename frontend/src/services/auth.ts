@@ -61,5 +61,6 @@ export const {
     useRegisterUserMutation,
     useCheckAuthQuery,
     useCheckUserQuery,
-    useCheckEmailQuery
+    useCheckEmailQuery,
+    useConfirmUserMutation
 } = userApi;
