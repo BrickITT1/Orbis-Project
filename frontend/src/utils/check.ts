@@ -14,11 +14,12 @@ export const errors = {
 };
 
 export const validateRegisterData = (registerData: RegisterForm): boolean => {
-    if (!registerData.email?.email || registerData.email.error.format || registerData.email.error.blocked) {
+    if (!registerData.email?.email || registerData.email.error) {
         return false;
     }
-
+    
     if (!registerData.username?.username || registerData.username.error) {
+        
         return false;
     }
     
@@ -26,7 +27,7 @@ export const validateRegisterData = (registerData: RegisterForm): boolean => {
         return false;
     }   
 
-    if (!registerData.password?.password || registerData.password.error.format || registerData.password.error.blocked) {
+    if (!registerData.password?.password || registerData.password.error) {
         return false;
     }
     
@@ -38,8 +39,8 @@ export const validateRegisterData = (registerData: RegisterForm): boolean => {
     ) {
         return false;
     }
-
-    if (registerData.confirmPolitical) {
+    
+    if (!registerData.confirmPolitical?.confirmPolitical) {
         return false;
     }
 

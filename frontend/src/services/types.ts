@@ -8,14 +8,20 @@ export type LoginForm = {
     password?: string;
 }
 
+export type ErrorType = {
+    blocked: string, 
+    format: string, 
+    require: string
+}
+
+
 export type RegisterForm = {
-    email?: {email: string, error: {format: string, blocked: string}};
-    username?: {username: string, error: string | null};
-    name?: {name: string, error: string | null};
-    password?: {password: string, error: {blocked: string, format: string}};
-    phoneNumber?: {phoneNumber: string, error: string | null};
-    age?: {age: age, error: string | null};
-    confirmPolitical?: {confirmPolitical: boolean, error: string | null}
+    email?: {email: string, error?: ErrorType | undefined};
+    username?: {username: string, error?: ErrorType| undefined};
+    name?: {name: string, error?: ErrorType| undefined};
+    password?: {password: string, error?: ErrorType| undefined};
+    age?: {age: age, error?: ErrorType | undefined};
+    confirmPolitical?: {confirmPolitical: boolean, error?: ErrorType| undefined}
 };
 
 export type age = {

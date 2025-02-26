@@ -14,7 +14,7 @@ interface datebirth {
 
 const initialDateState = { day: false, mounth: false, year: false };
 
-type FieldType = 'name' | 'email' | 'password';
+type FieldType = 'name' | 'email' | 'password' | 'age';
 
 const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
@@ -34,7 +34,7 @@ const useDebounce = <T extends unknown>(value: T, delay: number): T => {
     }, [value, delay]);
   
     return debouncedValue;
-  };
+};
 
 export const Register = () =>  {
     const navigator = useNavigate();
@@ -57,32 +57,45 @@ export const Register = () =>  {
         year: Array.from({ length: new Date().getFullYear() - 1899 }, (_, i) => new Date().getFullYear() - i)
       }), []);
 
-    const updateError = (field: FieldType, error: string | { format: string; blocked: string }) => {
+    const updateError = (field: FieldType, error: { format?: string; blocked?: string, require?: string }) => {
         setRegisterData(prev => ({
             ...prev,
             [field]: {
                 ...prev[field],
-                error: typeof error === 'string' ? { format: error, blocked: '' } : error
+                error: {
+                    format: error.format ? error.format : prev[field]?.error?.format,
+                    blocked: error.blocked ? error.blocked : prev[field]?.error?.blocked,
+                    require: error.require ? error.require : prev[field]?.error?.require
+                }
             }
         }));
     };
+
+    const clearFieldError = (field: FieldType) => {
+        setRegisterData(prev => ({
+            ...prev,
+            [field]: {
+                ...prev[field],
+                error: undefined
+            }
+        }));
+    }
     
     useEffect(() => {
         if (isErrorName) {
-            updateError("name", "Username is invalid");
+            updateError("name", { format: registerData.name?.error?.format || '' , blocked: 'This Name blocked' });
         }
     }, [isErrorName]);
 
     useEffect(() => {
         if (isErrorEmail) {
-            updateError('email', { format: registerData.email?.error.format || '' , blocked: 'This Email blocked' });
+            updateError('email', { format: registerData.email?.error?.format || '' , blocked: 'This Email blocked' });
         }
     }, [isErrorEmail]);
 
     useEffect(() => {
-        
         if (!emailRegex.test(debouncedEmail)) {
-          updateError('email', { format: 'uncorrect format', blocked: registerData.email?.error.blocked || '' });
+          updateError('email', { format: 'uncorrect format', blocked: registerData.email?.error?.blocked || '' });
         }
       }, [debouncedEmail]);
     
@@ -111,6 +124,18 @@ export const Register = () =>  {
         setDays(daysInMonth);
     }, [daysInMonth]);
 
+    // useEffect(() => {
+    //     const handleContextMenu = (event: MouseEvent) => {
+    //       event.preventDefault();
+    //     };
+    
+    //     document.addEventListener('contextmenu', handleContextMenu);
+    
+    //     return () => {
+    //       document.removeEventListener('contextmenu', handleContextMenu);
+    //     };
+    //   }, []);
+
     const handleInputFocus = useCallback((target: keyof datebirth) => {
         setDateActive(initialDateState)
         setDateActive({...dateActive, [target]: true})
@@ -129,9 +154,7 @@ export const Register = () =>  {
             [name]: {
                 ...prevState[name as keyof RegisterForm], // Assert name as a key of RegisterForm
                 [name]: value,
-                error: name === 'email' || name === 'password' 
-                    ? { format: '', blocked: '' } 
-                    : '' 
+                error: null 
             }
         }));
         
@@ -141,8 +164,9 @@ export const Register = () =>  {
         setRegisterData({ ...registerData, 
             confirmPolitical: {
                 confirmPolitical: !registerData.confirmPolitical?.confirmPolitical,
-                error: ""
+                error: undefined
         } });
+        
     };
 
     const handlerChangeAge = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -154,17 +178,18 @@ export const Register = () =>  {
     
         // Функция для обновления registerData
         const updateRegisterData = (newValue: number | string, resetDay: boolean = false) => {
+            
             setRegisterData(prev => ({
                 ...prev,
                 age: {
                     age: {
-                        ...prev.age?.age,
+                        ...prev.age?.age, // Убедитесь, что prev.age существует
                         [name]: newValue,
                         ...(resetDay && { day: 1 }), // Сбрасываем день на 1, если resetDay = true
                     },
-                    error: ""
                 }
             }));
+            clearFieldError('age');
         };
     
         // Проверка на валидность значения
@@ -190,8 +215,20 @@ export const Register = () =>  {
     };
 
     const checkData = () => {
+        if (!registerData.name?.name) {
+            updateError('name', { require: 'require'});
+        }
+        if (!registerData.email?.email) {
+            updateError('email', { require: 'require'});
+        }
+        if (!registerData.password?.password) {
+            updateError('password', { require: 'require'});
+        }
+        if (!registerData.age?.age.day || !registerData.age?.age.month || !registerData.age?.age.year) {
+            updateError('age', { require: 'require'});
+        }
+        console.log(registerData)
         if (validateRegisterData(registerData)) {
-            console.log(registerData)
             dispatch(registerStart(registerData));
             navigator('/confirm')
         }
@@ -202,10 +239,15 @@ export const Register = () =>  {
             <form action="" method='POST' onSubmit={(e) => e.preventDefault()}>
                 <h1>Создать учётную запись</h1>
                 <div className="input-container">
-                    <label htmlFor="">E-mail <span className='require'>*</span> </label>
+                    <label htmlFor="">E-mail <span className='require'>*</span>
+                    {registerData.email?.error?.require === 'require' ? <span className='require require-err'> Обязательно</span> : null}
+                    </label>
                     <input type="text" name='email' onChange={(e) => handlerChange(e)} required value={registerData.email?.email}/>
-                    {!(registerData.email?.error.blocked === "") && (debouncedEmail !== "") ? <span className='require'>Это почта используется.</span> : null}
-                    {!(registerData.email?.error.format === "") && (debouncedEmail !== "") ? <span className='require'>Не правильный формат почты.</span> : null}
+                    <div className="form-error">
+                        {registerData.email?.error?.blocked && (debouncedEmail !== "") ? <span className='require'>Это почта используется.</span> : null}
+                        {registerData.email?.error?.format && (debouncedEmail !== "") ? <span className='require'>Не правильный формат почты.</span> : null}
+                    </div>
+                    
                 </div>
                 <div className="input-container">
                     <label htmlFor="">Отображаемое Имя</label>
@@ -216,24 +258,32 @@ export const Register = () =>  {
                 </div>
                 
                 <div className="input-container">
-                    <label htmlFor="">Имя пользователя <span className='require'>*</span></label>
+                    <label htmlFor="">Имя пользователя <span className='require'>*</span>
+                        {registerData.name?.error?.require ? <span className='require require-err'> Обязательно</span> : null}
+                    </label>
                     <div className="">
                         <input type="text" name='name' onChange={(e) => handlerChange(e)} required value={registerData.name?.name}/>
                     </div>
-                    {!(registerData.name?.error === "") ? <span className='require'>Это имя занято. Попробуйте добавить цифры, буквы, нижнее подчёркивание</span> : null}
+                    {registerData.name?.error?.blocked ? <span className='require'>Это имя занято. Попробуйте добавить цифры, буквы, нижнее подчёркивание</span> : null}
                 </div>
 
                 <div className="input-container">
-                    <label htmlFor="">Пароль <span className='require'>*</span></label>
+                    <label htmlFor="">Пароль <span className='require'>*</span>
+                    {registerData.password?.error?.require === 'require' ? <span className='require require-err'> Обязательно</span> : null}</label>
+                    
                     <div className="">
                         <input type="password" name='password' onChange={(e) => handlerChange(e)} required value={registerData.password?.password}/>
                     </div>
-                    {!(registerData.password?.error.blocked === "") && debouncedPassword !== "" ? <><span className='require'>Введите не менее 8 символов</span><br /></>: null}
-                    {!(registerData.password?.error.format === "") && debouncedPassword !== "" ? <><span className='require'>Пароль не надёжный: 1-цифра, 1-Капс, 1-Спец символ</span><br /></>: null}
+                    {registerData.password?.error?.blocked && (debouncedPassword !== "") ? <><span className='require'>Введите не менее 8 символов</span><br /></>: null}
+                    {registerData.password?.error?.format && (debouncedPassword !== "") ? <><span className='require'>Пароль не надёжный, необходимо минимум: <br /> 1 - Цифра,<br />1 - Заглавная буква,<br />1 - Специальный символ</span><br /></>: null}
                 </div>
 
                 <div className="date-container">
-                    <div className="label">Дата рождения <span className='require'>*</span></div>
+                    <label >
+                        Дата рождения 
+                        <span className='require '>*</span>
+                        {registerData.age?.error?.require === 'require' ? <span className='require require-err'> Обязательно</span> : null}
+                    </label>
                     <div className="flex-row custom-date">
                         <div className="custom-input__select">
                             <input 
@@ -256,17 +306,18 @@ export const Register = () =>  {
                                                         day: undefined,
                                                         month: undefined,
                                                         year: undefined,
-                                                    },
-                                                    error: ""
+                                                    }
                                                 },
                                                 age: {
                                                     ...prevState.age?.age, 
                                                     year: val, 
                                                     ...({ day: 1 })
                                                 },
-                                                error: "" // Optionally reset the error if needed
+                                                error:  { format: '', blocked: '', require: ''}  
                                             }
                                         }));
+                                        
+                                        clearFieldError('age');
                                     }} className="custom-option">{val}</div>
                                     
                                     
@@ -294,17 +345,18 @@ export const Register = () =>  {
                                                         day: undefined,
                                                         month: undefined,
                                                         year: undefined,
-                                                    },
-                                                    error: ""
+                                                    }
                                                 },
                                                 age: {
                                                     ...prevState.age?.age, // Use optional chaining to safely access age
                                                     month: val, // Set the year to val
                                                     ...({ day: 1 }),
                                                 },
-                                                error: "" // Optionally reset the error if needed
-                                            }
+                                            },
+                                            error:  { format: '', blocked: '', require: ''}  
                                         }));
+                                        
+                                        clearFieldError('age');
                                     }} className="custom-option">{val}</div>
                                 ))}
                             </div>
@@ -327,8 +379,12 @@ export const Register = () =>  {
                                             {...registerData, 
                                                 age: {
                                                     age: {...registerData.age?.age, day: Number(val)},
-                                                    error: ""
-                                                }})
+                                                },
+                                                
+                                            })
+                                        
+                                        clearFieldError('age');
+
                                     }}  className="custom-option">{val}</div>
                                 ))}
                             </div>

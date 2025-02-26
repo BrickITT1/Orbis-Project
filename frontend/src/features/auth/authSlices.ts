@@ -12,13 +12,23 @@ const initialState: authState = {
     user: {
             email: {email: "", error: {
                 blocked: "",
-                format: ""
+                format: "",
+                require: ''
             }},
-            username: {username: "", error: ""},
-            name: {name: "", error: ""},
+            username: {username: "", error: {
+                format: "",
+                blocked: "",
+                require: ""
+            }},
+            name: {name: "", error: {
+                format: "",
+                blocked: "",
+                require: ""
+            }},
             password: {password: "", error: {
                 format: "",
-                blocked: ""
+                blocked: "",
+                require: ""
             }},
             age: {
                 age: {
@@ -26,9 +36,17 @@ const initialState: authState = {
                     month: undefined,
                     year: undefined,
                 },
-                error: ""
+                error: {
+                    format: "",
+                    blocked: "",
+                    require: ""
+                }
             },
-            confirmPolitical: {confirmPolitical: false, error: ""}
+            confirmPolitical: {confirmPolitical: false, error: {
+                format: "",
+                blocked: "",
+                require: ""
+            }}
         }
 };
 
