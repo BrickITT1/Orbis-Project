@@ -3,12 +3,13 @@ defmodule Backend.Auth.User do
   import Ecto.Changeset
 
   schema "users" do
-    field :access, :string
-    field :name, :string
-    field :username, :string
-    field :password, :string
-    field :email, :string
-    field :age, :integer
+    field(:access, :string)
+    field(:name, :string)
+    field(:username, :string)
+    field(:password, :string)
+    field(:email, :string)
+    field(:age, :integer)
+    has_one(:preferences, Backend.Accounts.UserPreferences)
 
     timestamps(type: :utc_datetime)
   end

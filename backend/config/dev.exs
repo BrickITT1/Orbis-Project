@@ -9,8 +9,17 @@ database_url =
 
 # Configure your database
 config :backend, Backend.Repo,
-  url: database_url,
-  pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10")
+  # url: database_url,
+  username: "postgres",
+  password: "Pa$$w0rd",
+  hostname: "localhost",
+  database: "backend_dev",
+  port: 5433,
+  stacktrace: true,
+  show_sensitive_data_on_connection_error: true,
+  pool_size: 10
+
+# pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10")
 
 # For development, we disable any cache and enable
 # debugging and code reloading.
