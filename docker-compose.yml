@@ -1,6 +1,7 @@
 services:
   app:
     build: .
+    command: sh -c "mix ecto.migrate; mix phx.server"
     ports:
       - "3000:3000"
     environment:
@@ -11,6 +12,7 @@ services:
       - PG_DBNAME=backend_dev
       - PG_HOST=db
       - REDIS_URL=redis://redis:6379
+      - LANG=C.UTF-8
     depends_on:
       db:
         condition: service_healthy
