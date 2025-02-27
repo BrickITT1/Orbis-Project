@@ -1,5 +1,6 @@
 # Фронтенд (Node.js)
 FROM node:18 AS frontend-builder
+
 WORKDIR /app/frontend
 COPY frontend/package*.json ./
 RUN npm install
@@ -10,10 +11,7 @@ RUN npm run build
 FROM elixir:1.15.7-slim AS backend-builder
 
 # Установка системных зависимостей
-RUN apt-get update && \
-    apt-get install -y build-essential git curl make gcc libc-dev && \
-    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
-    apt-get install -y nodejs
+RUN apt-get update && apt-get install -y nodejs npm
 
 WORKDIR /app/backend
 
