@@ -45,7 +45,9 @@ defmodule Backend.MixProject do
       {:jason, "~> 1.2"},
       {:dns_cluster, "~> 0.1.1"},
       {:bandit, "~> 1.5"},
-      {:redix, "~> 0.10.0"}
+      {:redix, "~> 0.10.0"},
+      {:bcrypt_elixir, "~> 3.0.1"},
+      {:elixir_make, "~> 0.9.0"}
     ]
   end
 

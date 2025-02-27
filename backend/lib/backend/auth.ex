@@ -101,4 +101,14 @@ defmodule Backend.Auth do
   def change_user(%User{} = user, attrs \\ %{}) do
     User.changeset(user, attrs)
   end
+
+  def authenticate_user(email, password) do
+    user = Repo.get_by(User, email: email)
+
+    if user && Bcrypt.verify_pass(password, user.password_hash) do
+      {:ok, user}
+    else
+      {:error, :invalid_credentials}
+    end
+  end
 end
