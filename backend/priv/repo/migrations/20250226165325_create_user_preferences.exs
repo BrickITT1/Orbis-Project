@@ -7,7 +7,7 @@ defmodule Orbis.Repo.Migrations.CreateUserPreferences do
       add(:custom_status, :string)
       add(:locale, :string, default: "en-US")
       add(:theme, :string, default: "system")
-      add(:privacy_settings, :jsonb, default: %{})
+      add(:privacy_settings, :jsonb, default: fragment("'{}'::jsonb"))
       add(:timezone, :string, default: "UTC")
       add(:user_id, references(:users, on_delete: :delete_all), null: false)
 

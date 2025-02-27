@@ -4,7 +4,7 @@ WORKDIR /app/frontend
 COPY frontend/package*.json ./
 RUN npm install
 COPY frontend/ .
-RUN npm run build  # Убедитесь, что выходная папка - dist/
+RUN npm run build
 
 # Бэкенд (Elixir)
 FROM elixir:1.15 AS backend-builder
@@ -13,16 +13,18 @@ WORKDIR /app/backend
 # Установка Node.js (нужен для phx.digest)
 RUN apt-get update && apt-get install -y nodejs npm
 
+# Установка hex и rebar
+RUN mix local.hex --force && \
+    mix local.rebar --force
+
 # Копируем только mix-файлы для кэширования
 COPY backend/mix.exs backend/mix.lock ./
-RUN mix local.hex --force && \
-    mix local.rebar --force && \
-    mix deps.get --only prod
+RUN mix deps.get --only prod
 
 # Копируем весь бэкенд
 COPY backend/ .
 
-# Копируем статику из фронтенда (ПРАВИЛЬНЫЙ ПУТЬ!)
+# Копируем статику из фронтенда
 COPY --from=frontend-builder /app/frontend/dist ./priv/static
 
 ENV MIX_ENV=prod
@@ -32,7 +34,13 @@ RUN mix compile && mix phx.digest && mix release --path /app/release
 
 # Финальный образ
 FROM debian:bookworm-slim
-RUN apt-get update && apt-get install -y --no-install-recommends openssl
+RUN apt-get update && apt-get install -y --no-install-recommends openssl && apt-get install -y postgresql-client
+
+# Копируем собранный релиз из предыдущего этапа
 COPY --from=backend-builder /app/release /app
+
+# Устанавливаем рабочую директорию
 WORKDIR /app
+
+# Команда запуска приложения
 CMD ["bin/backend", "start"]
