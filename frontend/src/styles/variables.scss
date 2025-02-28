@@ -3,7 +3,7 @@ $input-color: #1f1e1e;
 $form-color: #2b2a2a;
 $font-color: #dad9d9;
 
-$mobile: 320px;
+$mobile: 420px;
 $tablet: 768px;
 $desktop: 1200px;
 $normal: 1440px;
@@ -28,8 +28,11 @@ $big: 2080;
 @mixin respond-to($breakpoint) {
     @if $breakpoint == mobile {
         @media (max-width: ($tablet - 1)) { @content; }
-    } @else if $breakpoint == tablet {
-        @media (min-width: $tablet) and (max-width: ($desktop - 1)) { @content; }
+    } @else if $breakpoint == minimobile {
+        @media (min-width: 0) and (max-width: ($mobile - 1)) { @content; }    
+    }
+    @else if $breakpoint == tablet {
+        @media (min-width: $tablet) and (max-width: ($desktop - 1)) { @content; }    
     } @else if $breakpoint == desktop {
         @media (min-width: $desktop) and (max-width: ($normal - 1)) { @content; }
     } @else if $breakpoint == normal {

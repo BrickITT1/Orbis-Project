@@ -66,9 +66,10 @@ export const Login = () =>  {
                     <div className="">
                         <input type="password" name="password" value={LoginForm.password} onChange={(e) => handlerChange(e)} required/>
                     </div>
+                    <span><a href="" onClick={(e) => e.preventDefault()}>Забыли пароль</a></span>
                 </div>
                 <div className="">
-                    <span><a href="" onClick={(e) => e.preventDefault()}>Забыли пароль</a></span>
+                    
                     <div className="but">
                         <button onClick={() => onLogIn()}>Вход</button>
                     </div>

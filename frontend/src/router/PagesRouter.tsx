@@ -3,6 +3,9 @@ import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { HomePage } from "../pages/HomePage"
 import { LoginPage } from "../pages/LoginPage";
 import { Layout } from "../components/Layouts/Layout";
+import { ServersPage } from "../pages/ServersPage";
+import { SafePage } from "../pages/SafePage";
+import CustomScroll from "../components/CustomScroll";
 
 const ProtectedRoute: React.FC<{
     isAuth: boolean;
@@ -21,7 +24,11 @@ export const PagesRouter: React.FC = () => {
                     path="/"
                     element={
                         <Layout>
-                            <HomePage />
+                            <div className="container">
+                                <CustomScroll>
+                                    <HomePage />
+                                </CustomScroll>
+                            </div>
                         </Layout>
 
                     }
@@ -46,6 +53,30 @@ export const PagesRouter: React.FC = () => {
                         <>
                             <LoginPage type="confirmemail"/>
                         </>
+                    }
+                />
+                <Route 
+                    path="/servers"
+                    element= {
+                        <Layout>
+                            <div className="container">
+                            <CustomScroll>
+                                <ServersPage />
+                            </CustomScroll>
+                            </div>
+                        </Layout>
+                    }
+                />
+                <Route 
+                    path="/safety"
+                    element= {
+                        <Layout>
+                            <div className="container">
+                                <CustomScroll>
+                                    <SafePage />
+                                </CustomScroll>
+                            </div>
+                        </Layout>
                     }
                 />
                 {/* <Route

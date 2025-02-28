@@ -21,8 +21,9 @@ export const Header = () => {
     return (
 
         <>
+            <div className="header-background"></div>
             <header className='flex-row'>
-                <div className="header-background"></div>
+                
                 <div className="flex-row header-title-app">
                     <div className="logo-background"></div>
                     <div className="header-logo">
@@ -35,20 +36,20 @@ export const Header = () => {
                 <nav>
                     
                     <ul className={burgerActive ?'flex-row' : 'importantdisplay flex-col'}>
-                        <li >
+                        <li onClick={() => navigator("/")}>
                             Загрузить
                         </li>
-                        <li>
+                        <li onClick={() => navigator("/servers")}>
                             Узнать больше
                         </li>
-                        <li>
+                        <li onClick={() => navigator("/safety")}>
                             Безопасность
                         </li>
-                        <li>
+                        <li onClick={() => navigator("/")}>
                             Поддержка
                         </li>
-                        <li>
-                            Блог
+                        <li onClick={() => navigator("/")}>
+                            Новости
                         </li>
                     </ul>
                 </nav>

@@ -17,9 +17,8 @@ if (rootElement) {
         <StrictMode>
             <Provider store={store}>
                 <Main></Main>
-                <div className="container">
+                
                     <PagesRouter />
-                </div>
             </Provider>
         </StrictMode>,
     );

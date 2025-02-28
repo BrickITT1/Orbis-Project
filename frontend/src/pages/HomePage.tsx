@@ -1,11 +1,13 @@
 import React from 'react';
 
 import "../styles/components/LoginForm.scss"
+import CustomScroll from '../components/CustomScroll';
 
-export const HomePage = () =>  {
+export const HomePage = () =>  {    
+
     return ( 
         <>
-            <div className="block-1">
+            <div className="block">
                 <div className="main-home">
                     <div className="main-home__bg">
                         <div className="flex-col main-home__desc">
@@ -26,8 +28,17 @@ export const HomePage = () =>  {
                     </div>
                 </div>
             </div>
-            <div className="block-2">
-
+            {/* <div className="definition">
+                <div className="definition-background"></div>
+            </div> */}
+            <div className="block">
+                Демонстрация продукта,(общение)
+            </div>
+            {/* <div className="definition">
+                <div className="definition-background"></div>
+            </div> */}
+            <div className="block">
+                (хорошее качество звука)
             </div>
         </> 
     );
