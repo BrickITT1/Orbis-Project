@@ -1,12 +1,45 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 const CustomScroll: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isScrolling, setIsScrolling] = useState(false);
+  const scrollTimeout = useRef<any>(null); // Таймер для сброса стиля
 
   useEffect(() => {
     // Отключаем стандартный скролл
     document.body.style.overflow = 'hidden';
-    const header = document.querySelector('header')
+
+    const header = document.querySelector('header');
+
+    const handleScroll = () => {
+      if (header) {
+        // Если страница в стартовом состоянии (scrollY === 0)
+        if (window.scrollY === 0) {
+          // Очищаем таймер и убираем стиль у хедера
+          if (scrollTimeout.current) {
+            clearTimeout(scrollTimeout.current);
+            scrollTimeout.current = null;
+          }
+          header.classList.remove('scrolled');
+          return; // Выходим из функции, чтобы не добавлять стиль
+        }
+
+        // Добавляем стиль при скролле
+        header.classList.add('scrolled');
+
+        // Сбрасываем предыдущий таймер, если он есть
+        if (scrollTimeout.current) {
+          clearTimeout(scrollTimeout.current);
+        }
+
+        // Устанавливаем новый таймер для сброса стиля
+        scrollTimeout.current = setTimeout(() => {
+          // Проверяем, что скролл действительно остановился
+          if (!isScrolling) {
+            header.classList.remove('scrolled');
+          }
+        }, 1000); // Сбрасываем стиль через 1000 мс после остановки скролла
+      }
+    };
 
     const handleWheel = (event: WheelEvent) => {
       event.preventDefault(); // Отменяем стандартное поведение скролла
@@ -22,11 +55,9 @@ const CustomScroll: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 
       if (delta > 0) {
         // Скролл вниз
-        header?.classList?.add('hide-head');
         targetScroll = currentScroll + viewportHeight;
       } else {
         // Скролл вверх
-        header?.classList?.remove('hide-head');
         targetScroll = currentScroll - viewportHeight;
       }
 
@@ -54,12 +85,10 @@ const CustomScroll: React.FC<{ children: React.ReactNode }> = ({ children }) => 
         case 'ArrowDown':
         case 'PageDown':
         case ' ':
-            header?.classList?.add('hide-head');
           targetScroll = currentScroll + viewportHeight;
           break;
         case 'ArrowUp':
         case 'PageUp':
-            header?.classList?.remove('hide-head');
           targetScroll = currentScroll - viewportHeight;
           break;
         default:
@@ -75,12 +104,17 @@ const CustomScroll: React.FC<{ children: React.ReactNode }> = ({ children }) => 
     };
 
     // Добавляем обработчики событий
+    window.addEventListener('scroll', handleScroll);
     window.addEventListener('wheel', handleWheel, { passive: false });
     window.addEventListener('keydown', handleKeyDown);
 
     // Убираем обработчики при размонтировании компонента
     return () => {
       document.body.style.overflow = 'auto'; // Восстанавливаем стандартный скролл
+      if (scrollTimeout.current) {
+        clearTimeout(scrollTimeout.current); // Очищаем таймер
+      }
+      window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('wheel', handleWheel);
       window.removeEventListener('keydown', handleKeyDown);
     };

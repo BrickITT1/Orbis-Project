@@ -1,7 +1,6 @@
 import React from 'react';
 
-import "../styles/components/LoginForm.scss"
-import CustomScroll from '../components/CustomScroll';
+import '../styles/pages/home.scss'
 
 export const HomePage = () =>  {    
 

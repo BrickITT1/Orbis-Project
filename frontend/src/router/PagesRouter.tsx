@@ -5,7 +5,7 @@ import { LoginPage } from "../pages/LoginPage";
 import { Layout } from "../components/Layouts/Layout";
 import { ServersPage } from "../pages/ServersPage";
 import { SafePage } from "../pages/SafePage";
-import CustomScroll from "../components/CustomScroll";
+import CustomScroll from "../components/scroll/CustomScroll";
 
 const ProtectedRoute: React.FC<{
     isAuth: boolean;

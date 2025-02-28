@@ -1,6 +1,8 @@
 
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import ScrollToTop from '../scroll/Scroll00';
+import ScrollTop from '../scroll/Top';
 
 export const Header = () => {
     const navigator = useNavigate();
@@ -21,11 +23,12 @@ export const Header = () => {
     return (
 
         <>
+            <ScrollToTop />
+            <ScrollTop />
             <div className="header-background"></div>
             <header className='flex-row'>
                 
                 <div className="flex-row header-title-app">
-                    <div className="logo-background"></div>
                     <div className="header-logo">
                     </div>
                     <div className="header-title" onClick={() => navigator("/")}>

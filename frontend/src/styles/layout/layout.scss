@@ -16,13 +16,22 @@ header {
     animation: fadeIn 0.3s ease-in-out;
     width: 100vw;
     max-width: 100%;
-    transition: transform .1s linear;
+    transition: transform 0.7s;
     
-    background: linear-gradient(to left, #02205c88 0% ,  #0E182D88 50%,  #02205C88 100%);
+    background: $button-color;
 
-    &.hide-head {
+    &.scrolled {
         transform: translateY(-100px);
+
+        button {
+            background: transparent !important;
+        }
+
+        .logo-background {
+            background: transparent;
+        }
     }
+
 
     @include respond-to(tablet) {
         padding: 0;
@@ -30,11 +39,16 @@ header {
     @include respond-to(desktop) {
         padding: 0;
     }
+    @include respond-to(mobile) {
+        padding: 0;
+    }
     @include respond-to(minimobile) {
         padding: 0;
         flex-wrap: wrap;
         height: 200px;
     }
+
+
 
     &:not(.header-background) * {
         z-index: 2;
@@ -57,7 +71,7 @@ header {
     ul.flex-col {
         position: absolute;
         top: 80px;
-        background-color: #2663df;
+        background-color: $button-color;
         right: 0px;
         @include respond-to(minimobile) {
             top: 200px;
@@ -90,12 +104,11 @@ header {
     .header-logo {
         background: url('/img/ico.svg');
         background-size: cover;
-        width: 83px;
-        height: 85px;
+        width: 55px;
+        height: 56px;
     }
 
     .logo-background {
-        background-color: #04122f94;
         position: absolute;
         width: 90%;
         height: 80px;
@@ -111,7 +124,7 @@ header {
 
     .header-button button {
         font-size: 32px;
-        background-color: #04122f94;
+        background-color: transparent;
         padding: 18px;
         font-family: Sarpanch;
     }
@@ -147,14 +160,11 @@ header {
 
 footer {
     height: 100vh;
-    .footer-background {
-        background: linear-gradient(#0E182D 0% , #0E182D 5% ,#011641 10% , #02205C 20%, #02205C 50%,  #02205C 100%);
-        opacity: 0.4;
+    .footer-body {
+        background: $button-color;
         position: absolute;
         width: 100%;
         height: 40vh;
-        z-index: 1;
-        left: 0;
         bottom: 0;
     }
 }

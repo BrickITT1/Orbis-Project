@@ -1,0 +1,77 @@
+@use '../variables' as *;
+
+
+.main-home {
+    .main-home__bg {
+        @extend %grid-2;
+        grid-template-columns: 3fr 5fr;
+        padding: 1em;
+        min-height: 70vh;
+        @include respond-to(mobile) {
+            grid-template-columns: 1fr;
+            grid-template-rows: 5fr 3fr;
+        }
+    }
+    .main-home__img {
+        @include respond-to(mobile) {
+            grid-row: 1;
+        }
+    }
+    .main-home__button-container button{
+        width: 300px;
+        background: $button-color;
+        padding: 1em;
+        transition: all 0.3s ease;
+        box-shadow: 0px 0px 15px 5px #ffffff18;
+        border-radius: 10px;
+    }
+    
+    .main-home__button-container:first-child button {
+        animation-delay: 1.5s;
+    }
+    
+    .main-home__button-container button:hover {
+        box-shadow: 0px 0px 20px 10px #ffffff2f;
+    }
+    
+    .main-home__desc, .main-home__buttons {
+        
+        justify-content: center;
+        gap: 1em;
+        flex-wrap: wrap;
+    }
+    
+    .main-home__buttons {
+        gap: 3em;
+        
+    }
+    
+    
+    .main-home__buttons button {
+        transition: background-color 0.3s ease;
+        animation: myShadow 5s infinite ease-in-out;
+    
+    }
+    
+    .main-home__buttons button:hover {
+        animation-play-state: paused; /* Останавливаем анимацию при наведении */
+    }
+    .main-home__img {
+        width: 6;
+    }
+    
+    .main-title {
+        font-size: 3rem;
+        text-shadow: 0 0px 10px #5788EB;
+        user-select: none;
+    }
+    
+    .main-description {
+        text-shadow: 0 0px 10px #5788EB;
+        user-select: none;
+    }
+}
+
+
+
+

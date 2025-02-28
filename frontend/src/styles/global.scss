@@ -76,86 +76,14 @@ button:hover {
     height: 91vh;
 }
 
-.definition {
-    height: 200px;
-    .definition-background {
-        background-color: #04122fc9;
-        opacity: 0.7;
-        position: absolute;
-        width: 100%;
-        height: 200px;
-        z-index: 1;
-        left: 0;
-    }
-    
-}
-
-.block-2 {
-    background: rgba(38, 100, 223, 0.377)
-}
-
 .main-back {
     height: 100dvh;
     width: 100%;
     position: fixed;
     z-index: -5;
-    
     background: url('/img/background.jpg');
     background-size:cover;
     background-repeat: no-repeat;
-}
-
-.main-home .main-home__bg {
-    @extend %grid-2;
-    grid-template-columns: 3fr 5fr;
-    padding: 1em;
-    min-height: 70vh;
-    @include respond-to(mobile) {
-        grid-template-columns: 1fr;
-        grid-template-rows: 5fr 3fr;
-    }
-}
-
-.main-home__img {
-    @include respond-to(mobile) {
-        grid-row: 1;
-    }
-}
-
-.main-home__button-container button{
-    width: 300px;
-    background: #04122F;
-    padding: 1em;
-    transition: all 0.3s ease;
-    box-shadow: 0px 0px 15px 5px #ffffff18;
-}
-
-.main-home__button-container button:hover {
-    box-shadow: 0px 0px 20px 10px #ffffff2f;
-}
-
-.main-home__desc, .main-home__buttons {
-    justify-content: center;
-    gap: 1em;
-    flex-wrap: wrap;
-}
-
-.main-home__buttons {
-    gap: 3em;
-}
-
-.main-home__img {
-    width: 6;
-}
-
-.main-title {
-    font-size: 3rem;
-    text-shadow: 0 0px 10px #5788EB;
-}
-
-.main-description {
-    
-    text-shadow: 0 0px 10px #5788EB;
 }
 
 .importantdisplay {
@@ -164,4 +92,27 @@ button:hover {
 
 .relative {
     position: relative;
+}
+
+.fixed-container {
+    position: fixed;
+    bottom: 40px;
+    right: 40px;
+    z-index: 3;
+    transition: opacity 1s ease;
+
+    button {
+        background-color: transparent;
+        
+    }
+    &.hidden {
+        opacity: 0;
+        transform: translateY(20px);
+        pointer-events: none; /* Отключаем взаимодействие с кнопкой, когда она скрыта */
+    }
+      
+    &.visible {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
