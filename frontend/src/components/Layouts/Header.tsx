@@ -1,6 +1,8 @@
 
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import ScrollToTop from '../scroll/Scroll00';
+import ScrollTop from '../scroll/Top';
 
 export const Header = () => {
     const navigator = useNavigate();
@@ -21,10 +23,12 @@ export const Header = () => {
     return (
 
         <>
+            <ScrollToTop />
+            <ScrollTop />
+            <div className="header-background"></div>
             <header className='flex-row'>
-                <div className="header-background"></div>
+                
                 <div className="flex-row header-title-app">
-                    <div className="logo-background"></div>
                     <div className="header-logo">
                     </div>
                     <div className="header-title" onClick={() => navigator("/")}>
@@ -35,20 +39,20 @@ export const Header = () => {
                 <nav>
                     
                     <ul className={burgerActive ?'flex-row' : 'importantdisplay flex-col'}>
-                        <li >
+                        <li onClick={() => navigator("/")}>
                             Загрузить
                         </li>
-                        <li>
+                        <li onClick={() => navigator("/servers")}>
                             Узнать больше
                         </li>
-                        <li>
+                        <li onClick={() => navigator("/safety")}>
                             Безопасность
                         </li>
-                        <li>
+                        <li onClick={() => navigator("/")}>
                             Поддержка
                         </li>
-                        <li>
-                            Блог
+                        <li onClick={() => navigator("/")}>
+                            Новости
                         </li>
                     </ul>
                 </nav>

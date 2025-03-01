@@ -3,6 +3,12 @@ import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { HomePage } from "../pages/HomePage"
 import { LoginPage } from "../pages/LoginPage";
 import { Layout } from "../components/Layouts/Layout";
+import { ServersPage } from "../pages/ServersPage";
+import { SafePage } from "../pages/Article/SafePage";
+import CustomScroll from "../components/scroll/CustomScroll";
+import { TermsPage } from "../pages/Article/TermsPage";
+import { LicescePage } from "../pages/Article/LicescePage";
+import { PrivacyPage } from "../pages/Article/PrivacyPage";
 
 const ProtectedRoute: React.FC<{
     isAuth: boolean;
@@ -21,7 +27,11 @@ export const PagesRouter: React.FC = () => {
                     path="/"
                     element={
                         <Layout>
-                            <HomePage />
+                            <div className="container">
+                                <CustomScroll>
+                                    <HomePage />
+                                </CustomScroll>
+                            </div>
                         </Layout>
 
                     }
@@ -46,6 +56,58 @@ export const PagesRouter: React.FC = () => {
                         <>
                             <LoginPage type="confirmemail"/>
                         </>
+                    }
+                />
+                <Route 
+                    path="/servers"
+                    element= {
+                        <Layout>
+                            <div className="container">
+                            <CustomScroll>
+                                <ServersPage />
+                            </CustomScroll>
+                            </div>
+                        </Layout>
+                    }
+                />
+                <Route 
+                    path="/safety"
+                    element= {
+                        <Layout>
+                            <div className="container">
+                                    <SafePage />
+                            </div>
+                        </Layout>
+                    }
+                />
+                <Route 
+                    path="/terms"
+                    element= {
+                        <Layout>
+                            <div className="container">
+                                    <TermsPage />
+                            </div>
+                        </Layout>
+                    }
+                />
+                <Route 
+                    path="/privacy"
+                    element= {
+                        <Layout>
+                            <div className="container">
+                                    <PrivacyPage />
+                            </div>
+                        </Layout>
+                    }
+                />
+                <Route 
+                    path="/licesce"
+                    element= {
+                        <Layout>
+                            <div className="container">
+                                    <LicescePage />
+                            </div>
+                        </Layout>
                     }
                 />
                 {/* <Route
