@@ -403,7 +403,7 @@ export const Register = () =>  {
 
                     <label 
                         htmlFor="first-confirm"
-                    >Подтверждаю ознакомление и согласие с <a href="">Условиями пользования</a> и <a href="">Политикой конфидинциальности</a> Orbis
+                    >Подтверждаю ознакомление и согласие с <a onClick={()=>navigator('/terms')}>Условиями пользования</a> и <a onClick={()=>navigator('/privacy')}>Политикой конфидинциальности</a> Orbis
                     </label>
                 </div>
 

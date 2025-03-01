@@ -4,8 +4,11 @@ import { HomePage } from "../pages/HomePage"
 import { LoginPage } from "../pages/LoginPage";
 import { Layout } from "../components/Layouts/Layout";
 import { ServersPage } from "../pages/ServersPage";
-import { SafePage } from "../pages/SafePage";
+import { SafePage } from "../pages/Article/SafePage";
 import CustomScroll from "../components/scroll/CustomScroll";
+import { TermsPage } from "../pages/Article/TermsPage";
+import { LicescePage } from "../pages/Article/LicescePage";
+import { PrivacyPage } from "../pages/Article/PrivacyPage";
 
 const ProtectedRoute: React.FC<{
     isAuth: boolean;
@@ -72,9 +75,37 @@ export const PagesRouter: React.FC = () => {
                     element= {
                         <Layout>
                             <div className="container">
-                                <CustomScroll>
                                     <SafePage />
-                                </CustomScroll>
+                            </div>
+                        </Layout>
+                    }
+                />
+                <Route 
+                    path="/terms"
+                    element= {
+                        <Layout>
+                            <div className="container">
+                                    <TermsPage />
+                            </div>
+                        </Layout>
+                    }
+                />
+                <Route 
+                    path="/privacy"
+                    element= {
+                        <Layout>
+                            <div className="container">
+                                    <PrivacyPage />
+                            </div>
+                        </Layout>
+                    }
+                />
+                <Route 
+                    path="/licesce"
+                    element= {
+                        <Layout>
+                            <div className="container">
+                                    <LicescePage />
                             </div>
                         </Layout>
                     }
