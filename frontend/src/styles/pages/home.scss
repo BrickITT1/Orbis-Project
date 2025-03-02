@@ -1,5 +1,5 @@
 @use '../variables' as *;
-
+@import '../mixins';
 
 .main-home {
     .main-home__bg {
@@ -60,14 +60,8 @@
         width: 6;
     }
     
-    .main-title {
-        font-size: 3rem;
-        text-shadow: 0 0px 10px #5788EB;
-        user-select: none;
-    }
-    
-    .main-description {
-        text-shadow: 0 0px 10px #5788EB;
+    .main-title,  .main-description {
+        text-shadow: $main-shadow;
         user-select: none;
     }
 }

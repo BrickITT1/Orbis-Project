@@ -1,4 +1,5 @@
 @use './variables' as *;
+
 @font-face {
     font-family: 'Poppins-Regular';
     src: url('/fonts/SegoeUILight.ttf');
@@ -12,10 +13,6 @@
 .container {
     max-width: 1440px;
     margin: 0 auto;
-}
-
-body {
-    overflow: hidden;
 }
 
 body, input, ul, li, h1, h2, h3, h4, p  {

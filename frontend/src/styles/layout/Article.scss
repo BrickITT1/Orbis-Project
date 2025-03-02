@@ -1,67 +1,25 @@
-/* Основные стили для контейнера статьи */
+@use '../variables' as *;
+
+$acticle-margin: (
+  h1: 0 0 20px 0,
+  h2: 0 0 15px 0,
+  h3: 0 0 10px 0,
+  h4: 0 0 5px 0,
+  p: 0 0 10px 0,
+  '.chapter': 0 0 30px 0,
+  '.section': 0 0 15px 20px,
+  '.sub-section': 0 0 10px 20px
+);
+
 .article-container {
-    width: 100%;
-    padding: 2em;
-    font-family: Arial, sans-serif;
-    line-height: 1.6;
-    color: #dfdfdf;
-    background-color: #0653a04d;
+  @extend %w100h100;
+  padding: 2em;
+  color: $font-color;
+  background-color: $article-color;
+
+  @each $selector, $margin in $acticle-margin {
+    #{$selector} {
+      margin: $margin;
+    }
   }
-  
-  /* Заголовок статьи */
-  .article-title {
-    font-size: 2.5rem;
-    color: #fff;
-    margin-bottom: 20px;
-  }
-  
-  /* Описание статьи */
-  .article-description {
-    font-size: 1.2rem;
-    color: #dfdfdf;
-    margin-bottom: 30px;
-  }
-  
-  /* Стили для главы */
-  .chapter {
-    margin-bottom: 30px;
-  }
-  
-  /* Заголовок главы */
-  .chapter-title {
-    font-size: 2rem;
-    color: #dfdfdf;
-    margin-bottom: 15px;
-  }
-  
-  /* Стили для пункта */
-  .section {
-    margin-left: 20px;
-    margin-bottom: 15px;
-  }
-  
-  /* Заголовок пункта */
-  .section-title {
-    font-size: 1.5rem;
-    color: #dfdfdf;
-    margin-bottom: 10px;
-  }
-  
-  /* Стили для подпункта */
-  .sub-section {
-    margin-left: 20px;
-    margin-bottom: 10px;
-  }
-  
-  /* Заголовок подпункта */
-  .sub-section-title {
-    font-size: 1.2rem;
-    color: #dfdfdf;
-    margin-bottom: 5px;
-  }
-  
-  /* Абзац */
-  .paragraph {
-    font-size: 1.1rem;
-    margin-bottom: 10px;
-  }
+}

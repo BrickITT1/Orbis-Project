@@ -4,12 +4,14 @@ import { Login } from '../components/loginForm/Login';
 import { Register } from '../components/loginForm/Register';
 import { useNavigate } from 'react-router-dom';
 import { ConfirmEmail } from '../components/loginForm/ConfirmEmail';
+import { Main } from '../components/Layouts/Main';
 
 export const LoginPage: React.FC<{type: string}> = ({type}) =>  {
     const navigator = useNavigate();
 
     return ( 
         <>
+        <Main></Main>
         <div className="logib-logo" onClick={()=> navigator('/')}>На главную</div>
         <div className="login-main">
             {

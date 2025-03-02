@@ -1,6 +1,7 @@
 import React, { StrictMode } from "react";
 import ReactDOM from "react-dom/client";
 import "./styles/global.scss";
+import "./styles/typography.scss"
 import { store } from "./app/store";
 import { Provider } from "react-redux";
 import { PagesRouter } from "./router/PagesRouter";
