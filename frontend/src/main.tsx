@@ -16,8 +16,6 @@ if (rootElement) {
     root.render(
         <StrictMode>
             <Provider store={store}>
-                    <Main></Main>
-                    
                     <PagesRouter />
             </Provider>
         </StrictMode>

@@ -9,6 +9,7 @@ import CustomScroll from "../components/scroll/CustomScroll";
 import { TermsPage } from "../pages/Article/TermsPage";
 import { LicescePage } from "../pages/Article/LicescePage";
 import { PrivacyPage } from "../pages/Article/PrivacyPage";
+import { AppPage } from "../pages/AppPage";
 
 const ProtectedRoute: React.FC<{
     isAuth: boolean;
@@ -108,6 +109,12 @@ export const PagesRouter: React.FC = () => {
                                     <LicescePage />
                             </div>
                         </Layout>
+                    }
+                />
+                <Route 
+                    path="/app"
+                    element= {
+                        <AppPage />
                     }
                 />
                 {/* <Route
