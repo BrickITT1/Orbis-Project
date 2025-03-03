@@ -11,6 +11,7 @@ defmodule Orbis.Repo.Migrations.CreateUsers do
       add(:password_hash, :string, size: 255, null: false)
       add(:status, :integer, default: 0)
       add(:phone, :string)
+      add(:access, :string, default: "user")
 
       timestamps(type: :utc_datetime_usec)
     end

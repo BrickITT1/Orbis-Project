@@ -11,6 +11,13 @@ config :backend,
   ecto_repos: [Backend.Repo],
   generators: [timestamp_type: :utc_datetime]
 
+config :phoenix, :json_library, Jason
+config :phoenix, :format_encoders, json: Jason
+
+config :backend, Backend.Auth.Guardian,
+  issuer: "backend",
+  secret_key: System.get_env("GUARDIAN_SECRET") || "your_secret_here"
+
 # Configures the endpoint
 config :backend, BackendWeb.Endpoint,
   url: [host: "localhost"],

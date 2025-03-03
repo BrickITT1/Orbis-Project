@@ -5,8 +5,8 @@ defmodule Backend.Auth do
 
   import Ecto.Query, warn: false
   alias Backend.Repo
-
   alias Backend.Auth.User
+  alias Pbkdf2
 
   @doc """
   Returns the list of users.
@@ -98,17 +98,21 @@ defmodule Backend.Auth do
       %Ecto.Changeset{data: %User{}}
 
   """
-  def change_user(%User{} = user, attrs \\ %{}) do
-    User.changeset(user, attrs)
-  end
 
   def authenticate_user(email, password) do
     user = Repo.get_by(User, email: email)
 
-    if user && Bcrypt.verify_pass(password, user.password_hash) do
-      {:ok, user}
-    else
-      {:error, :invalid_credentials}
+    case check_password(user, password) do
+      true -> {:ok, user}
+      false -> {:error, "Invalid credentials"}
+    end
+  end
+
+  defp check_password(user, password) do
+    case user do
+      nil -> Pbkdf2.no_user_verify()
+      # Используем password_hash
+      _ -> Pbkdf2.verify_pass(password, user.password_hash)
     end
   end
 end

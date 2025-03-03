@@ -3,22 +3,22 @@ defmodule BackendWeb.AuthController do
 
   # alias MyApp.Auth
   # alias MyApp.Auth.User
+  alias BackendWeb.AuthJSON
 
   def login(conn, %{"email" => email, "password" => password}) do
     case Backend.Auth.authenticate_user(email, password) do
       {:ok, user} ->
-        conn
-        |> put_session(:user_id, user.id)
-        |> redirect(to: ~p"/")
+        {:ok, token, _claims} = Guardian.encode_and_sign(user)
+        render(conn, AuthJSON, "token.json", token: token)
 
-      {:error, _reason} ->
+      {:error, reason} ->
         conn
-        |> put_flash(:error, "Invalid credentials")
-        |> redirect(to: ~p"/login")
+        |> put_status(:unauthorized)
+        |> render(AuthJSON, "error.json", message: reason)
     end
   end
 
-  def logout(conn, %{"email" => email}) do
+  def logout(conn, %{"email" => _email}) do
     # Логика выхода
     json(conn, "OK")
   end
@@ -29,7 +29,7 @@ defmodule BackendWeb.AuthController do
         "name" => name,
         "password" => password,
         "age" => age,
-        "access" => _access
+        "access" => access
       }) do
     user_params = %{
       email: email,
@@ -37,10 +37,10 @@ defmodule BackendWeb.AuthController do
       name: name,
       password: password,
       age: age,
-      access: _access
+      access: access
     }
 
-    case Backend.Auth.register_user(user_params) do
+    case Backend.Auth.create_user(user_params) do
       {:ok, user} ->
         conn
         |> put_session(:user_id, user.id)
@@ -61,5 +61,15 @@ defmodule BackendWeb.AuthController do
   def confirm(conn, %{"email" => email}, %{"email" => email}) do
     # Логика проверки куки
     json(conn, "OK")
+  end
+
+  def show(conn, _params) do
+    user = conn.assigns.current_user
+    render(conn, "show.json", user: user)
+  end
+
+  defp generate_token(user) do
+    {:ok, token, _claims} = Guardian.encode_and_sign(user)
+    token
   end
 end

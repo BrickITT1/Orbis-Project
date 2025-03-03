@@ -46,8 +46,11 @@ defmodule Backend.MixProject do
       {:dns_cluster, "~> 0.1.1"},
       {:bandit, "~> 1.5"},
       {:redix, "~> 0.10.0"},
-      {:bcrypt_elixir, "~> 3.0.1"},
-      {:elixir_make, "~> 0.9.0"}
+      # {:bcrypt_elixir, "~> 3.0.1"},
+      {:elixir_make, "~> 0.9.0"},
+      {:guardian, "~> 2.0"},
+      # Замена Argon2 на PBKDF2
+      {:pbkdf2_elixir, "~> 2.0"}
     ]
   end
 
