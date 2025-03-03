@@ -47,7 +47,7 @@ export const Register = () =>  {
     const [Days, setDays] = useState<string[]>([]);
     const debouncedUsername = useDebounce(registerData.name?.name || '', 300);
     const debouncedEmail = useDebounce(registerData.email?.email || '', 300);
-    const debouncedPassword = useDebounce(registerData.password?.password || '', 300);
+    const debouncedPassword = useDebounce(registerData.password?.password || '', 1000);
 
     const { data: checkUsername, refetch: checkUsernameAPI, isLoading, isError: isErrorName } = useCheckUserQuery(debouncedUsername || "", { skip: !debouncedUsername });
     const { data: checkEmail, refetch: checkEmailAPI , isLoading: isLoadingEmail, isError: isErrorEmail } = useCheckEmailQuery(debouncedEmail || "", { skip: !debouncedEmail });
@@ -407,7 +407,7 @@ export const Register = () =>  {
                     </label>
                 </div>
 
-                <div className="but">
+                <div className="">
                     <button type='submit' onClick={(e) => {
                         e.preventDefault();
                         checkData()

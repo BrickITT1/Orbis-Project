@@ -15,7 +15,7 @@ const Timer: React.FC = () => {
 
   return (
     <div className='form-timer'>
-        {timeLeft === 0 ? null : <h1>{timeLeft} с</h1>}
+        {timeLeft === 0 ? null : <div>{timeLeft} с</div>}
     </div>
   );
 };

@@ -41,7 +41,11 @@ export const Header = () => {
         if (locate) {
             navigator(locate)
         }
-        setBurgerActive(prevState => !prevState);
+
+        if (window.innerWidth < 1199) {
+            setBurgerActive(prevState => !prevState);
+        }
+        
     }, [])
 
     return (

@@ -5,7 +5,7 @@ export const ServersPage: React.FC = () =>  {
     return ( 
         <>
             <div className="block">
-                servers
+                serverss
             </div>
         </> 
     );

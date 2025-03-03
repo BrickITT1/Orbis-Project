@@ -70,7 +70,7 @@ export const Login = () =>  {
                 </div>
                 <div className="">
                     
-                    <div className="but">
+                    <div className="flex-col">
                         <button onClick={() => onLogIn()}>Вход</button>
                     </div>
                 </div>

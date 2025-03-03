@@ -106,12 +106,12 @@ export const ConfirmEmail = () => {
 
     return (
         <>
-            <form action="" method='POST' onSubmit={(e) => e.preventDefault()}>
+            <form action="" method='POST' onSubmit={(e) => e.preventDefault()} style={{gap: '2em'}}>
                 <h1>Подтверждение E-mail</h1>
                     <div className="">
                         <label htmlFor="">Ваша Почта</label>
                         <div className="relative">
-                            <input type="text" style={{width: "320px"}} readOnly value={registerData?.email?.email || ''} />
+                            <input type="text" style={{width: "300px"}} readOnly value={registerData?.email?.email || ''} />
                             {
                             isCode ? <Timer /> : null
                         }
@@ -141,7 +141,7 @@ export const ConfirmEmail = () => {
                     </div>
                 
                 
-                <div className="flex-col but" style={{gap: "2em"}}>
+                <div className="flex-col" style={{gap: "2em"}}>
                     <button onClick={handleRegister}>Зарегистрироваться</button>
                     <span style={{width: '100%'}}>
                     <a
