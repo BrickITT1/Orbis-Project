@@ -1,5 +1,14 @@
 @use '../variables' as *;
 
+@mixin white-border($size) {
+    border: $size solid #fff;
+}
+
+@font-face {
+    font-family: 'Poppins-Regular';
+    src: url('/fonts/SegoeUILight.ttf');
+}
+
 .logib-logo {
     position: absolute;
     top: 1em;
@@ -14,7 +23,7 @@
     display: grid;
     align-items: center;
     min-height: 100vh;
-
+    
         
     form label, a {
         padding: 0.1em;
@@ -22,48 +31,97 @@
         
     }
 
+    input {
+        position: relative;
+        padding: 0.5em;
+        padding-left: 4em;
+        border: 1px solid #fff;
+        
+        border-radius: 10px;
+    }
+
+    form div:nth-child(1):before, form div:nth-child(2):before, form div:nth-child(3):before, form div:nth-child(4):before, form div:nth-child(5):before {
+        content: '';
+        padding-left: 1em;
+        position: absolute;
+        background-image: url('/img/mail.svg');
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: 25px 25px;
+        width: 36.4px;
+        height: 37px;
+        filter: invert(1);
+        border: 1px solid #000;
+        border-top-left-radius: 10px;
+        border-bottom-left-radius: 10px;
+    }
+    form div:nth-child(2):before {
+        background-image: url('/img/lock.svg');
+    }
+
+    form div:nth-child(3):before {
+        background-image: url('/img/user.svg');
+    }
+
+    form div:nth-child(4):before {
+        background-image: url('/img/login.svg');
+    }
+
+    form div:nth-child(5):before {
+        background-image: url('/img/date.svg');
+    }
+
+    input[type='date'] {
+        width: 190px;
+    }
+
     a {
         text-decoration: underline
     }
     
-    form {
+    &>div {
+        border: 1px solid #fff;
         @extend %flex-col !optional;
+        @extend %global-border-radius;
         box-shadow: 0px 0px 15px 5px #ffffff18;
         width: 100%;
-        padding: 2em;
-        animation: fadeIn 0.3s ease-in-out;
+        min-height: 400px;
+        justify-content: space-between;
+        padding: 2em ;
         gap: 2em;
-        box-sizing: border-box
+        animation: fadeIn 0.3s ease-in-out;
+        box-sizing: border-box;
+        background-color: #04122f80;
+        animation: myShadowBIG 5s infinite ease-in-out, fadeIn .5s ease;
+        border-radius: 10px
     }
     
+    form {
+        @extend %flex-col !optional;
+        @extend %global-border-radius;
+        gap: 2em;
+        
+    }
+
     input, button {
-        padding: 0.7em;
         background-color: transparent;
         
     }
 
-    input {
-        border-bottom: 1px solid #fff;
-    }
-
     button {
-        border: 1px solid #fff;
-        border-radius: 3px;
+        @include white-border(1px);
+        display: block;
+        @extend %global-border-radius;
+        margin: 0 auto;
         width: 50%;
-    }
-    
-    div.but:has(button) {
-        display: flex;
-        justify-content: center;
-        align-items: center;
+        padding: 0.5em 1em;
     }
 
     h1 {
         text-align: center;
-        padding: 0.3em;
     }
     
-    label[for="first-confirm"] {
+    label[for="policyAgreed"] {
         position: relative;
         text-indent: 15px;
         display: block;
@@ -71,101 +129,29 @@
         user-select: none;
     }
     
-    label[for="first-confirm"]::before {
+    label[for="policyAgreed"]::before {
         content: '';
         width: 10px;
         height: 10px;
         left: 2px;
         top: 8px;
         position: absolute;
-        border: 1px solid #fff;
+        @include white-border(1px);
     }
     
-    input[type="checkbox"]:checked + label[for="first-confirm"]::before {
+    input[type="checkbox"]:checked + label[for="policyAgreed"]::before {
         background-color: #fff;
     }
-    
-    .date-container input{
-        width: 100px;
-    }
-    
-    .custom-date {
-        gap: 1em;
-    }
-    
-    .custom-select {
-        height: 190px;
-        background-color: $input-color;
-        position: absolute;
-        width: 100px;
-        z-index: 1;
-        overflow: scroll;
-        overflow-x: hidden;
-    }
-
-    .custom-select input {
-        border: 1px solid #fff;
-    }
-    
-    .custom-option {
-        padding: 0.5em;
-        background-color: $input-color;
-        cursor: pointer;
-        width: 100%;
-    }
-    
-    .custom-option:hover {
-        filter: brightness(1.3);
-    }
-    
-   .custom-input__select {
-        position: relative;
-    }
-    
-    .email-confirm {
-        gap: 1em;
-    }
-    
-    .email-confirm input{
-        display: block;
-        text-align: center;
-    }
-    
+       
     .require {
         color: #ffa0a0;
         font-size: 14px;
+        text-align: center;
     }
     
     .errors-container {
         color: #ffa0a0;
         font-size: 14px;
         text-align: center;
-    }
-    
-    .input-container label:has(span.require-err), .date-container label:has(span.require-err){ 
-        color:  #ffa0a0;
-    }
-    
-    .form-timer {
-        position: absolute;
-        font-size: 10px;
-        right: 220px;
-        top: 0;
-        user-select: none;
-    }
-    
-    .code-button {
-        position: absolute;
-        top: 0;
-        right: 0;
-        width: 200px;
-    }
-
-    .code-button button {
-        width: 100%;
-        background: transparent;
-        outline: 1px solid #fff;
-        border-radius: 0%;
-    }
+    }  
 }
-

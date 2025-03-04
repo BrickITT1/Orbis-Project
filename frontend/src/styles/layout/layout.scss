@@ -1,23 +1,21 @@
 @use '../variables' as *;
+@import '../mixins';
+
 @font-face {
     font-family: 'Sarpanch';
     src: url('/fonts/Sarpanch-Regular.ttf');
 }
 
-
 header {
     height: 80px;
-    padding: 0 50px;
     font-size: 18px;
     align-items: center;
     position: fixed;
     justify-content: space-evenly;
-    color: #fff;
     animation: fadeIn 0.3s ease-in-out;
     width: 100vw;
     max-width: 100%;
     transition: transform 0.7s;
-    
     background: $button-color;
 
     &.scrolled {
@@ -32,26 +30,10 @@ header {
         }
     }
 
-
-    @include respond-to(tablet) {
-        padding: 0;
-    }
-    @include respond-to(desktop) {
-        padding: 0;
-    }
-    @include respond-to(mobile) {
-        padding: 0;
-    }
     @include respond-to(minimobile) {
         padding: 0;
         flex-wrap: wrap;
         height: 200px;
-    }
-
-
-
-    &:not(.header-background) * {
-        z-index: 2;
     }
 
     ul.flex-row {
@@ -64,18 +46,17 @@ header {
         @include respond-to(mobile) {
             flex-direction: column;
             display: none;
-            
         }
     }
 
     ul.flex-col {
         position: absolute;
-        top: 80px;
+        top: 50px;
         background-color: $button-color;
-        right: 0px;
+        right: -190%;
+        
         @include respond-to(minimobile) {
-            top: 200px;
-            width: 100%;
+            top: 45px;
         }
     }
 
@@ -108,14 +89,6 @@ header {
         height: 56px;
     }
 
-    .logo-background {
-        position: absolute;
-        width: 90%;
-        height: 80px;
-        z-index: -1;
-        left: 2em;
-    }
-
     .header-title {
         font-size: 32px;
         line-height: 100px;
@@ -131,7 +104,16 @@ header {
 
     nav {
         @include respond-to(tablet) {
-            display: contents;
+            order:3;
+            position: relative;
+        }
+        @include respond-to(tablet) {
+            order:3;
+            position: relative;
+        }
+        @include respond-to(mobile) {
+            order:3;
+            position: relative;
         }
     }
 
@@ -143,13 +125,14 @@ header {
         right: 20px;
         padding: 0;
         background-color: transparent;
+        order: 3;
         @include respond-to(tablet) {
             display: block;
-            right: 30px;
+            right: 0px;
         }
         @include respond-to(mobile) {
             display: block;
-            right: 40%;
+            right: 0;
         }
     }
 }

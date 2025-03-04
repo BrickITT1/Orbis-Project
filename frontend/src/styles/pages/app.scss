@@ -1,0 +1,182 @@
+@use '../variables' as *;
+
+%base-app-menu-button {
+    width: 60px;
+    height: 60px;
+}
+
+%absolute-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%,-50%);
+}
+
+%relative-center {
+    position: relative;
+}
+
+.main-app {
+    background-color: $button-color;
+    width: 100vw;
+    height: 100vh;
+    @extend %flex-base;
+
+    & > div {
+        height: 100%;
+        background-color: $app-bg;
+        box-sizing: border-box;
+    }
+
+    .app-menu {
+       
+        background-color: $app-menu-color;
+        min-width: 80px;
+    }
+
+    .messages-menu {
+        min-width: 250px;
+    }
+
+    .actions {
+        background-color: transparent;
+        width: 100%;
+        padding: 2em;
+    }
+
+    .member {
+        min-width: 80px;
+    }
+}
+
+.actions-main {
+    background-color: $app-bg;
+    @extend %w100h100;
+}
+
+.app-menu {
+    @extend %flex-col;
+    justify-content: space-between;
+    align-items: center;
+    padding: 2em 0;
+    
+    .avatar, .avatar img, .button-items > div:not(button-items), .exit, .avatar-null {
+        @extend %base-app-menu-button;
+        border-radius: 100%;
+    }
+
+    .button-items {
+        @extend %flex-col;
+        gap: 4em;
+    }
+
+    .button-items > div:not(button-items), .exit, .avatar-null {
+        background-color: $button-color;
+    }
+
+    .button-item button {
+        @extend %relative-center;
+        @extend %w100h100;
+    }
+
+    .button-item button svg{
+        @extend %absolute-center;
+        display: inline-block;
+    }
+
+    button {
+        background-color: transparent;
+    }
+
+    .exit {
+        @extend %grid-center;
+    }
+}
+
+.messages-menu {
+    @extend %flex-col;
+    justify-content: space-between;
+    h1 {
+        text-align: center;
+        padding: 0.1rem;
+    }
+
+    h2 {
+        padding: 0.3em;
+    }
+
+    .messages-menu_list {
+        @extend %flex-col;
+        height: 100%;
+        overflow: hidden;
+    }
+
+    .messages-menu_list-group, .messages-menu_list-friends {
+        height: 100%;
+        overflow-x: scroll;
+    }
+
+    .messages-menu_list-search {
+        
+        position: relative;
+        font-size: 20px;
+        padding: 1em;
+    }
+
+    .messages-menu_list-search input{
+        padding: 0.5em;
+        padding-left: 2em;
+        font-size: 20px;
+        background-color: #3F495A;
+        box-sizing: border-box;
+    }
+
+    .messages-menu_list-search::before {
+        content: '';
+        position: absolute;
+        width: 30px;
+        height: 30px;
+        top: 28px;
+        left: 28px;
+        background-image: url('/img/button/Find.svg');
+        z-index: 2;
+    }
+
+   
+} 
+
+.group-list {
+    @extend %flex-col;
+    gap: 1em;
+    padding-left: 0.5em;
+    
+    .group-item {
+        @extend %flex-base;
+        justify-content: flex-end;
+        font-size: 18px;
+    }
+
+    .group-item > div {
+        padding: 10px 0;
+        @extend %flex-base;
+        justify-content: center;
+        width: 90%;
+        position: relative;
+        background-color: #3F495A;
+    }
+
+    .group-item__avatar {
+        position: absolute;
+        display: grid;
+        align-items: center;
+        justify-content: center;
+        left: -25px;
+        top: -3px;
+        width: 50px;
+        height: 50px;
+    }
+    .group-item__avatar img {
+        width: 50px;
+        height: 50px;
+    }
+}
