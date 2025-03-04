@@ -1,80 +1,134 @@
-import { createSlice } from "@reduxjs/toolkit";
-import type { PayloadAction } from "@reduxjs/toolkit";
-import { RegisterForm } from "../../services/types";
+// features/authSlice.ts
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
-interface authState {
-    isAuthentification: boolean;
-    user?: RegisterForm;
+import { userApi } from '../../services/auth';
+
+interface UserData {
+  email: string;
+  displayName: string;
+  username: string;
+  birthDate: string;
 }
 
-const initialState: authState = {
-    isAuthentification: false,
-    user: {
-            email: {email: "", error: {
-                blocked: "",
-                format: "",
-                require: ''
-            }},
-            username: {username: "", error: {
-                format: "",
-                blocked: "",
-                require: ""
-            }},
-            name: {name: "", error: {
-                format: "",
-                blocked: "",
-                require: ""
-            }},
-            password: {password: "", error: {
-                format: "",
-                blocked: "",
-                require: ""
-            }},
-            age: {
-                age: {
-                    day: undefined,
-                    month: undefined,
-                    year: undefined,
-                },
-                error: {
-                    format: "",
-                    blocked: "",
-                    require: ""
-                }
-            },
-            confirmPolitical: {confirmPolitical: false, error: {
-                format: "",
-                blocked: "",
-                require: ""
-            }}
-        }
+interface AuthState {
+  user: UserData | null;
+  isAuthenticated: boolean;
+  loading: boolean;
+  error: string | null;
+}
+
+const initialState: AuthState = {
+  user: null,
+  isAuthenticated: false,
+  loading: false,
+  error: null,
 };
 
 const authSlice = createSlice({
-    name: "Auth",
-    initialState,
-    reducers: {
-        registerStart(state, action: PayloadAction<RegisterForm>) {
-            state.user = action.payload;
-        },
-        registerConfirm(state, action: PayloadAction<RegisterForm>) {
-            state.isAuthentification = false;
-            state.user = initialState.user;
-        },
-        loginSuccess(state, action: PayloadAction<RegisterForm>) {
-            state.isAuthentification = true;
-            state.user = action.payload;
-        },
-        logout(state) {
-            state.isAuthentification = false;
-            delete state.user;
-        },
-        setUser(state, action: PayloadAction<RegisterForm>) {
-            state.user = action.payload;
-        },
+  name: 'auth',
+  initialState,
+  reducers: {
+    // Авторизация
+    loginStart(state, action: PayloadAction<{ email: string; password: string }>) {
+      state.loading = true;
+      state.error = null;
     },
+    loginSuccess(state, action: PayloadAction<UserData>) {
+      state.user = action.payload;
+      state.isAuthenticated = true;
+      state.loading = false;
+    },
+    loginFailure(state, action: PayloadAction<string>) {
+      state.error = action.payload;
+      state.loading = false;
+    },
+
+    // Регистрация
+    registerStart(state, action: PayloadAction<{
+      email: string;
+      password: string;
+      displayName: string;
+      username: string;
+      birthDate: string;
+      policyAgreed: boolean;
+    }>) {
+      state.loading = true;
+      state.error = null;
+    },
+    registerSuccess(state, action: PayloadAction<UserData>) {
+      state.user = action.payload;
+      state.isAuthenticated = true;
+      state.loading = false;
+    },
+    registerFailure(state, action: PayloadAction<string>) {
+      state.error = action.payload;
+      state.loading = false;
+    },
+
+    logout(state) {
+      state.user = null;
+      state.isAuthenticated = false;
+    },
+  },
+  extraReducers: (builder) => {
+    // Обработка состояний для регистрации и авторизации
+    builder
+      .addMatcher(
+        userApi.endpoints.registerUser.matchPending,
+        (state) => {
+          state.loading = true;
+          state.error = null;
+        }
+      )
+      .addMatcher(
+        userApi.endpoints.registerUser.matchFulfilled,
+        (state, action) => {
+          state.user = action.payload;
+          state.isAuthenticated = true;
+          state.loading = false;
+        }
+      )
+      .addMatcher(
+        userApi.endpoints.registerUser.matchRejected,
+        (state, action) => {
+            console.log(state)
+          state.error = action.error.message || 'Ошибка регистрации';
+          state.loading = false;
+        }
+      )
+      .addMatcher(
+        userApi.endpoints.loginUser.matchPending,
+        (state) => {
+          state.loading = true;
+          state.error = null;
+        }
+      )
+      .addMatcher(
+        userApi.endpoints.loginUser.matchFulfilled,
+        (state, action) => {
+          state.user = action.payload;
+          state.isAuthenticated = true;
+          state.loading = false;
+        }
+      )
+      .addMatcher(
+        userApi.endpoints.loginUser.matchRejected,
+        (state, action) => {
+          state.error = action.error.message || 'Ошибка авторизации';
+          state.loading = false;
+        }
+      );
+  },
 });
 
-export const { loginSuccess, logout, setUser, registerStart, registerConfirm } = authSlice.actions;
+export const {
+  loginStart,
+  loginSuccess,
+  loginFailure,
+  registerStart,
+  registerSuccess,
+  registerFailure,
+  logout,
+} = authSlice.actions;
 
 export default authSlice.reducer;

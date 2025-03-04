@@ -1,7 +1,6 @@
 import React from "react";
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { HomePage } from "../pages/HomePage"
-import { LoginPage } from "../pages/LoginPage";
 import { Layout } from "../components/Layouts/Layout";
 import { ServersPage } from "../pages/ServersPage";
 import { SafePage } from "../pages/Article/SafePage";
@@ -10,6 +9,9 @@ import { TermsPage } from "../pages/Article/TermsPage";
 import { LicescePage } from "../pages/Article/LicescePage";
 import { PrivacyPage } from "../pages/Article/PrivacyPage";
 import { AppPage } from "../pages/AppPage";
+import RegisterPage from "../components/Form/RegisterForm";
+import LoginPage from "../components/Form/LoginForm";
+import { AuthPageController } from "../pages/AuthForm";
 
 const ProtectedRoute: React.FC<{
     isAuth: boolean;
@@ -40,25 +42,25 @@ export const PagesRouter: React.FC = () => {
                 <Route
                     path="/login"
                     element={
-                            <LoginPage type="login"/>
+                        <AuthPageController type='login' />
                     }
                 />
                 <Route
                     path="/register"
                     element={
                         <>
-                            <LoginPage type="register"/>
+                            <AuthPageController type='register' />
                         </>
                     }
                 />
-                <Route
+                {/* <Route
                     path="/confirm"
                     element={
                         <>
                             <LoginPage type="confirmemail"/>
                         </>
                     }
-                />
+                /> */}
                 <Route 
                     path="/servers"
                     element= {

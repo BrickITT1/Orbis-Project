@@ -1,12 +1,11 @@
 import React from 'react';
 import "../styles/components/LoginForm.scss"
-import { Login } from '../components/loginForm/Login';
-import { Register } from '../components/loginForm/Register';
 import { useNavigate } from 'react-router-dom';
-import { ConfirmEmail } from '../components/loginForm/ConfirmEmail';
 import { Main } from '../components/Layouts/Main';
+import RegisterPage from '../components/Form/RegisterForm';
+import LoginPage from '../components/Form/LoginForm';
 
-export const LoginPage: React.FC<{type: string}> = ({type}) =>  {
+export const AuthPageController: React.FC<{type: string}> = ({type}) =>  {
     const navigator = useNavigate();
 
     return ( 
@@ -16,15 +15,11 @@ export const LoginPage: React.FC<{type: string}> = ({type}) =>  {
         <div className="login-main">
             {
                 type === "login" ? 
-                <Login /> : null
+                <LoginPage /> : null
             }
             {
                 type === "register" ?
-                <Register /> : null
-            }
-            {
-                type === "confirmemail" ?
-                <ConfirmEmail /> : null
+                <RegisterPage /> : null
             }
         </div>    
         </> 

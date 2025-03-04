@@ -110,7 +110,7 @@ const CustomScroll: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 
     // Убираем обработчики при размонтировании компонента
     return () => {
-      document.body.style.overflow = 'auto'; // Восстанавливаем стандартный скролл
+      document.body.style.overflow = ''; // Восстанавливаем стандартный скролл
       if (scrollTimeout.current) {
         clearTimeout(scrollTimeout.current); // Очищаем таймер
       }

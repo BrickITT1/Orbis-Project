@@ -15,6 +15,10 @@
     margin: 0 auto;
 }
 
+body {
+    overflow-x: hidden;
+}
+
 body, input, ul, li, h1, h2, h3, h4, p  {
     margin: 0;
     padding: 0;
@@ -36,7 +40,7 @@ input, button, textarea {
     width: 100%;
     background-color: $input-color;
     color: $font-color;
-    font-size: 14px;
+    font-size: 16px;
 }
 
 input[type="checkbox"] {
@@ -81,6 +85,7 @@ button:hover {
     background: url('/img/background.jpg');
     background-size:cover;
     background-repeat: no-repeat;
+    overflow: hidden;
 }
 
 .importantdisplay {
