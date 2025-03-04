@@ -10,7 +10,7 @@ const RegisterPage: React.FC = () => {
   const handleRegister = async (data: {
     email: string;
     password: string;
-    displayName: string;
+    display_name: string;
     username: string;
     birthDate: string;
     policyAgreed: boolean;
