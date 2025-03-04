@@ -56,7 +56,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onSubmit, isLogin, loading }) => {
             placeholder="Отображаемое имя"
             name="display_name"
             register={register}
-            error={errors.displayName}
+            error={errors.display_name}
             validation={{ required: 'Обязательное поле' }}
           />
 
