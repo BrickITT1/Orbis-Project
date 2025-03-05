@@ -6,9 +6,11 @@ interface InputFieldProps<T extends FieldValues> {
   type: string;
   placeholder: string;
   name: Path<T>; // Убедитесь, что name соответствует Path<T>
+  readOnly?: boolean;
   register: UseFormRegister<T>;
   error?: FieldError;
   validation?: RegisterOptions<T>; // Уберите второй параметр
+  
 }
 
 export const InputField = <T extends FieldValues>({
