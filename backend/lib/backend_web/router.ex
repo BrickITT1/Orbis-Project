@@ -19,6 +19,7 @@ defmodule BackendWeb.Router do
     post("/login", AuthController, :login)
     post("/logout", AuthController, :logout)
     post("/register", AuthController, :register)
+    post("/register/confirm", AuthController, :confirm_email)
 
     get("/check", AuthController, :check)
     get("/checkemail", CheckController, :check_email)

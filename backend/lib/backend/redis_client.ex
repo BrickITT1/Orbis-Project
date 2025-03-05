@@ -17,4 +17,10 @@ defmodule Backend.RedisClient do
     conn = get_connection()
     Redix.command(conn, ["SET", key, value, "EX", @ttl])
   end
+
+  # Для удаления ключей
+  def del(key) do
+    conn = get_connection()
+    Redix.command(conn, ["DEL", key])
+  end
 end

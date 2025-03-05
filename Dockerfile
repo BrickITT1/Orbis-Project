@@ -33,6 +33,7 @@ COPY backend/ .
 COPY --from=frontend-builder /app/frontend/dist ./priv/static
 
 ENV MIX_ENV=prod
+ENV PHX_ENV=prod
 
 # Сборка релиза
 RUN mix compile && \

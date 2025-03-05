@@ -6,6 +6,7 @@ defmodule Backend.Auth do
   import Ecto.Query, warn: false
   alias Backend.Repo
   alias Backend.Auth.User
+  alias Backend.RedisClient
   alias Pbkdf2
 
   @doc """
@@ -49,10 +50,20 @@ defmodule Backend.Auth do
       {:error, %Ecto.Changeset{}}
 
   """
-  def create_user(attrs \\ %{}) do
+
+  def create_user(attrs) do
     %User{}
-    |> User.changeset(attrs)
+    |> User.registration_changeset(attrs)
     |> Repo.insert()
+    |> case do
+      {:ok, user} ->
+        code = generate_confirmation_code()
+        RedisClient.set("confirmation:#{user.email}", code)
+        {:ok, user, code}
+
+      error ->
+        error
+    end
   end
 
   @doc """
@@ -114,5 +125,53 @@ defmodule Backend.Auth do
       # Используем password_hash
       _ -> Pbkdf2.verify_pass(password, user.password_hash)
     end
+  end
+
+  def confirm_email(email, code) do
+    stored_code = get_stored_code(email)
+
+    with {:ok, ^code} <- {:ok, stored_code},
+         user <- Repo.get_by(User, email: email),
+         {:ok, user} <- update_confirmation(user) do
+      RedisClient.del("confirmation:#{email}")
+      {:ok, user}
+    else
+      _ -> {:error, :invalid_code}
+    end
+  end
+
+  defp generate_confirmation_code do
+    case Application.get_env(:backend, :environment) do
+      :prod ->
+        # Увеличили с 3 до 4 байт
+        :crypto.strong_rand_bytes(4)
+        |> Base.url_encode64(padding: false)
+        # Берем 5 символов
+        |> String.slice(0..4)
+        |> String.upcase()
+
+      _ ->
+        # Теперь 5 символов для разработки
+        "12345"
+    end
+  end
+
+  defp get_stored_code(email) do
+    case Application.get_env(:backend, :environment) do
+      :prod ->
+        case RedisClient.get("confirmation:#{email}") do
+          {:ok, code} -> code
+          _ -> nil
+        end
+
+      _ ->
+        "12345"
+    end
+  end
+
+  defp update_confirmation(user) do
+    user
+    |> User.confirm_changeset()
+    |> Repo.update()
   end
 end

@@ -53,6 +53,9 @@ if config_env() == :prod do
 
   config :backend, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 
+  environment = System.get_env("PHX_ENV", "prod") |> String.to_atom()
+  config :backend, :environment, environment
+
   config :backend, BackendWeb.Endpoint,
     server: true,
     url: [host: host, port: 443, scheme: "https"],

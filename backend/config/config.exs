@@ -9,7 +9,8 @@ import Config
 
 config :backend,
   ecto_repos: [Backend.Repo],
-  generators: [timestamp_type: :utc_datetime]
+  generators: [timestamp_type: :utc_datetime],
+  environment: Mix.env()
 
 config :phoenix, :json_library, Jason
 config :phoenix, :format_encoders, json: Jason

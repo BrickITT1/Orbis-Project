@@ -3,7 +3,9 @@ defmodule BackendWeb.AuthController do
 
   # alias MyApp.Auth
   # alias MyApp.Auth.User
+  use BackendWeb, :controller
   alias BackendWeb.AuthJSON
+  alias Backend.Auth
 
   def login(conn, %{"email" => email, "password" => password}) do
     case Backend.Auth.authenticate_user(email, password) do
@@ -26,31 +28,55 @@ defmodule BackendWeb.AuthController do
   def register(conn, %{
         "email" => email,
         "username" => username,
-        "name" => name,
+        "display_name" => display_name,
         "password" => password,
-        "age" => age,
-        "access" => access
+        "birth_date" => birth_date
       }) do
-    user_params = %{
-      email: email,
-      username: username,
-      name: name,
-      password: password,
-      age: age,
-      access: access
-    }
-
-    case Backend.Auth.create_user(user_params) do
-      {:ok, user} ->
-        conn
-        |> put_session(:user_id, user.id)
-        |> redirect(to: ~p"/")
+    case Auth.create_user(%{
+           email: email,
+           username: username,
+           display_name: display_name,
+           password: password,
+           birth_date: birth_date
+         }) do
+      {:ok, _user, code} ->
+        IO.puts("Confirmation code: #{code}")
+        json(conn, %{status: "confirmation_required", email: email})
 
       {:error, changeset} ->
         conn
-        |> put_flash(:error, "Registration failed")
-        |> redirect(to: ~p"/register")
+        |> put_status(:bad_request)
+        |> json(%{errors: parse_changeset_errors(changeset)})
     end
+  end
+
+  defp parse_changeset_errors(changeset) do
+    Ecto.Changeset.traverse_errors(changeset, fn {msg, opts} ->
+      Enum.reduce(opts, msg, fn {key, value}, acc ->
+        String.replace(acc, "%{#{key}}", to_string(value))
+      end)
+    end)
+  end
+
+  def confirm_email(conn, %{"email" => email, "code" => code}) do
+    case Auth.confirm_email(email, code) do
+      {:ok, user} ->
+        {:ok, token, _} = Guardian.encode_and_sign(user)
+        json(conn, %{status: "confirmed", token: token})
+
+      {:error, _reason} ->
+        conn
+        |> put_status(:bad_request)
+        |> json(%{error: "Invalid confirmation code"})
+    end
+  end
+
+  defp translate_errors(changeset) do
+    Ecto.Changeset.traverse_errors(changeset, fn {msg, opts} ->
+      Enum.reduce(opts, msg, fn {key, value}, acc ->
+        String.replace(acc, "%{#{key}}", to_string(value))
+      end)
+    end)
   end
 
   def check(conn, _params) do

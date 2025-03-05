@@ -4,29 +4,41 @@ defmodule Backend.Auth.User do
   alias Pbkdf2
 
   schema "users" do
+    field(:email, :string)
     field(:username, :string)
     field(:display_name, :string)
-    field(:avatar_url, :string)
-    field(:birth_date, :date)
-    field(:email, :string)
     field(:password, :string, virtual: true)
     field(:password_hash, :string)
-    field(:status, :integer)
-    field(:phone, :string)
-    field(:access, :string)
-    has_one(:preferences, Backend.Accounts.UserPreferences)
+    field(:birth_date, :date)
+    field(:access, :string, default: "user")
+    field(:confirmed_at, :utc_datetime)
 
-    timestamps(type: :utc_datetime)
+    timestamps(type: :utc_datetime_usec)
   end
 
-  def changeset(user, attrs) do
+  def registration_changeset(user, attrs) do
     user
-    |> cast(attrs, [:email, :password])
-    |> validate_required([:email, :password])
-    |> validate_format(:email, ~r/^[^\s]+@[^\s]+$/, message: "must be a valid email")
+    |> cast(attrs, [:email, :username, :display_name, :password, :birth_date])
+    |> validate_required([:email, :username, :display_name, :password, :birth_date])
+    |> validate_format(:email, ~r/^[^\s]+@[^\s]+$/)
+    #     |> validate_date_format(:birth_date)
     |> unique_constraint(:email)
+    |> unique_constraint(:username)
     |> put_password_hash()
   end
+
+  def confirm_changeset(user) do
+    change(user, %{confirmed_at: DateTime.utc_now()})
+  end
+
+  #  defp validate_date_format(changeset, field) do
+  #    validate_change(changeset, field, fn _, value ->
+  #      case Date.from_iso8601(value) do
+  #        {:ok, _} -> []
+  #        _ -> [{field, "must be valid date in YYYY-MM-DD format"}]
+  #      end
+  #    end)
+  #  end
 
   defp put_password_hash(
          %Ecto.Changeset{valid?: true, changes: %{password: password}} = changeset
@@ -35,14 +47,4 @@ defmodule Backend.Auth.User do
   end
 
   defp put_password_hash(changeset), do: changeset
-
-  # defp put_password_hash(changeset) do
-  #   case changeset do
-  #     %Ecto.Changeset{valid?: true, changes: %{password: password}} ->
-  #       put_change(changeset, :password_hash, Bcrypt.hash_pwd_salt(password))
-  #
-  #     _ ->
-  #      changeset
-  #   end
-  # end
 end

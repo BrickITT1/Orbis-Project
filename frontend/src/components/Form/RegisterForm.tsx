@@ -12,7 +12,7 @@ const RegisterPage: React.FC = () => {
     password: string;
     display_name: string;
     username: string;
-    birthDate: string;
+    birth_date: string;
     policyAgreed: boolean;
   }) => {
     try {
