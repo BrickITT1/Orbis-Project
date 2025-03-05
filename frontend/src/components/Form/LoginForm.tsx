@@ -1,38 +1,49 @@
 import React from 'react';
+import { useForm, SubmitHandler } from 'react-hook-form';
 import { useLoginUserMutation } from '../../services/auth';
-import AuthForm from './AuthForm';
-import { useNavigate } from 'react-router-dom';
-import { useAppDispatch } from '../../app/hooks';
-import { loginSuccess } from '../../features/auth/authSlices';
+import { InputField, SubmitButton } from './AuthForm';
 
-const LoginPage: React.FC = () => {
+interface LoginFormData {
+  email: string;
+  password: string;
+}
+
+export const LoginForm: React.FC = () => {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginFormData>();
   const [login, { isLoading, error }] = useLoginUserMutation();
-  const dispatch = useAppDispatch();
-  const navigator = useNavigate();
 
-  const handleLogin = async (data: { email: string; password: string }) => {
+  const onSubmit: SubmitHandler<LoginFormData> = async (data) => {
     try {
-      const response = await login(data).unwrap();
-      console.log(response)
-      //dispatch(loginSuccess())
+      await login(data).unwrap();
     } catch (err) {
-      console.error('Ошибка авторизации:', err);
+      console.error('Login error:', err);
     }
   };
 
   return (
-    <div>
-      <h1>Авторизация</h1>
-      
-      <AuthForm onSubmit={handleLogin} isLogin={true} loading={isLoading} />
-      {error && <div className='require'>{(error as any).data?.message || 'Ошибка авторизации'}</div>}
-      <span><a href="" onClick={(e) => {
-                    e.preventDefault();
-                    navigator("/register")
-                }}>Нет аккаунта</a></span>
-    </div>
-    
+    <form onSubmit={handleSubmit(onSubmit)}>
+      <InputField<LoginFormData>
+        type="email"
+        placeholder="Email"
+        name="email"
+        register={register}
+        error={errors.email}
+        validation={{ required: 'Required' }}
+      />
+      <InputField<LoginFormData>
+        type="password"
+        placeholder="Password"
+        name="password"
+        register={register}
+        error={errors.password}
+        validation={{ required: 'Required' }}
+      />
+      <SubmitButton label="Login" disabled={isLoading} />
+      {error && <div>Error: {(error as any).data?.message}</div>}
+    </form>
   );
 };
-
-export default LoginPage;

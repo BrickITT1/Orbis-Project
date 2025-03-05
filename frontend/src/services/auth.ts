@@ -46,6 +46,20 @@ export const userApi = createApi({
                 body: data,
             }),
         }),
+        sendVerificationCode: builder.mutation<void, string>({
+            query: (email) => ({
+              url: '/send_code',
+              method: 'POST',
+              body: { email },
+            }),
+          }),
+          verifyCode: builder.mutation<void, { email: string; code: string }>({
+            query: (body) => ({
+              url: '/verify',
+              method: 'POST',
+              body,
+            }),
+          }),
         checkAuth: builder.query({
             query: () => ({
                 url: `/protected/check`,
@@ -62,5 +76,7 @@ export const {
     useCheckAuthQuery,
     useCheckUserQuery,
     useCheckEmailQuery,
-    useConfirmUserMutation
+    useConfirmUserMutation,
+    useSendVerificationCodeMutation,
+    useVerifyCodeMutation
 } = userApi;

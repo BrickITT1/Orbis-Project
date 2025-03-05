@@ -2,8 +2,8 @@ import React from 'react';
 import "../styles/components/LoginForm.scss"
 import { useNavigate } from 'react-router-dom';
 import { Main } from '../components/Layouts/Main';
-import RegisterPage from '../components/Form/RegisterForm';
-import LoginPage from '../components/Form/LoginForm';
+import { RegisterForm } from '../components/Form/RegisterForm';
+import { LoginForm } from '../components/Form/LoginForm';
 
 export const AuthPageController: React.FC<{type: string}> = ({type}) =>  {
     const navigator = useNavigate();
@@ -15,11 +15,11 @@ export const AuthPageController: React.FC<{type: string}> = ({type}) =>  {
         <div className="login-main">
             {
                 type === "login" ? 
-                <LoginPage /> : null
+                <LoginForm /> : null
             }
             {
                 type === "register" ?
-                <RegisterPage /> : null
+                <RegisterForm /> : null
             }
         </div>    
         </> 

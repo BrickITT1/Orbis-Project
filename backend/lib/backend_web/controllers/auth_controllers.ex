@@ -3,20 +3,42 @@ defmodule BackendWeb.AuthController do
 
   # alias MyApp.Auth
   # alias MyApp.Auth.User
-  use BackendWeb, :controller
+  alias Backend.RedisClient
+  alias BackendWeb.Guardian
   alias BackendWeb.AuthJSON
   alias Backend.Auth
 
-  def login(conn, %{"email" => email, "password" => password}) do
-    case Backend.Auth.authenticate_user(email, password) do
-      {:ok, user} ->
-        {:ok, token, _claims} = Guardian.encode_and_sign(user)
-        render(conn, AuthJSON, "token.json", token: token)
+  def send_code(conn, %{"email" => email}) do
+    code = generate_confirmation_code()
+    RedisClient.set("email_confirmation:#{email}", code)
+    # В реальном приложении здесь отправка email
+    IO.puts("Confirmation code for #{email}: #{code}")
+    json(conn, %{status: "ok"})
+  end
 
-      {:error, reason} ->
+  def verify_code(conn, %{"email" => email, "code" => code}) do
+    case RedisClient.get("email_confirmation:#{email}") do
+      {:ok, ^code} ->
+        RedisClient.set("verified_email:#{code}", email)
+        json(conn, %{status: "ok"})
+
+      _ ->
         conn
         |> put_status(:unauthorized)
-        |> render(AuthJSON, "error.json", message: reason)
+        |> json(%{error: "invalid_code"})
+    end
+  end
+
+  def login(conn, %{"email" => email, "password" => password}) do
+    case Auth.authenticate_user(email, password) do
+      {:ok, user} ->
+        {:ok, token, _} = Guardian.encode_and_sign(user)
+        json(conn, %{token: token})
+
+      _ ->
+        conn
+        |> put_status(:unauthorized)
+        |> json(%{error: "invalid_credentials"})
     end
   end
 
@@ -26,27 +48,30 @@ defmodule BackendWeb.AuthController do
   end
 
   def register(conn, %{
-        "email" => email,
+        "code" => code,
         "username" => username,
         "display_name" => display_name,
         "password" => password,
         "birth_date" => birth_date
       }) do
-    case Auth.create_user(%{
-           email: email,
-           username: username,
-           display_name: display_name,
-           password: password,
-           birth_date: birth_date
-         }) do
-      {:ok, _user, code} ->
-        IO.puts("Confirmation code: #{code}")
-        json(conn, %{status: "confirmation_required", email: email})
-
-      {:error, changeset} ->
+    with {:ok, email} <- RedisClient.get("verified_email:#{code}"),
+         {:ok, user} <-
+           Auth.create_user(%{
+             email: email,
+             username: username,
+             display_name: display_name,
+             password: password,
+             birth_date: birth_date,
+             confirmed_at: DateTime.utc_now()
+           }) do
+      RedisClient.del("verified_email:#{code}")
+      {:ok, token, _} = Guardian.encode_and_sign(user)
+      json(conn, %{token: token})
+    else
+      _ ->
         conn
         |> put_status(:bad_request)
-        |> json(%{errors: parse_changeset_errors(changeset)})
+        |> json(%{error: "registration_failed"})
     end
   end
 
@@ -56,6 +81,13 @@ defmodule BackendWeb.AuthController do
         String.replace(acc, "%{#{key}}", to_string(value))
       end)
     end)
+  end
+
+  defp generate_confirmation_code do
+    :crypto.strong_rand_bytes(3)
+    |> Base.url_encode64(padding: false)
+    |> String.slice(0..5)
+    |> String.upcase()
   end
 
   def confirm_email(conn, %{"email" => email, "code" => code}) do

@@ -3,20 +3,19 @@ defmodule Orbis.Repo.Migrations.CreateUsers do
 
   def change do
     create table(:users) do
-      add(:username, :string, size: 30, null: false)
-      add(:display_name, :string, size: 20, null: false)
-      add(:avatar_url, :string)
-      add(:birth_date, :date, null: false)
-      add(:email, :string, size: 100, null: false)
-      add(:password_hash, :string, size: 255, null: false)
-      add(:status, :integer, default: 0)
-      add(:phone, :string)
-      add(:access, :string, default: "user")
+      add(:email, :string, null: false)
+      add(:username, :string)
+      add(:display_name, :string)
+      add(:password_hash, :string)
+      add(:birth_date, :date)
+      # active | restricted | deleted
+      add(:account_status, :string, default: "active")
+      add(:confirmed_at, :utc_datetime)
 
       timestamps(type: :utc_datetime_usec)
     end
 
-    create(unique_index(:users, [:email]))
     create(unique_index(:users, [:username]))
+    create(unique_index(:users, [:email]))
   end
 end
