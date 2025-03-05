@@ -72,9 +72,9 @@ const AuthForm: React.FC<AuthFormProps> = ({ onSubmit, isLogin, loading }) => {
           <InputField
             type="date"
             placeholder="Дата рождения"
-            name="age"
+            name="birth_date"
             register={register}
-            error={errors.birthDate}
+            error={errors.birth_date}
             validation={{ required: 'Обязательное поле' }}
           />
           <CheckboxField
