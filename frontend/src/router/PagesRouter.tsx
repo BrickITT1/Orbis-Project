@@ -9,20 +9,26 @@ import { TermsPage } from "../pages/Article/TermsPage";
 import { LicescePage } from "../pages/Article/LicescePage";
 import { PrivacyPage } from "../pages/Article/PrivacyPage";
 import { AppPage } from "../pages/AppPage";
-import RegisterPage from "../components/Form/RegisterForm";
-import LoginPage from "../components/Form/LoginForm";
 import { AuthPageController } from "../pages/AuthForm";
+import { selectAuth } from "../features/auth/authSelectors";
+import { useSelector } from "react-redux";
+import { useAppSelector } from "../app/hooks";
 
 const ProtectedRoute: React.FC<{
     isAuth: boolean;
     children: React.ReactNode;
-}> = ({ isAuth, children }) => {
-    console.log(isAuth);
-    return isAuth ? <>{children}</> : <Navigate to="/" />;
+    path?: string;
+}> = ({ isAuth, children, path }) => {
+    if (path) {
+        return isAuth ? <>{children}</> : <Navigate to={path} />;
+    }
+    return isAuth ? <>{children}</> : <Navigate to={"/"} />;
 };
 
+
 export const PagesRouter: React.FC = () => {
-    //const isAuth = useSelector(selectAuth) || false;
+    const isAuth = useAppSelector(state => state.auth.isAuthenticated) || false;
+    console.log(useAppSelector(state => state.auth))
     return (
         <BrowserRouter>
             <Routes>
@@ -42,7 +48,9 @@ export const PagesRouter: React.FC = () => {
                 <Route
                     path="/login"
                     element={
-                        <AuthPageController type='login' />
+                        <ProtectedRoute isAuth={!isAuth} path="/app">
+                            <AuthPageController type='login' />
+                        </ProtectedRoute>
                     }
                 />
                 <Route
@@ -116,7 +124,9 @@ export const PagesRouter: React.FC = () => {
                 <Route 
                     path="/app"
                     element= {
-                        <AppPage />
+                        <ProtectedRoute isAuth={isAuth}>
+                            <AppPage />
+                        </ProtectedRoute>
                     }
                 />
                 {/* <Route

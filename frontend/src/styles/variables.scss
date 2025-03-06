@@ -103,3 +103,31 @@ $main-shadow: 0 0px 10px #5788EB;
                     0 0 0 55px rgba(0, 123, 255, 0);
     }
 }
+
+@keyframes myShadowBIGWhite {
+    0% {
+        box-shadow: 0 0 10px 5px rgba(255, 255, 255, 0.1), 
+                    0 0 10px 5px rgba(255, 255, 255, 0.1);
+    }
+    25% {
+        box-shadow: 0 0 10px 10px rgba(0, 217, 255, 0.1), 
+                    0 0 10px 10px rgba(0, 217, 255, 0.1),
+                    0 0 10px 10px rgba(0, 217, 255, 0.1);
+    }
+    50% {
+        box-shadow: 0 0 10px 15px rgba(90, 104, 231, 0.1),
+                    0 0 10px 15px rgba(90, 104, 231, 0.1),
+                    0 0 10px 15px rgba(90, 104, 231, 0.1),
+                    0 0 10px 15px rgba(90, 104, 231, 0.1);
+    }
+    
+    75% {
+        box-shadow: 0 0 10px 10px rgba(0, 217, 255, 0.1), 
+                    0 0 10px 10px rgba(0, 217, 255, 0.1),
+                    0 0 10px 10px rgba(0, 217, 255, 0.1);
+    }
+    100% {
+        box-shadow: 0 0 10px 5px rgba(255, 255, 255, 0.1),
+        0 0 10px 5px rgba(255, 255, 255, 0.1);
+    }
+}
