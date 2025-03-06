@@ -2,6 +2,7 @@ import React from 'react';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { useLoginUserMutation } from '../../services/auth';
 import { InputField, SubmitButton } from './AuthForm';
+import { useNavigate } from 'react-router-dom';
 
 interface LoginFormData {
   email: string;
@@ -9,6 +10,7 @@ interface LoginFormData {
 }
 
 export const LoginForm: React.FC = () => {
+  const navigate = useNavigate();
   const {
     register,
     handleSubmit,
@@ -25,25 +27,37 @@ export const LoginForm: React.FC = () => {
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)}>
-      <InputField<LoginFormData>
-        type="email"
-        placeholder="Email"
-        name="email"
-        register={register}
-        error={errors.email}
-        validation={{ required: 'Required' }}
-      />
-      <InputField<LoginFormData>
-        type="password"
-        placeholder="Password"
-        name="password"
-        register={register}
-        error={errors.password}
-        validation={{ required: 'Required' }}
-      />
-      <SubmitButton label="Login" disabled={isLoading} />
-      {error && <div>Error: {(error as any).data?.message}</div>}
-    </form>
+    <>
+      <div className="form">
+        <form onSubmit={handleSubmit(onSubmit)}>
+        <h1 className="">
+          Войти в аккаунт
+        </h1>
+        
+          <InputField<LoginFormData>
+            type="email"
+            placeholder="Почта"
+            name="email"
+            register={register}
+            error={errors.email}
+            validation={{ required: 'Required' }}
+          />
+          <InputField<LoginFormData>
+            type="password"
+            placeholder="Пароль"
+            name="password"
+            register={register}
+            error={errors.password}
+            validation={{ required: 'Required' }}
+          />
+          <SubmitButton label="Вход" disabled={isLoading} />
+          {error && <div>Error: {(error as any).data?.message}</div>}
+          <span><a href="" onClick={(e) => {
+                      e.preventDefault();
+                      navigate("/register")
+                  }}>Нет аккаунта</a></span>
+        </form>
+      </div>
+    </>
   );
 };

@@ -59,7 +59,8 @@ defmodule Backend.Auth do
       {:ok, user} ->
         code = generate_confirmation_code()
         RedisClient.set("confirmation:#{user.email}", code)
-        {:ok, user, code}
+        # {:ok, user, code}
+        {:ok, user}
 
       error ->
         error
@@ -142,30 +143,22 @@ defmodule Backend.Auth do
 
   defp generate_confirmation_code do
     case Application.get_env(:backend, :environment) do
-      :prod ->
-        # Увеличили с 3 до 4 байт
-        :crypto.strong_rand_bytes(4)
-        |> Base.url_encode64(padding: false)
-        # Берем 5 символов
-        |> String.slice(0..4)
-        |> String.upcase()
-
-      _ ->
-        # Теперь 5 символов для разработки
-        "12345"
+      :prod -> generate_random_code()
+      _ -> "12345"
     end
+  end
+
+  defp generate_random_code do
+    :crypto.strong_rand_bytes(4)
+    |> Base.url_encode64(padding: false)
+    |> String.slice(0..4)
+    |> String.upcase()
   end
 
   defp get_stored_code(email) do
     case Application.get_env(:backend, :environment) do
-      :prod ->
-        case RedisClient.get("confirmation:#{email}") do
-          {:ok, code} -> code
-          _ -> nil
-        end
-
-      _ ->
-        "12345"
+      :prod -> RedisClient.get("confirmation:#{email}")
+      _ -> "12345"
     end
   end
 

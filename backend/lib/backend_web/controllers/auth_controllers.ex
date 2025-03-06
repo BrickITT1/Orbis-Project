@@ -4,7 +4,7 @@ defmodule BackendWeb.AuthController do
   # alias MyApp.Auth
   # alias MyApp.Auth.User
   alias Backend.RedisClient
-  alias BackendWeb.Guardian
+  alias Backend.Auth.Guardian, as: Guardian
   alias BackendWeb.AuthJSON
   alias Backend.Auth
 
@@ -20,6 +20,8 @@ defmodule BackendWeb.AuthController do
     case RedisClient.get("email_confirmation:#{email}") do
       {:ok, ^code} ->
         RedisClient.set("verified_email:#{code}", email)
+        # Удаляем использованный код
+        RedisClient.del("email_confirmation:#{email}")
         json(conn, %{status: "ok"})
 
       _ ->
@@ -47,35 +49,51 @@ defmodule BackendWeb.AuthController do
     json(conn, "OK")
   end
 
-  def register(conn, %{
-        "code" => code,
-        "username" => username,
-        "display_name" => display_name,
-        "password" => password,
-        "birth_date" => birth_date
-      }) do
+  def register(
+        conn,
+        %{
+          "code" => code,
+          "username" => username,
+          "display_name" => display_name,
+          "password" => password,
+          "birth_date" => birth_date_str
+        }
+      ) do
     with {:ok, email} <- RedisClient.get("verified_email:#{code}"),
+         {:ok, birth_date} <- Date.from_iso8601(birth_date_str),
          {:ok, user} <-
            Auth.create_user(%{
              email: email,
              username: username,
              display_name: display_name,
              password: password,
-             birth_date: birth_date,
-             confirmed_at: DateTime.utc_now()
+             birth_date: birth_date
            }) do
       RedisClient.del("verified_email:#{code}")
+      RedisClient.del("email_confirmation:#{email}")
       {:ok, token, _} = Guardian.encode_and_sign(user)
       json(conn, %{token: token})
     else
-      _ ->
+      {:error, :invalid_date} ->
+        conn
+        |> put_status(:bad_request)
+        |> json(%{error: "Invalid date format. Use YYYY-MM-DD"})
+
+      {:error, changeset} ->
+        conn
+        |> put_status(:bad_request)
+        |> json(%{errors: parse_errors(changeset)})
+
+      error ->
+        IO.puts("Unexpected error: #{inspect(error)}")
+
         conn
         |> put_status(:bad_request)
         |> json(%{error: "registration_failed"})
     end
   end
 
-  defp parse_changeset_errors(changeset) do
+  defp parse_errors(changeset) do
     Ecto.Changeset.traverse_errors(changeset, fn {msg, opts} ->
       Enum.reduce(opts, msg, fn {key, value}, acc ->
         String.replace(acc, "%{#{key}}", to_string(value))
@@ -103,14 +121,6 @@ defmodule BackendWeb.AuthController do
     end
   end
 
-  defp translate_errors(changeset) do
-    Ecto.Changeset.traverse_errors(changeset, fn {msg, opts} ->
-      Enum.reduce(opts, msg, fn {key, value}, acc ->
-        String.replace(acc, "%{#{key}}", to_string(value))
-      end)
-    end)
-  end
-
   def check(conn, _params) do
     # Логика проверки куки
     json(conn, "OK")
@@ -124,10 +134,5 @@ defmodule BackendWeb.AuthController do
   def show(conn, _params) do
     user = conn.assigns.current_user
     render(conn, "show.json", user: user)
-  end
-
-  defp generate_token(user) do
-    {:ok, token, _claims} = Guardian.encode_and_sign(user)
-    token
   end
 end

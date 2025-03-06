@@ -17,7 +17,8 @@ config :phoenix, :format_encoders, json: Jason
 
 config :backend, Backend.Auth.Guardian,
   issuer: "backend",
-  secret_key: System.get_env("GUARDIAN_SECRET") || "your_secret_here"
+  secret_key:
+    System.get_env("GUARDIAN_SECRET_KEY") || Base.url_encode64(:crypto.strong_rand_bytes(64))
 
 # Configures the endpoint
 config :backend, BackendWeb.Endpoint,

@@ -25,11 +25,13 @@ defmodule Backend.Auth.User do
     |> validate_format(:email, ~r/^[^\s]+@[^\s]+$/)
     |> validate_inclusion(:account_status, @account_statuses)
     |> unique_constraint(:email)
+    |> unique_constraint(:username)
+    |> put_change(:confirmed_at, DateTime.truncate(DateTime.utc_now(), :second))
     |> put_password_hash()
   end
 
   def confirm_changeset(user) do
-    change(user, %{confirmed_at: DateTime.utc_now()})
+    change(user, %{confirmed_at: DateTime.truncate(DateTime.utc_now(), :second)})
   end
 
   defp put_password_hash(

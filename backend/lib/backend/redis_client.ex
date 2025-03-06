@@ -15,7 +15,8 @@ defmodule Backend.RedisClient do
 
   def set(key, value) do
     conn = get_connection()
-    Redix.command(conn, ["SET", key, value, "EX", @code_ttl])
+    # TTL 5 минут
+    Redix.command(conn, ["SET", key, value, "EX", 300])
   end
 
   def del(key) do

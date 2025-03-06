@@ -20,11 +20,22 @@
 .login-main {
     max-width: 580px;
     margin: 0 auto;
-    display: grid;
+    display: flex;
+    flex-direction: column;
     align-items: center;
     min-height: 100vh;
-    
+    justify-content: center;
+    gap: 2em;
         
+    .form {
+        width: 100%;
+        border: 1px solid #fff;
+        background-color: #04122f80;
+        @extend %global-border-radius;
+        padding: 2em;
+        box-shadow: 0px 0px 15px 5px #ffffff18;
+    }
+
     form label, a {
         padding: 0.1em;
         color: $font-color;
@@ -37,6 +48,7 @@
         padding-left: 4em;
         border: 1px solid #fff;
         
+        box-shadow: 0px 0px 15px 5px #ffffff18;
         border-radius: 10px;
     }
 
@@ -79,28 +91,24 @@
         text-decoration: underline
     }
     
-    &>div {
-        border: 1px solid #fff;
+    form {
         @extend %flex-col !optional;
         @extend %global-border-radius;
-        box-shadow: 0px 0px 15px 5px #ffffff18;
         width: 100%;
-        min-height: 400px;
         justify-content: space-between;
-        padding: 2em ;
-        gap: 2em;
         animation: fadeIn 0.3s ease-in-out;
         box-sizing: border-box;
-        background-color: #04122f80;
-        animation: myShadowBIG 5s infinite ease-in-out, fadeIn .5s ease;
-        border-radius: 10px
+        
     }
     
     form {
         @extend %flex-col !optional;
         @extend %global-border-radius;
         gap: 2em;
+        width: 100%;
         
+        border-radius: 10px;
+        padding: 1em;
     }
 
     input, button {
@@ -115,6 +123,7 @@
         margin: 0 auto;
         width: 50%;
         padding: 0.5em 1em;
+        
     }
 
     h1 {
@@ -154,4 +163,17 @@
         font-size: 14px;
         text-align: center;
     }  
+}
+
+.email-form {
+    position: relative;
+}
+
+.email-form button {
+    position: absolute;
+    right: 1em;
+    bottom: 1em;
+    width: 30%;
+    border-bottom-right-radius: 10px;
+    border-top-right-radius: 10px;
 }

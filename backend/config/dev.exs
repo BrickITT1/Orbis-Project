@@ -67,6 +67,10 @@ config :backend, :redis_url, System.get_env("REDIS_URL", "redis://redis:6379")
 # Enable dev routes for dashboard and mailbox
 config :backend, dev_routes: true
 
+config :backend, Backend.Auth.Guardian,
+  issuer: "backend",
+  secret_key: "7XK9g5zQ2sLp8R!vT%WqYbSdFjHnMlPc3EwAeZrCtByNxUmOiV4GhJkDfI6Lu1o0"
+
 # Do not include metadata nor timestamps in development logs
 config :logger, :console, format: "[$level] $message\n"
 

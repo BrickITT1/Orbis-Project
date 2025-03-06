@@ -38,21 +38,15 @@ defmodule BackendWeb.CheckController do
   end
 
   defp check_postgres_and_cache(value, field, conn) do
-    query =
-      from(u in Auth.User,
-        where: field(u, ^field) == ^value,
-        select: %{email: u.email, username: u.username}
-      )
-
-    case Repo.one(query) do
+    case Repo.get_by(User, [{field, value}]) do
       nil ->
-        RedisClient.set(value, "not_found")
-        json(conn, "YES") |> put_status(200)
+        # TTL 1 час
+        RedisClient.setex("#{field}:#{value}", 3600, "not_found")
+        json(conn, "YES")
 
-      %{email: email, username: username} ->
-        RedisClient.set(email, username)
-        RedisClient.set(username, email)
-        json(conn, "NO") |> put_status(400)
+      _user ->
+        RedisClient.setex("#{field}:#{value}", 3600, "exists")
+        json(conn, "NO")
     end
   end
 end

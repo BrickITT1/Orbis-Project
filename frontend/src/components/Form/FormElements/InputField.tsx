@@ -14,21 +14,26 @@ interface InputFieldProps {
   register: UseFormRegister<any>;
   error?: FieldError | Merge<FieldError, FieldErrorsImpl<any>> | undefined;
   validation?: RegisterOptions;
+  readOnly?: boolean;
 }
 
 const InputField: React.FC<InputFieldProps> = ({
+  readOnly,
   type,
   placeholder,
   name,
   register,
   error,
-  validation
+  validation,
+  
 }) => (
   <div>
     <input
       type={type}
       placeholder={placeholder}
+      readOnly={readOnly}
       {...register(name, validation)}
+      
     />
     {error && typeof error === 'object' && 'message' in error && (
       <span className='require'>{String(error.message)}</span>

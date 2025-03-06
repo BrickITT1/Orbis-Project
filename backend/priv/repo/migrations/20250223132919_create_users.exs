@@ -10,12 +10,12 @@ defmodule Orbis.Repo.Migrations.CreateUsers do
       add(:birth_date, :date)
       # active | restricted | deleted
       add(:account_status, :string, default: "active")
-      add(:confirmed_at, :utc_datetime)
+      add(:confirmed_at, :utc_datetime_usec)
 
       timestamps(type: :utc_datetime_usec)
     end
 
-    create(unique_index(:users, [:username]))
     create(unique_index(:users, [:email]))
+    create(unique_index(:users, [:username]))
   end
 end
