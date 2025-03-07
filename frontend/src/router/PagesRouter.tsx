@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { HomePage } from "../pages/HomePage"
 import { Layout } from "../components/Layouts/Layout";
@@ -13,6 +13,7 @@ import { AuthPageController } from "../pages/AuthForm";
 import { selectAuth } from "../features/auth/authSelectors";
 import { useSelector } from "react-redux";
 import { useAppSelector } from "../app/hooks";
+import { useRefreshTokenMutation } from "../services/auth";
 
 const ProtectedRoute: React.FC<{
     isAuth: boolean;
@@ -28,7 +29,28 @@ const ProtectedRoute: React.FC<{
 
 export const PagesRouter: React.FC = () => {
     const isAuth = useAppSelector(state => state.auth.isAuthenticated) || false;
-    console.log(useAppSelector(state => state.auth))
+    const [data, { isLoading }] = useRefreshTokenMutation({});
+    const [isRefreshing, setIsRefreshing] = useState(true);
+
+    const refresh = async () => {
+        try {
+            await data({});
+            setIsRefreshing(false);
+            console.log(isAuth)
+        } catch (error) {
+            console.error("Refresh failed:", error);
+            setIsRefreshing(false);
+        }
+    };
+
+    useEffect(() => {
+        refresh();
+    }, [])
+
+    if (isRefreshing) {
+        return <div>Loading...</div>; // Показать индикатор загрузки, пока обновляется токен
+    }
+    
     return (
         <BrowserRouter>
             <Routes>

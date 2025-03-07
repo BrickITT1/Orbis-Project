@@ -17,7 +17,9 @@
 }
 
 .main-app {
-    background-color: $button-color;
+    background-image: url('/img/backgroundbig.jpg');
+    background-size: cover;
+    background-repeat: no-repeat;
     width: 100vw;
     height: 100vh;
     @extend %flex-base;
@@ -35,7 +37,7 @@
     }
 
     .messages-menu {
-        min-width: 250px;
+        min-width: 300px;
     }
 
     .actions {
@@ -117,10 +119,9 @@
     }
 
     .messages-menu_list-search {
-        
+        background-color: #30343b;
         position: relative;
-        font-size: 20px;
-        padding: 1em;
+        padding: 0.1em;
     }
 
     .messages-menu_list-search input{
@@ -136,8 +137,8 @@
         position: absolute;
         width: 30px;
         height: 30px;
-        top: 28px;
-        left: 28px;
+        top: 0.5em;
+        left: 0.5em;
         background-image: url('/img/button/Find.svg');
         z-index: 2;
     }
@@ -158,8 +159,6 @@
 
     .group-item > div {
         padding: 10px 0;
-        @extend %flex-base;
-        justify-content: center;
         width: 90%;
         position: relative;
         background-color: #3F495A;
@@ -171,12 +170,20 @@
         align-items: center;
         justify-content: center;
         left: -25px;
-        top: -3px;
+        top: 0px;
         width: 50px;
         height: 50px;
     }
     .group-item__avatar img {
         width: 50px;
         height: 50px;
+    }
+
+    .group-item__name {
+        padding-left: 30px;
+        padding-right: 20px;
+        overflow:hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
     }
 }

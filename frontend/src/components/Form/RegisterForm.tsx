@@ -30,6 +30,7 @@ export const RegisterForm: React.FC = () => {
   const navigator = useNavigate()
   const [step, setStep] = useState<Step>('email');
   const [email, setEmail] = useState('');
+  const [verificationCode, setVerificationCode] = useState(''); 
   // RTK Query мутации
   const [sendCode] = useSendVerificationCodeMutation();
   const [verifyCode] = useVerifyCodeMutation();
@@ -56,7 +57,9 @@ export const RegisterForm: React.FC = () => {
   const handleCodeSubmit: SubmitHandler<CodeFormData> = async ({ code }) => {
     if (step == 'code') {
       try {
+        console.log(code)
         await verifyCode({ email, code }).unwrap();
+        setVerificationCode(code)
         setStep('register');
       } catch (err) {
         console.error('Error verifying code:', err);
@@ -67,7 +70,8 @@ export const RegisterForm: React.FC = () => {
 
   const handleRegisterSubmit: SubmitHandler<RegisterFormData> = async (data) => {
     try {
-      await registerUser({ email, ...data }).unwrap();
+      await registerUser({code: verificationCode, email, ...data }).unwrap();
+
     } catch (err) {
       console.error('Registration error:', err);
     }

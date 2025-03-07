@@ -3,7 +3,7 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 export const userApi = createApi({
     reducerPath: "postsApi",
     baseQuery: fetchBaseQuery({
-        baseUrl: "https://localhost:3000/api",
+        baseUrl: "http://localhost:4000/api",
         credentials: "include",
     }),
     endpoints: (builder) => ({
@@ -20,10 +20,10 @@ export const userApi = createApi({
                 method: "GET",
             }),
         }),
-        checkEmail: builder.query({
-            query: (email: string) => ({
-                url: `/checkemail/?email=${email}`,
-                method: "GET",
+        refreshToken: builder.mutation({
+            query: () => ({
+                url: `/refresh`,
+                method: "POST",
             }),
         }),
         confirmUser: builder.mutation({
@@ -76,7 +76,7 @@ export const {
     useRegisterUserMutation,
     useCheckAuthQuery,
     useCheckUserQuery,
-    useCheckEmailQuery,
+    useRefreshTokenMutation,
     useConfirmUserMutation,
     useSendVerificationCodeMutation,
     useVerifyCodeMutation

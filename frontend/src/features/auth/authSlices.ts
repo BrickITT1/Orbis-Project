@@ -126,7 +126,14 @@ const authSlice = createSlice({
           state.loading = false;
         }
       )
-      ;
+      .addMatcher(
+        userApi.endpoints.refreshToken.matchFulfilled,
+        (state, action) => {
+          state.user = action.payload;
+          state.isAuthenticated = true;
+          state.loading = false;
+        }
+      )
   },
 });
 
