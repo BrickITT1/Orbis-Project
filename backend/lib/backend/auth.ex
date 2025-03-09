@@ -23,20 +23,6 @@ defmodule Backend.Auth do
   end
 
   @doc """
-  Gets a single user.
-
-  Raises `Ecto.NoResultsError` if the User does not exist.
-
-  ## Examples
-
-      iex> get_user!(123)
-      %User{}
-
-      iex> get_user!(456)
-      ** (Ecto.NoResultsError)
-
-  """
-  @doc """
   Получение пользователя по ID (без исключения)
   """
   def get_user(id) do
@@ -179,5 +165,12 @@ defmodule Backend.Auth do
     user
     |> User.confirm_changeset()
     |> Repo.update()
+  end
+
+  def get_user_by_email(email) do
+    case Repo.get_by(User, email: email) do
+      nil -> {:error, :not_found}
+      user -> {:ok, user}
+    end
   end
 end

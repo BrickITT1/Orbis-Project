@@ -9,11 +9,27 @@ defmodule BackendWeb.AuthController do
   alias Backend.Auth
 
   def send_code(conn, %{"email" => email}) do
-    code = generate_confirmation_code()
-    RedisClient.set("email_confirmation:#{email}", code)
-    # В реальном приложении здесь отправка email
-    IO.puts("Confirmation code for #{email}: #{code}")
-    json(conn, %{status: "ok"})
+    case Auth.get_user_by_email(email) do
+      {:ok, _user} ->
+        conn
+        |> put_status(:conflict)
+        |> json(%{error: "email_already_registered"})
+
+      {:error, :not_found} ->
+        # Генерируем и сохраняем код
+        code = generate_confirmation_code()
+        RedisClient.set("email_confirmation:#{email}", code)
+
+        # В продакшене здесь отправка email
+        IO.puts("Confirmation code for #{email}: #{code}")
+
+        json(conn, %{status: "ok"})
+
+      error ->
+        conn
+        |> put_status(:internal_server_error)
+        |> json(%{error: "server_error"})
+    end
   end
 
   def verify_code(conn, %{"email" => email, "code" => code}) do
@@ -178,10 +194,11 @@ defmodule BackendWeb.AuthController do
   end
 
   defp generate_confirmation_code do
-    :crypto.strong_rand_bytes(3)
+    :crypto.strong_rand_bytes(4)
     |> Base.url_encode64(padding: false)
     |> String.slice(0..5)
-    |> String.upcase()
+
+    # |> String.upcase()
   end
 
   def confirm_email(conn, %{"email" => email, "code" => code}) do
