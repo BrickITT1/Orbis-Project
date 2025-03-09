@@ -1,9 +1,7 @@
 defmodule BackendWeb.CheckController do
   use BackendWeb, :controller
   alias Backend.RedisClient
-  alias Backend.Auth
   alias Backend.Repo
-  import Ecto.Query
 
   def check_email(conn, %{"email" => email}) do
     case RedisClient.get(email) do

@@ -20,10 +20,10 @@ export const userApi = createApi({
                 method: "GET",
             }),
         }),
-        checkEmail: builder.query({
-            query: (email: string) => ({
-                url: `/checkemail/?email=${email}`,
-                method: "GET",
+        refreshToken: builder.mutation({
+            query: () => ({
+                url: `/refresh`,
+                method: "POST",
             }),
         }),
         confirmUser: builder.mutation({
@@ -37,6 +37,7 @@ export const userApi = createApi({
             query: () => ({
                 url: `/logout`,
                 method: "POST",
+                body: {}
             }),
         }),
         registerUser: builder.mutation({
@@ -75,7 +76,7 @@ export const {
     useRegisterUserMutation,
     useCheckAuthQuery,
     useCheckUserQuery,
-    useCheckEmailQuery,
+    useRefreshTokenMutation,
     useConfirmUserMutation,
     useSendVerificationCodeMutation,
     useVerifyCodeMutation

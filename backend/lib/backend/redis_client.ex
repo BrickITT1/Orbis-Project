@@ -1,7 +1,7 @@
 defmodule Backend.RedisClient do
   @redis_url System.get_env("REDIS_URL") || "redis://redis:6379"
   # 5 минут
-  @code_ttl 300
+  # @code_ttl 300
 
   defp get_connection do
     {:ok, conn} = Redix.start_link(@redis_url)
@@ -13,10 +13,11 @@ defmodule Backend.RedisClient do
     Redix.command(conn, ["GET", key])
   end
 
-  def set(key, value) do
+  def set(key, value, opts \\ []) do
+    # Значение по умолчанию 300 секунд
+    ttl = Keyword.get(opts, :ttl, 300)
     conn = get_connection()
-    # TTL 5 минут
-    Redix.command(conn, ["SET", key, value, "EX", 300])
+    Redix.command(conn, ["SET", key, value, "EX", ttl])
   end
 
   def del(key) do

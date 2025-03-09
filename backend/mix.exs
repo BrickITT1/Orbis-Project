@@ -48,9 +48,10 @@ defmodule Backend.MixProject do
       {:redix, "~> 0.10.0"},
       # {:bcrypt_elixir, "~> 3.0.1"},
       {:elixir_make, "~> 0.9.0"},
-      {:guardian, "~> 2.0"},
+      {:guardian, "~> 2.3"},
       # Замена Argon2 на PBKDF2
-      {:pbkdf2_elixir, "~> 2.0"}
+      {:pbkdf2_elixir, "~> 2.0"},
+      {:cors_plug, "~> 3.0"}
     ]
   end
 

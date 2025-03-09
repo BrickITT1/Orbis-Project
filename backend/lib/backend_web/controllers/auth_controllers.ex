@@ -34,8 +34,18 @@ defmodule BackendWeb.AuthController do
   def login(conn, %{"email" => email, "password" => password}) do
     case Auth.authenticate_user(email, password) do
       {:ok, user} ->
-        {:ok, token, _} = Guardian.encode_and_sign(user)
-        json(conn, %{token: token})
+        {:ok, access_token, refresh_token} = Guardian.generate_tokens(user)
+
+        RedisClient.set("refresh_token:#{user.id}", refresh_token, ttl: 7 * 24 * 3600)
+
+        conn
+        |> put_resp_cookie("refresh_token", refresh_token,
+          http_only: true,
+          secure: false,
+          same_site: "Lax",
+          max_age: 7 * 24 * 3600
+        )
+        |> json(%{access_token: access_token})
 
       _ ->
         conn
@@ -44,9 +54,64 @@ defmodule BackendWeb.AuthController do
     end
   end
 
-  def logout(conn, %{"email" => _email}) do
-    # Логика выхода
-    json(conn, "OK")
+  def refresh(conn, _params) do
+    conn = fetch_cookies(conn)
+
+    case conn.cookies["refresh_token"] do
+      nil ->
+        conn
+        |> put_status(:unauthorized)
+        |> json(%{error: "Missing refresh token"})
+
+      refresh_token ->
+        with {:ok, claims} <- Guardian.verify_token_type(refresh_token, "refresh"),
+             {:ok, user} <- Guardian.resource_from_claims(claims),
+             {:ok, stored} <- RedisClient.get("refresh_token:#{user.id}"),
+             true <- refresh_token == stored do
+          {:ok, new_access_token, new_refresh_token} = Guardian.generate_tokens(user)
+          RedisClient.set("refresh_token:#{user.id}", new_refresh_token)
+
+          conn
+          |> put_resp_cookie("refresh_token", new_refresh_token,
+            http_only: true,
+            secure: false,
+            max_age: 7 * 24 * 3600,
+            same_site: "Lax"
+          )
+          |> json(%{access_token: new_access_token})
+        else
+          {:error, :invalid_token_type} ->
+            conn
+            |> put_status(:unauthorized)
+            |> json(%{error: "Invalid token type"})
+
+          _ ->
+            conn
+            |> put_status(:unauthorized)
+            |> json(%{error: "Invalid refresh token"})
+        end
+    end
+  end
+
+  def logout(conn, _params) do
+    conn = fetch_cookies(conn)
+
+    with %{"refresh_token" => refresh_token} <- conn.cookies,
+         {:ok, claims} <- Guardian.verify_token_type(refresh_token, "refresh"),
+         {:ok, user} <- Guardian.resource_from_claims(claims) do
+      # Отзыв токенов
+      Guardian.revoke(refresh_token)
+      RedisClient.del("refresh_token:#{user.id}")
+
+      conn
+      |> delete_resp_cookie("refresh_token")
+      |> json(%{status: "logged_out"})
+    else
+      _ ->
+        conn
+        |> put_status(:unauthorized)
+        |> json(%{error: "Not authenticated"})
+    end
   end
 
   def register(
@@ -69,10 +134,21 @@ defmodule BackendWeb.AuthController do
              password: password,
              birth_date: birth_date
            }) do
-      RedisClient.del("verified_email:#{code}")
-      RedisClient.del("email_confirmation:#{email}")
-      {:ok, token, _} = Guardian.encode_and_sign(user)
-      json(conn, %{token: token})
+      {:ok, access_token, refresh_token} = Guardian.generate_tokens(user)
+
+      case RedisClient.set("refresh_token:#{user.id}", refresh_token, ttl: 7 * 24 * 3600) do
+        {:ok, "OK"} -> :ok
+        error -> IO.puts("Redis error: #{inspect(error)}")
+      end
+
+      conn
+      |> put_resp_cookie("refresh_token", refresh_token,
+        http_only: true,
+        secure: false,
+        same_site: "Lax",
+        max_age: 7 * 24 * 3600
+      )
+      |> json(%{access_token: access_token})
     else
       {:error, :invalid_date} ->
         conn

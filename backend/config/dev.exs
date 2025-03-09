@@ -71,6 +71,16 @@ config :backend, Backend.Auth.Guardian,
   issuer: "backend",
   secret_key: "7XK9g5zQ2sLp8R!vT%WqYbSdFjHnMlPc3EwAeZrCtByNxUmOiV4GhJkDfI6Lu1o0"
 
+# access_token: [ttl: {15, :minutes}],
+# refresh_token: [ttl: {7, :days}]
+
+config :cors_plug,
+  origins: ["http://localhost:3000", "https://localhost:3000"],
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  headers: ["Authorization", "Content-Type"],
+  credentials: true,
+  max_age: 86400
+
 # Do not include metadata nor timestamps in development logs
 config :logger, :console, format: "[$level] $message\n"
 

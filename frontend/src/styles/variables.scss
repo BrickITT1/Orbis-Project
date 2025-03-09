@@ -3,8 +3,8 @@ $input-color: #1f1e1e;
 $form-color: #2b2a2a;
 $font-color: #dad9d9;
 $button-color: #04122F;
-$app-menu-color: #2A3D5F;
-$app-bg: #333944;
+$app-menu-color: #2A3D5F85;
+$app-bg: #33394485;
 $article-color: #05427e4d;
 
 $mobile: 420px;
@@ -101,5 +101,33 @@ $main-shadow: 0 0px 10px #5788EB;
         box-shadow: 0 0 0 20px rgba(0, 123, 255, 0), 
                     0 0 0 35px rgba(0, 123, 255, 0),
                     0 0 0 55px rgba(0, 123, 255, 0);
+    }
+}
+
+@keyframes myShadowBIGWhite {
+    0% {
+        box-shadow: 0 0 10px 5px rgba(255, 255, 255, 0.1), 
+                    0 0 10px 5px rgba(255, 255, 255, 0.1);
+    }
+    25% {
+        box-shadow: 0 0 10px 10px rgba(0, 217, 255, 0.1), 
+                    0 0 10px 10px rgba(0, 217, 255, 0.1),
+                    0 0 10px 10px rgba(0, 217, 255, 0.1);
+    }
+    50% {
+        box-shadow: 0 0 10px 15px rgba(90, 104, 231, 0.1),
+                    0 0 10px 15px rgba(90, 104, 231, 0.1),
+                    0 0 10px 15px rgba(90, 104, 231, 0.1),
+                    0 0 10px 15px rgba(90, 104, 231, 0.1);
+    }
+    
+    75% {
+        box-shadow: 0 0 10px 10px rgba(0, 217, 255, 0.1), 
+                    0 0 10px 10px rgba(0, 217, 255, 0.1),
+                    0 0 10px 10px rgba(0, 217, 255, 0.1);
+    }
+    100% {
+        box-shadow: 0 0 10px 5px rgba(255, 255, 255, 0.1),
+        0 0 10px 5px rgba(255, 255, 255, 0.1);
     }
 }

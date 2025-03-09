@@ -36,6 +36,19 @@ defmodule Backend.Auth do
       ** (Ecto.NoResultsError)
 
   """
+  @doc """
+  Получение пользователя по ID (без исключения)
+  """
+  def get_user(id) do
+    case Repo.get(User, id) do
+      nil -> {:error, :not_found}
+      user -> {:ok, user}
+    end
+  end
+
+  @doc """
+  Получение пользователя по ID с исключением
+  """
   def get_user!(id), do: Repo.get!(User, id)
 
   @doc """

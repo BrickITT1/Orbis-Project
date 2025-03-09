@@ -37,6 +37,7 @@ const authSlice = createSlice({
       state.user = action.payload;
       state.isAuthenticated = true;
       state.loading = false;
+      console.log(action.payload)
     },
     loginFailure(state, action: PayloadAction<string>) {
       state.error = action.payload;
@@ -91,7 +92,6 @@ const authSlice = createSlice({
       .addMatcher(
         userApi.endpoints.registerUser.matchRejected,
         (state, action) => {
-            console.log(state)
           state.error = action.error.message || 'Ошибка регистрации';
           state.loading = false;
         }
@@ -117,7 +117,23 @@ const authSlice = createSlice({
           state.error = action.error.message || 'Ошибка авторизации';
           state.loading = false;
         }
-      );
+      )
+      .addMatcher(
+        userApi.endpoints.logoutUser.matchFulfilled,
+        (state) => {
+          state.user = null;
+          state.isAuthenticated = false;
+          state.loading = false;
+        }
+      )
+      .addMatcher(
+        userApi.endpoints.refreshToken.matchFulfilled,
+        (state, action) => {
+          state.user = action.payload;
+          state.isAuthenticated = true;
+          state.loading = false;
+        }
+      )
   },
 });
 
