@@ -13,7 +13,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - GUARDIAN_SECRET_KEY=${GUARDIAN_SECRET_KEY}
+      - GUARDIAN_SECRET_KEY=${GUARDIAN_SECRET_KEY:-default_guardian_secret}
       - DATABASE_URL=ecto://postgres:admin@db/backend_dev
       - SECRET_KEY_BASE=abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890
       - PG_USERNAME=postgres
@@ -30,6 +30,44 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
+
+  chat_service:
+    build:
+      context: ./chat_service
+      args:
+        - MIX_ENV=prod
+        # - DATABASE_URL=ecto://postgres:admin@chat_db/chat_service_dev
+    ports:
+      - "3004:4000" # Phoenix по умолчанию на 4000, пробрасываем на 3004
+    environment:
+      - PORT=4000
+      - DATABASE_URL=ecto://postgres:admin@chat_db/chat_service_dev
+      - SECRET_KEY_BASE=${SECRET_KEY_BASE:-chat_service_secret}
+    depends_on:
+      chat_db:
+        condition: service_healthy
+    command: >
+      sh -c "
+      until PGPASSWORD=admin psql -h chat_db -U postgres -d chat_service_dev -c 'SELECT 1'; do 
+        echo 'Waiting for database...';
+        sleep 2;
+      done;
+      /app/bin/chat_service eval 'ChatService.Release.migrate' && 
+      /app/bin/chat_service start
+      "
+
+  chat_db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: chat_service_dev
+    ports:
+      - "5433:5432" # Отдельный порт для БД чатов
+    volumes:
+      - chat_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
 
   db:
     image: postgres:15
@@ -57,3 +95,4 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  chat_data:

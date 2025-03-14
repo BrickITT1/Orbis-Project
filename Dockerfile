@@ -35,6 +35,15 @@ COPY --from=frontend-builder /app/frontend/dist ./priv/static
 ENV MIX_ENV=prod
 ENV PHX_ENV=prod
 
+# Установка локали
+RUN apt-get update && \
+apt-get install -y locales && \
+sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && \
+locale-gen
+
+ENV LANG=en_US.UTF-8
+ENV LC_ALL=en_US.UTF-8
+
 # Сборка релиза
 RUN mix compile && \
     mix phx.digest && \

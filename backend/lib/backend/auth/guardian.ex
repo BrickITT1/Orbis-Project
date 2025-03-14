@@ -7,7 +7,6 @@ defmodule Backend.Auth.Guardian do
 
   @impl Guardian
   def resource_from_claims(claims) do
-    # Используем новую функцию
     case Backend.Auth.get_user(claims["sub"]) do
       {:ok, user} -> {:ok, user}
       {:error, _} -> {:error, :resource_not_found}
