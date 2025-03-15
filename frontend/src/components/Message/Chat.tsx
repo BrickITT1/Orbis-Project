@@ -3,7 +3,7 @@ import React from 'react';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
 import { setActiveChat } from '../../features/chat/chatSlices';
 
-export const Chat: React.FC<{name: string, avatar: string, isGroup: boolean, number: number, chat_id: number}> = ({name, avatar, isGroup, number, chat_id}) =>  {
+export const Chat: React.FC<{name: string, avatar: string, type: string, number: number, chat_id: number}> = ({name, avatar, type, number, chat_id}) =>  {
     const active = useAppSelector(state => state.chat.activeChat);
     const dispatch = useAppDispatch();
     

@@ -4,12 +4,15 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { messageApi } from '../../services/chat';
 
 interface chat {
+  id: number;
   name: string;
+  type: string;
   lastmessage: string;
-  lastmessages: string[];
-  avatar: string;
-  isGroup: boolean;
-  chat_id: number;
+  created_at: string;
+  updated_at: string;
+  avatar_url: string;
+  creator: number;
+  own: number;
 }
 
 interface chatState {
@@ -18,14 +21,19 @@ interface chatState {
 }
 
 const initialState: chatState = {
-  chat: [{
-    name: "My chat",
-    lastmessage: "hi",
-    lastmessages: ["hi", "hihi"],
-    avatar: '/img/icon.png',
-    isGroup: false,
-    chat_id: 0
-  }],
+  chat: [
+    {
+      id: 1,
+      name: "My chat",
+      type: "ls",
+      lastmessage: "hi",
+      created_at: '',
+      updated_at: '',
+      avatar_url: '/img/icon.png',
+      creator: 0,
+      own: 5,
+    }
+  ],
   activeChat: 0
 };
 

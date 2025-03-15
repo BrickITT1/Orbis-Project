@@ -8,7 +8,7 @@ import { useRefreshTokenQueryQuery } from '../services/auth';
 
 export const MessageMenu: React.FC = () =>  {
     const chats = useAppSelector(state => state.chat.chat)
-    const activeChat = useAppSelector(state => state.chat.activeChat)
+    const activeChat = useAppSelector(state => state.chat.activeChat);
     const {data, refetch} = useGetChatsQuery({});
     
     return ( 
@@ -23,7 +23,7 @@ export const MessageMenu: React.FC = () =>  {
                             {
                                 chats && (
                                     chats.map((val, index)=>(
-                                        <Chat key={index} name={val.name} avatar={val.avatar} isGroup={val.isGroup} number={index} chat_id={val.chat_id}/>
+                                        <Chat key={index} name={val.name} avatar={val.avatar_url} type={val.type} number={index} chat_id={val.id}/>
                                     ))
                                 )
                             }
