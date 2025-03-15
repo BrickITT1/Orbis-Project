@@ -9,10 +9,12 @@ interface chat {
   lastmessages: string[];
   avatar: string;
   isGroup: boolean;
+  chat_id: number;
 }
 
 interface chatState {
   chat: chat[];
+  activeChat: number;
 }
 
 const initialState: chatState = {
@@ -21,8 +23,10 @@ const initialState: chatState = {
     lastmessage: "hi",
     lastmessages: ["hi", "hihi"],
     avatar: '/img/icon.png',
-    isGroup: false
-  }]
+    isGroup: false,
+    chat_id: 0
+  }],
+  activeChat: 0
 };
 
 const chatSlice = createSlice({
@@ -37,16 +41,18 @@ const chatSlice = createSlice({
     //   state.loading = false;
     //   console.log(action.payload)
     // },
-    
+    setActiveChat(state, action: PayloadAction<number>) {
+      state.activeChat = action.payload;
+    }
 
   },
   extraReducers: (builder) => {
     // Обработка состояний для регистрации и авторизации
     builder
       .addMatcher(
-        messageApi.endpoints.GetChats.matchPending,
+        messageApi.endpoints.GetChats.matchFulfilled, 
         (state, action) => {
-          //state.chat.push(action.payload)
+          state.chat = action.payload;
         }
       )
       .addMatcher(
@@ -70,7 +76,7 @@ const chatSlice = createSlice({
 });
 
 export const {
-  
+  setActiveChat
 } = chatSlice.actions;
 
 export default chatSlice.reducer;

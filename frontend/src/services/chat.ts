@@ -1,10 +1,20 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import { useAppSelector } from "../app/hooks";
 
 export const messageApi = createApi({
     reducerPath: "messageApi",
     baseQuery: fetchBaseQuery({
         baseUrl: "http://localhost:4000/api",
         credentials: "include",
+        prepareHeaders: (headers, { getState }) => {
+            const state = getState() as { auth: { user: { access_token?: string } } }; // Type assertion for state
+            const token = state.auth.user?.access_token;
+
+            if (token) {
+                headers.set('authorization', `Bearer ${token}`);
+            }
+            return headers;
+        }
     }),
     endpoints: (builder) => ({
         GetChats: builder.query({

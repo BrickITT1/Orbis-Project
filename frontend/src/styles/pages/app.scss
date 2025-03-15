@@ -54,6 +54,45 @@
 .actions-main {
     background-color: $app-bg;
     @extend %w100h100;
+    display: flex;
+    flex-direction: column;
+
+    .chat-title {
+        background-color: $app-bg;
+        padding: 1em;
+    }
+
+    .chat-input {
+        display: flex;
+        input {
+            display: block;
+            width: 100%;
+            padding: 1em;
+        }
+        button {
+            padding: 1em;
+            width: 120px;
+            background-color: #30343b;
+        }
+    }
+
+    .messages {
+        display: flex;
+        flex-direction: column;
+        justify-content: end;
+        height: 100%;
+        overflow-y:scroll;
+        word-break: break-all;
+
+        div {
+            margin: 1em;
+            padding: 0.5em;
+            background-color: #30343b;
+            width: fit-content;
+            border-radius: 10px;
+
+        }
+    }
 }
 
 .app-menu {
@@ -162,6 +201,12 @@
         width: 90%;
         position: relative;
         background-color: #3F495A;
+        user-select: none;
+        cursor: pointer;
+    }
+
+    .active {
+        filter: brightness(1.2);
     }
 
     .group-item__avatar {

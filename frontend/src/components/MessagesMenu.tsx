@@ -1,13 +1,16 @@
 import React, { useEffect } from 'react';
 import { Chat } from './Message/Chat';
 import { useAppSelector } from '../app/hooks';
+import { useGetChatsQuery } from '../services/chat';
+import useChatSocket from '../app/useChatSocket';
+import { useRefreshTokenQueryQuery } from '../services/auth';
+
 
 export const MessageMenu: React.FC = () =>  {
     const chats = useAppSelector(state => state.chat.chat)
-
-    useEffect(()=> {
-        console.log(chats)
-    }, [])
+    const activeChat = useAppSelector(state => state.chat.activeChat)
+    const {data, refetch} = useGetChatsQuery({});
+    
     return ( 
         <>
             <div className="messages-menu">
@@ -20,7 +23,7 @@ export const MessageMenu: React.FC = () =>  {
                             {
                                 chats && (
                                     chats.map((val, index)=>(
-                                        <Chat key={index} name={val.name} avatar={val.avatar} isGroup={val.isGroup}/>
+                                        <Chat key={index} name={val.name} avatar={val.avatar} isGroup={val.isGroup} number={index} chat_id={val.chat_id}/>
                                     ))
                                 )
                             }
