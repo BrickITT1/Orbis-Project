@@ -40,8 +40,10 @@ services:
     ports:
       - "3004:4000" # Phoenix по умолчанию на 4000, пробрасываем на 3004
     environment:
+      - AUTH_SERVICE_URL=http://auth_service:3000
       - PORT=4000
       - DATABASE_URL=ecto://postgres:admin@chat_db/chat_service_dev
+      - REDIS_URL=redis://redis:6379
       - SECRET_KEY_BASE=${SECRET_KEY_BASE:-chat_service_secret}
     depends_on:
       chat_db:

@@ -6,7 +6,7 @@ defmodule ChatService.Repo.Migrations.CreateChatTables do
     create table(:chats, primary_key: false) do
       add(:id, :uuid, primary_key: true)
       add(:name, :string, size: 50)
-      add(:type, :string, size: 12)
+      add(:type, :string, size: 12, comment: "Тип чата: 'ls', 'group', 'channel'")
       add(:created_at, :utc_datetime, default: fragment("NOW()"))
       add(:updated_at, :utc_datetime, default: fragment("NOW()"))
       add(:creator_id, :uuid, null: false)
@@ -19,6 +19,8 @@ defmodule ChatService.Repo.Migrations.CreateChatTables do
       add(:content, :text)
       add(:is_edited, :boolean, default: false)
       add(:user_id, :uuid, null: false)
+      add(:reply_to_id, :uuid, comment: "ID сообщения, на которое отвечаем")
+      add(:forward_from, :uuid, comment: "ID оригинального отправителя")
       timestamps(type: :utc_datetime)
     end
 
@@ -45,7 +47,11 @@ defmodule ChatService.Repo.Migrations.CreateChatTables do
     # 6. Индексы
     create(index(:chats, [:creator_id]))
     create(index(:chats, [:last_message_id]))
+    # Новый индекс для фильтрации по типу
+    create(index(:chats, [:type]))
     create(index(:messages, [:chat_id]))
+    create(index(:messages, [:reply_to_id]))
+    create(index(:messages, [:forward_from]))
     create(index(:attachments, [:message_id]))
   end
 end

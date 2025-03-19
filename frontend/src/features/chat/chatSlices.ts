@@ -4,25 +4,37 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { messageApi } from '../../services/chat';
 
 interface chat {
+  id: number;
   name: string;
+  type: string;
   lastmessage: string;
-  lastmessages: string[];
-  avatar: string;
-  isGroup: boolean;
+  created_at: string;
+  updated_at: string;
+  avatar_url: string;
+  creator: number;
+  own: number;
 }
 
 interface chatState {
   chat: chat[];
+  activeChat: number;
 }
 
 const initialState: chatState = {
-  chat: [{
-    name: "My chat",
-    lastmessage: "hi",
-    lastmessages: ["hi", "hihi"],
-    avatar: '/img/icon.png',
-    isGroup: false
-  }]
+  chat: [
+    {
+      id: 1,
+      name: "My chat",
+      type: "ls",
+      lastmessage: "hi",
+      created_at: '',
+      updated_at: '',
+      avatar_url: '/img/icon.png',
+      creator: 0,
+      own: 5,
+    }
+  ],
+  activeChat: 0
 };
 
 const chatSlice = createSlice({
@@ -37,16 +49,18 @@ const chatSlice = createSlice({
     //   state.loading = false;
     //   console.log(action.payload)
     // },
-    
+    setActiveChat(state, action: PayloadAction<number>) {
+      state.activeChat = action.payload;
+    }
 
   },
   extraReducers: (builder) => {
     // Обработка состояний для регистрации и авторизации
     builder
       .addMatcher(
-        messageApi.endpoints.GetChats.matchPending,
+        messageApi.endpoints.GetChats.matchFulfilled, 
         (state, action) => {
-          //state.chat.push(action.payload)
+          state.chat = action.payload;
         }
       )
       .addMatcher(
@@ -70,7 +84,7 @@ const chatSlice = createSlice({
 });
 
 export const {
-  
+  setActiveChat
 } = chatSlice.actions;
 
 export default chatSlice.reducer;

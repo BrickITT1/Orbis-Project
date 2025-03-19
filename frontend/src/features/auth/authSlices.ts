@@ -2,12 +2,14 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 import { userApi } from '../../services/auth';
+import { messageApi } from '../../services/chat';
 
 interface UserData {
   email: string;
   displayName: string;
   username: string;
   birthDate: string;
+  token: string;
 }
 
 interface AuthState {
@@ -37,7 +39,7 @@ const authSlice = createSlice({
       state.user = action.payload;
       state.isAuthenticated = true;
       state.loading = false;
-      console.log(action.payload)
+      
     },
     loginFailure(state, action: PayloadAction<string>) {
       state.error = action.payload;
@@ -84,6 +86,7 @@ const authSlice = createSlice({
       .addMatcher(
         userApi.endpoints.registerUser.matchFulfilled,
         (state, action) => {
+          
           state.user = action.payload;
           state.isAuthenticated = true;
           state.loading = false;
@@ -134,6 +137,7 @@ const authSlice = createSlice({
           state.loading = false;
         }
       )
+      
   },
 });
 

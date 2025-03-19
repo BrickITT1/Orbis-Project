@@ -42,11 +42,11 @@ defmodule ChatServiceWeb do
         formats: [:html, :json],
         layouts: [html: ChatServiceWeb.Layouts]
 
-      use Gettext, backend: ChatServiceWeb.Gettext
-
       import Plug.Conn
+      import Phoenix.Controller
+      import ChatServiceWeb.Gettext
 
-      unquote(verified_routes())
+      alias ChatServiceWeb.Router.Helpers, as: Routes
     end
   end
 

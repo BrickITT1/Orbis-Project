@@ -31,7 +31,7 @@ export const PagesRouter: React.FC = () => {
     const isAuth = useAppSelector(state => state.auth.isAuthenticated) || false;
     const [data, { isLoading }] = useRefreshTokenMutation({});
     const [isRefreshing, setIsRefreshing] = useState(true);
-    console.log(useAppSelector(state => state.auth));
+
     const refresh = async () => {
         try {
             await data({});

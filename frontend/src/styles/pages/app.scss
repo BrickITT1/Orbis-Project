@@ -54,6 +54,160 @@
 .actions-main {
     background-color: $app-bg;
     @extend %w100h100;
+    display: flex;
+    flex-direction: column;
+
+    .chat-title {
+        background-color: $app-bg;
+        padding: 1em;
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .chat-input {
+        background-color: #3F495A;
+        display: flex;
+        gap: 1em;
+        margin: 1em;
+        border-radius: 10px;
+        padding: 0.5em;
+        input {
+            display: block;
+            width: 100%;
+            padding: 0.5em;
+            background-color: transparent;
+        }
+        button {
+            width: 40px;
+            height: 40px;
+            background-size: cover;
+            background-color: transparent;
+            padding: 0;
+        }
+        button svg {
+            width: 100%;
+            height: 100%;
+        }
+    }
+
+    .messages {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        overflow-y:scroll;
+        word-break: break-all;
+        padding: 1em;
+
+        &>div {
+            display: flex;
+            align-items: end;
+            gap: 1em;
+        }
+
+        .avatar {
+            margin: 0em;
+            margin-right: 0;
+            padding: 0em;
+            display: flex;
+            justify-content: end;
+        }
+
+        .content {
+            position: relative;
+            
+        }
+
+        h3 {
+            background-color: transparent;
+            margin: 0.5em;
+            padding: 0.5em;
+            margin-bottom: 0;
+            font-size: 16px;
+        }
+
+        div.text {
+            margin: 0.5em;
+            
+            padding: 1em;
+            background-color: #3F495A;
+            width: fit-content;
+            border-radius: 10px;
+            border-bottom-left-radius: 0;
+            position: relative;
+            margin-left: 0.5em;
+            margin-bottom: 0;
+            margin-top: 0;
+            font-size: 16px;
+            padding-right: 3em;
+        }
+
+        .time {
+            position: absolute;
+            right: 1.2em;
+            bottom: 0;
+            font-size: 14px;
+        }
+
+        .text::before {
+            content: '';
+            position: absolute;
+            left: -1em;
+            bottom: 0;
+            width: 0;
+            height: 0;
+            border-bottom: 1em solid #3F495A;
+            border-left: 1em solid transparent;
+            border-bottom-left-radius: 10px
+        }
+
+        .mess {
+            flex-direction: column;
+
+            h3 {
+                position: absolute;
+            }
+        }
+
+        .group {
+            padding-top: 3em;
+            position: relative;
+            h3 {
+                position: absolute;
+                top: 0;
+                left: 4em;
+            }
+            .mess {
+                display: flex;
+                gap: 1em;
+                .content {
+                    width: fit-content;
+                }
+
+               .content:not(:last-child) div{
+                    border-radius: 10px;
+                }
+    
+                .content .text::before {
+                    opacity: 0;
+                }
+                .content:last-child .text::before {
+                    content: '';
+                    position: absolute;
+                    left: -1em;
+                    bottom: 0;
+                    width: 0;
+                    height: 0;
+                    border-bottom: 1em solid #3F495A;
+                    border-left: 1em solid transparent;
+                    border-bottom-left-radius: 10px;
+                    opacity: 1;
+                }
+            }
+
+            
+        }
+    }
+
 }
 
 .app-menu {
@@ -162,6 +316,12 @@
         width: 90%;
         position: relative;
         background-color: #3F495A;
+        user-select: none;
+        cursor: pointer;
+    }
+
+    .active {
+        filter: brightness(1.2);
     }
 
     .group-item__avatar {

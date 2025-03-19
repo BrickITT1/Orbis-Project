@@ -26,6 +26,9 @@ export const userApi = createApi({
                 method: "POST",
             }),
         }),
+        refreshTokenQuery: builder.query({
+            query: () => '/refresh',
+        }),
         confirmUser: builder.mutation({
             query: (data) => ({
                 url: `/confirm`,
@@ -79,5 +82,6 @@ export const {
     useRefreshTokenMutation,
     useConfirmUserMutation,
     useSendVerificationCodeMutation,
-    useVerifyCodeMutation
+    useVerifyCodeMutation,
+    useRefreshTokenQueryQuery
 } = userApi;
