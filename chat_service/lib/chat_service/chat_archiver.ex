@@ -33,11 +33,12 @@ defmodule ChatService.ChatArchiver do
       RedisClient.lrange("chat:#{chat_id}:messages", 0, -1)
       |> Enum.map(&Jason.decode!/1)
 
-    # Сохранение в PostgreSQL
     Repo.transaction(fn ->
       Enum.each(messages, fn msg ->
-        changeset = Message.changeset(%Message{}, msg)
-        Repo.insert!(changeset)
+        # Явно указываем модуль ChatService.Chats.Message
+        %ChatService.Chats.Message{}
+        |> ChatService.Chats.Message.changeset(msg)
+        |> Repo.insert!()
       end)
     end)
 

@@ -60,6 +60,8 @@ config :logger, :console,
 
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
+# config :phoenix, :template_engines, heex: Phoenix.LiveView.HTMLEngine
+config :phoenix, :template_engines, []
 config :swoosh, :api_client, Swoosh.ApiClient.Finch
 
 # Import environment specific config. This must remain at the bottom

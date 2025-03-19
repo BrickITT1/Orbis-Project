@@ -8,14 +8,10 @@ defmodule ChatService.Chats.Message do
   schema "messages" do
     field(:content, :string)
     field(:is_edited, :boolean, default: false)
-    # Ответ на сообщение
-    field(:reply_to_id, Ecto.UUID)
-    # Пересылка от пользователя
-    field(:forward_from, Ecto.UUID)
-
-    belongs_to(:chat, ChatService.Chats.Chat)
-    # ID пользователя из основного сервиса
+    belongs_to(:chat, ChatService.Chats.Chat, type: :binary_id)
     belongs_to(:user, :binary_id)
+    field(:reply_to_id, :binary_id)
+    field(:forward_from, :binary_id)
 
     timestamps(type: :utc_datetime)
   end

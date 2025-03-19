@@ -1,7 +1,7 @@
 defmodule ChatServiceWeb.Router do
-  use ChatServiceWeb, :router
-  import Phoenix.Router
-  alias ChatService.AuthClient
+  use Phoenix.Router
+  # Для работы с путями
+  # import Phoenix.VerifiedRoutes
 
   pipeline :api do
     plug(:accepts, ["json"])
@@ -9,12 +9,14 @@ defmodule ChatServiceWeb.Router do
 
   scope "/api", ChatServiceWeb do
     pipe_through(:api)
+
     get("/chats", ChatController, :index)
     get("/chats/:chat_id/messages", ChatController, :messages)
   end
 
-  socket("/ws", ChatServiceWeb.UserSocket,
-    websocket: true,
-    longpoll: false
-  )
+  # WebSocket endpoint
+  # socket("/ws", ChatServiceWeb.UserSocket,
+  #   websocket: true,
+  #   longpoll: false
+  # )
 end

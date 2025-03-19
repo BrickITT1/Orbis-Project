@@ -3,8 +3,8 @@ import Config
 # Configure your database
 config :chat_service, ChatService.Repo,
   username: "postgres",
-  password: "postgres",
-  hostname: "localhost",
+  password: "admin",
+  hostname: "chat_db",
   database: "chat_service_dev",
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,

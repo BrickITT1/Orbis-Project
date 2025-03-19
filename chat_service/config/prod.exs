@@ -6,7 +6,9 @@ import Config
 # which you should run after static files are built and
 # before starting your production server.
 config :chat_service, ChatServiceWeb.Endpoint,
-  cache_static_manifest: "priv/static/cache_manifest.json"
+  adapter: Bandit.PhoenixAdapter,
+  http: [port: 4000],
+  url: [host: "localhost", port: 4000]
 
 # Configures Swoosh API Client
 config :swoosh, api_client: Swoosh.ApiClient.Finch, finch_name: ChatService.Finch

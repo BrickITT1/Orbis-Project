@@ -10,20 +10,11 @@ defmodule ChatService.Application do
     children = [
       ChatServiceWeb.Telemetry,
       ChatService.Repo,
-      {DNSCluster, query: Application.get_env(:chat_service, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: ChatService.PubSub},
-      # Start the Finch HTTP client for sending emails
-      {Finch, name: ChatService.Finch},
-      # Start a worker by calling: ChatService.Worker.start_link(arg)
-      # {ChatService.Worker, arg},
-      # Start to serve requests, typically the last entry
       ChatServiceWeb.Endpoint
     ]
 
-    # See https://hexdocs.pm/elixir/Supervisor.html
-    # for other strategies and supported options
-    opts = [strategy: :one_for_one, name: ChatService.Supervisor]
-    Supervisor.start_link(children, opts)
+    Supervisor.start_link(children, strategy: :one_for_one, name: ChatService.Supervisor)
   end
 
   # Tell Phoenix to update the endpoint configuration

@@ -21,6 +21,7 @@ services:
       - PG_DBNAME=backend_dev
       - PG_HOST=db
       - REDIS_URL=redis://redis:6379
+      - ELIXIR_ERL_OPTIONS="+fnu"
     command: >
       sh -c "while ! pg_isready -h db -p 5432; do sleep 1; done;
       /app/bin/backend eval 'Backend.Release.migrate' &&
@@ -34,29 +35,33 @@ services:
   chat_service:
     build:
       context: ./chat_service
-      args:
-        - MIX_ENV=prod
-        # - DATABASE_URL=ecto://postgres:admin@chat_db/chat_service_dev
-    ports:
-      - "3004:4000" # Phoenix по умолчанию на 4000, пробрасываем на 3004
     environment:
-      - AUTH_SERVICE_URL=http://auth_service:3000
-      - PORT=4000
+      - SECRET_KEY_BASE=${SECRET_KEY_BASE:-0jANUI+/72+6E79fZUp2AHpgtu8CtzNmKHO1mG17QqM2XwX7/dV/q9WJwxTUkdui}
       - DATABASE_URL=ecto://postgres:admin@chat_db/chat_service_dev
-      - REDIS_URL=redis://redis:6379
-      - SECRET_KEY_BASE=${SECRET_KEY_BASE:-chat_service_secret}
-    depends_on:
-      chat_db:
-        condition: service_healthy
+      - ELIXIR_ERL_OPTIONS="+fnu" # Для решения проблемы с кодировкой
+      - PHX_SERVER=true
+    ports:
+      - "3004:4000"
+    # depends_on:
+    # chat_db:
+    #  condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d chat_service_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     command: >
       sh -c "
-      until PGPASSWORD=admin psql -h chat_db -U postgres -d chat_service_dev -c 'SELECT 1'; do 
+      while ! pg_isready -h chat_db -p 5432; do 
         echo 'Waiting for database...';
-        sleep 2;
+        sleep 2; 
       done;
       /app/bin/chat_service eval 'ChatService.Release.migrate' && 
       /app/bin/chat_service start
       "
+    depends_on:
+      chat_db:
+        condition: service_healthy
 
   chat_db:
     image: postgres:15
@@ -65,11 +70,14 @@ services:
       POSTGRES_PASSWORD: admin
       POSTGRES_DB: chat_service_dev
     ports:
-      - "5433:5432" # Отдельный порт для БД чатов
+      - "5433:5432"
     volumes:
       - chat_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d chat_service_dev"]
+      interval: 2s
+      timeout: 2s
+      retries: 20
 
   db:
     image: postgres:15

@@ -47,12 +47,13 @@ ENV PHX_ENV=prod
 
 # Установка локали
 RUN apt-get update && \
-apt-get install -y locales && \
-sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && \
-locale-gen
+    apt-get install -y locales build-essential git curl && \
+    sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && \
+    locale-gen en_US.UTF-8
 
 ENV LANG=en_US.UTF-8
 ENV LC_ALL=en_US.UTF-8
+ENV ELIXIR_ERL_OPTIONS="+fnu"
 
 # Сборка релиза
 RUN mix compile && \
