@@ -16,9 +16,17 @@ import Config
 #
 # Alternatively, you can use `mix phx.gen.release` to generate a `bin/server`
 # script that automatically sets the env var above.
-if System.get_env("PHX_SERVER") do
-  config :chat_service, ChatServiceWeb.Endpoint, server: true
-end
+# if System.get_env("PHX_SERVER") do
+config :chat_service, ChatServiceWeb.Endpoint,
+  # Слушаем на всех интерфейсах
+  http: [ip: {0, 0, 0, 0}, port: 4000],
+  # Форсируем запуск сервера
+  server: true,
+  secret_key_base: System.fetch_env!("SECRET_KEY_BASE")
+
+ChatService.Release.migrate()
+
+# end
 
 if config_env() == :prod do
   database_url =

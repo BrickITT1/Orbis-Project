@@ -52,12 +52,9 @@ services:
       retries: 10
     command: >
       sh -c "
-      while ! pg_isready -h chat_db -p 5432; do 
-        echo 'Waiting for database...';
-        sleep 2; 
-      done;
-      /app/bin/chat_service eval 'ChatService.Release.migrate' && 
-      /app/bin/chat_service start
+      while ! pg_isready -h chat_db -p 5432; do sleep 2; done;
+      /app/bin/chat_service eval 'ChatService.Release.migrate' &&
+      /app/bin/chat_service start_iex  # Используем start_iex
       "
     depends_on:
       chat_db:

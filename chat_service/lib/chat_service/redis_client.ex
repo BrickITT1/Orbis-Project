@@ -1,12 +1,27 @@
 defmodule ChatService.RedisClient do
-  @redis_url System.get_env("REDIS_URL") || "redis://localhost:6379"
+  @redis_url System.get_env("REDIS_URL") || "redis://redis:6379"
+  require Logger
 
-  def command(conn, cmd) do
-    Redix.command(conn, cmd)
+  # Создаем постоянное соединение
+  def child_spec(_args) do
+    %{
+      id: __MODULE__,
+      start: {Redix, :start_link, [@redis_url, [name: :redix]]}
+    }
   end
 
-  def get(key) do
-    {:ok, conn} = Redix.start_link(@redis_url)
-    Redix.command(conn, ["GET", key])
+  def command(cmd) do
+    case Redix.command(:redix, cmd) do
+      {:ok, result} ->
+        result
+
+      {:error, reason} ->
+        Logger.error("Redis error: #{inspect(reason)}")
+        raise "Redis command failed"
+    end
+  end
+
+  def keys(pattern) do
+    command(["KEYS", pattern])
   end
 end

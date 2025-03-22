@@ -4,13 +4,12 @@ ENV MIX_ENV=prod
 ENV PHX_ENV=prod
 
 RUN apt-get update && \
-    apt-get install -y locales build-essential git curl && \
-    sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && \
+    apt-get install -y locales && \
+    sed -i 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
     locale-gen en_US.UTF-8
 
-ENV LANG=en_US.UTF-8
-ENV LC_ALL=en_US.UTF-8
-ENV ELIXIR_ERL_OPTIONS="+fnu"
+ENV LANG=en_US.UTF-8 \
+    LC_ALL=en_US.UTF-8
 
 # Установка зависимостей для сборки
 RUN apt-get update && \
@@ -44,3 +43,4 @@ RUN apt-get update && \
 COPY --from=builder /app/release /app
 WORKDIR /app
 CMD ["bin/chat_service", "start"]
+CMD ["bin/chat_service", "start_iex"]  # Запуск в интерактивном режиме

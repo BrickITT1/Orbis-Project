@@ -8,13 +8,15 @@ defmodule ChatService.Application do
   @impl true
   def start(_type, _args) do
     children = [
-      ChatServiceWeb.Telemetry,
       ChatService.Repo,
+      ChatServiceWeb.Endpoint,
       {Phoenix.PubSub, name: ChatService.PubSub},
-      ChatServiceWeb.Endpoint
+      # Добавьте эту строку
+      ChatService.RedisClient,
+      ChatService.ChatArchiver
     ]
 
-    Supervisor.start_link(children, strategy: :one_for_one, name: ChatService.Supervisor)
+    Supervisor.start_link(children, strategy: :one_for_one)
   end
 
   # Tell Phoenix to update the endpoint configuration

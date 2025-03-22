@@ -8,6 +8,7 @@ import Config
 config :chat_service, ChatServiceWeb.Endpoint,
   adapter: Bandit.PhoenixAdapter,
   http: [port: 4000],
+  server: true,
   url: [host: "localhost", port: 4000]
 
 # Configures Swoosh API Client
