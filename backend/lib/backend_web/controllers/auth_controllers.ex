@@ -201,31 +201,31 @@ defmodule BackendWeb.AuthController do
     # |> String.upcase()
   end
 
-  #  def confirm_email(conn, %{"email" => email, "code" => code}) do
-  #    case Auth.confirm_email(email, code) do
-  #      {:ok, user} ->
-  #        {:ok, token, _} = Guardian.encode_and_sign(user)
-  #        json(conn, %{status: "confirmed", token: token})
-  #
-  #      {:error, _reason} ->
-  #        conn
-  #        |> put_status(:bad_request)
-  #        |> json(%{error: "Invalid confirmation code"})
-  #    end
-  #  end
+  def confirm_email(conn, %{"email" => email, "code" => code}) do
+    case Auth.confirm_email(email, code) do
+      {:ok, user} ->
+        {:ok, token, _} = Guardian.encode_and_sign(user)
+        json(conn, %{status: "confirmed", token: token})
 
-  #  def check(conn, _params) do
-  #    # Логика проверки куки
-  #    json(conn, "OK")
-  #  end
+      {:error, _reason} ->
+        conn
+        |> put_status(:bad_request)
+        |> json(%{error: "Invalid confirmation code"})
+    end
+  end
 
-  #  def confirm(conn, %{"email" => email}, %{"email" => email}) do
-  #    # Логика проверки куки
-  #    json(conn, "OK")
-  #  end
+  def check(conn, _params) do
+    # Логика проверки куки
+    json(conn, "OK")
+  end
 
-  #  def show(conn, _params) do
-  #    user = conn.assigns.current_user
-  #    render(conn, "show.json", user: user)
-  #  end
+  def confirm(conn, %{"email" => email}, %{"email" => email}) do
+    # Логика проверки куки
+    json(conn, "OK")
+  end
+
+  def show(conn, _params) do
+    user = conn.assigns.current_user
+    render(conn, "show.json", user: user)
+  end
 end

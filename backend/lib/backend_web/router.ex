@@ -38,8 +38,8 @@ defmodule BackendWeb.Router do
     post("/refresh", AuthController, :refresh)
 
     get("/check", AuthController, :check)
-    # get("/checkemail", CheckController, :check_email)
-    # get("/checkname", CheckController, :check_username)
+    get("/checkemail", CheckController, :check_email)
+    get("/checkname", CheckController, :check_username)
   end
 
   scope "/api", BackendWeb do
