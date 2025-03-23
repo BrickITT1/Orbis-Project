@@ -1,13 +1,20 @@
 const express = require('express');
-const http = require('http');
+const fs = require('fs');
+const https = require('https');
 const socketIo = require('socket.io');
 const { createWorker } = require('./mediasoup-config');
 
+const options = {
+  key: fs.readFileSync('./src/selfsigned_key.pem'),
+  cert: fs.readFileSync('./src/selfsigned.pem'),
+};
+
 const app = express();
-const server = http.createServer(app);
+const server = https.createServer(options, app);
 const io = socketIo(server);
 
 app.use(express.static('public'));
+
 
 // Инициализация MediaSoup
 let mediasoupRouter;

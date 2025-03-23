@@ -156,3 +156,5 @@ erl_crash.dump
 backend-*.tar
 
 .env
+
+*/node_modules/*

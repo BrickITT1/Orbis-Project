@@ -1,4 +1,4 @@
-document.getElementById('join-button').addEventListener('click', () => {
+document.getElementById('join-button').addEventListener('click', () => {{
   const username = document.getElementById('username').value;
   const roomId = document.getElementById('room-id').value;
 
@@ -71,7 +71,7 @@ document.getElementById('join-button').addEventListener('click', () => {
   } else {
     alert('Please enter your name and room ID');
   }
-});
+}});
 
 const addParticipantVideo = (id, stream) => {
   const videoElement = document.createElement('video');
