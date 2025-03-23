@@ -10,7 +10,7 @@ const useChatSocket = (): Socket | null => {
     if (isSuccess && token) {
       // Создаем WebSocket-подключение с токеном
       
-      socketRef.current = io('http://localhost:4000', {
+      socketRef.current = io('https://26.234.138.233:4000', {
         auth: {
           token: token.access_token, // Передаем токен в заголовке
         },

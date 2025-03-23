@@ -1,12 +1,28 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useAppSelector } from '../app/hooks';
 import useChatSocket from '../app/useChatSocket';
+import { io, Socket } from 'socket.io-client';
+import { Device, types,} from 'mediasoup-client';
+
 interface Message {
   id: number,
   content: string,
   user_id: number,
   is_edited: boolean,
   timestamp: string,
+}
+
+
+// Типы для комнаты
+interface SocketEvents {
+  joinRoom: (data: { username?: string; roomId?: string | number; audioOnly: boolean }, callback: (response: any) => void) => void;
+  newPeer: (data: { peerId: string; audioOnly: boolean }) => void;
+  newProducer: (data: { peerId: string; producerId: string; kind: string }) => void;
+  peerDisconnected: (peerId: string) => void;
+  getRouterRtpCapabilities: (callback: (data: { rtpCapabilities?: any; error?: string }) => void) => void;
+  createTransport: (data: { direction: 'send' | 'recv' }, callback: (data: { transportOptions?: any; error?: string }) => void) => void;
+  connectTransport: (data: { transportId: string; dtlsParameters: any }, callback: (data: { error?: string }) => void) => void;
+  iceCandidate: (data: { transportId: string; candidate: any }) => void;
 }
 
 function scrollToBottom() {
@@ -44,13 +60,24 @@ const groupMessagesByMinuteAndUserId = (messages: Message[]): { messages: Messag
   });
 };
 
+
 export const Action: React.FC = () =>  {
     const activeChat = useAppSelector(state => state.chat.activeChat);
-    const token = useAppSelector(state => state.auth.user?.token)
+    const token = useAppSelector(state => state.auth.user?.token);
+    const user = useAppSelector(state => state.auth.user)
     const [newmessage, setNewMessage] = useState("");
     const [messages, setMessages] = useState<Message[]>([]);
     const [groupedMessagess, setgroupedMessagess] = useState<any>();
     const socket = useChatSocket();
+
+    const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+    const [remoteStreams, setRemoteStreams] = useState<Record<string, MediaStream>>({});
+    const socketRef = useRef<any>();
+    const deviceRef = useRef<types.Device>();
+    const transportsRef = useRef<any>({});
+    const consumersRef = useRef<Record<string, any>>({});
+    const producersRef = useRef<Record<string, types.Producer>>({});
+  
 
     useEffect(() => {
         if (socket) {
@@ -86,16 +113,14 @@ export const Action: React.FC = () =>  {
       if (messages) {
         const groupedMessages = groupMessagesByMinuteAndUserId(messages);
         setgroupedMessagess(groupedMessages);
-        console.log(groupedMessages)
       }
-      
     }, [messages])
 
     const sendMessage = () => {
-
+        
         if (newmessage.trim() && activeChat && socket) {
           socket.emit('send-message', {
-            room: activeChat,
+            room: activeChat.id,
             user_id: token,
             text: newmessage,
           });
@@ -138,9 +163,199 @@ export const Action: React.FC = () =>  {
           };
         }
       }, [socket]);
-    if (groupedMessagess) {
-      console.log(groupedMessagess)
-    }
+    
+      
+      useEffect(() => {
+        const socket = io('https://26.234.138.233:3000');
+        socketRef.current = socket;
+    
+        socket.on('connect', () => {
+          console.log('Connected to server');
+        });
+    
+        socket.on('connect_error', (error) => {
+          console.error('Connection error:', error);
+        });
+    
+        // Обработка новых участников
+        socket.on('newPeer', ({ peerId, audioOnly }) => {
+          console.log('New peer connected:', peerId, 'Audio only:', audioOnly);
+        });
+    
+        // Обработка новых продюсеров
+        socket.on('newProducer', async ({ peerId, producerId, kind }) => {
+          if (kind !== 'audio') {
+            return; // Игнорируем видеопродюсеры
+          }
+    
+          console.log('New audio producer:', peerId, producerId);
+    
+          // Проверяем, что устройство инициализировано
+          if (!deviceRef.current) {
+            console.error('Device is not initialized');
+            return;
+          }
+    
+          // Получаем транспорт
+          const transport: any = Array.from(transportsRef.current.values())[0];
+          if (!transport) {
+            console.error('Transport not found');
+            return;
+          }
+          
+    
+          try {
+            // Создаем консьюмер для аудио
+            const consumer = await transport.consume({
+              producerId,
+              rtpCapabilities: deviceRef.current.rtpCapabilities,
+              paused: false, // Воспроизводим сразу
+            });
+    
+            console.log('Audio consumer created:', consumer.id);
+    
+            // Создаем поток для нового участника
+            const remoteStream = new MediaStream([consumer.track]);
+            setRemoteStreams((prevStreams) => ({
+              ...prevStreams,
+              [peerId]: remoteStream,
+            }));
+    
+            // Сохраняем консьюмер
+            consumersRef.current[consumer.id] = consumer;
+          } catch (error) {
+            console.error('Error creating audio consumer:', error);
+          }
+        });
+    
+        return () => {
+          socket.disconnect();
+        };
+      }, []);
+    
+      const joinRoomWithAudioOnly = async () => {
+        try {
+          // Запрашиваем доступ только к микрофону
+          console.log('Requesting microphone access...');
+          const stream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              echoCancellation: true,
+              autoGainControl: true,
+              sampleRate: 48000,
+            },
+          });
+          console.log('Microphone access granted:', stream);
+          setLocalStream(stream);
+    
+          // Подключаемся к серверу
+          const socket = socketRef.current;
+    
+          // Инициализация mediasoup Device
+          console.log('Initializing mediasoup Device...');
+          deviceRef.current = new Device();
+    
+          // Получаем RTP-возможности роутера
+          console.log('Fetching router RTP capabilities...');
+          const routerRtpCapabilities = await fetchRouterRtpCapabilities(socket);
+          console.log('Router RTP capabilities:', routerRtpCapabilities);
+    
+          console.log('Loading device with RTP capabilities...');
+          await deviceRef.current.load({ routerRtpCapabilities });
+          console.log('Device loaded successfully');
+    
+          // Отправляем запрос на подключение к комнате только с микрофоном
+          console.log('Attempting to join room...');
+          socket.emit('joinRoom', { username: 'your-username', roomId: 'your-room-id', audioOnly: true }, async (response: { error?: string; transport?: any }) => {
+            if (response.error) {
+              console.error('Error joining room:', response.error);
+              return;
+            }
+    
+            // Создаем транспорт для отправки аудио
+            console.log('Creating send transport...');
+            if (!deviceRef.current) {
+              return
+            }
+
+            const sendTransport = deviceRef.current.createSendTransport(response.transport);
+            transportsRef.current[sendTransport.id] = sendTransport;
+    
+            // Логирование состояния транспорта
+            sendTransport.on('connect', ({ dtlsParameters }, callback, errback) => {
+              console.log('Transport connected:', dtlsParameters);
+              socket.emit('connectTransport', { transportId: sendTransport.id, dtlsParameters }, (result: { error?: string; transport?: any }) => {
+                if (result.error) {
+                  console.error('Error connecting transport:', result.error);
+                  errback(new Error(result.error));
+                } else {
+                  console.log('Transport connected successfully');
+                  callback();
+                }
+              });
+            });
+    
+            sendTransport.on('connectionstatechange', (state) => {
+              console.log('Transport connection state:', state);
+            });
+    
+            // Создаем продюсер для аудио
+            console.log('Creating audio producer...');
+            const audioTrack = stream.getAudioTracks()[0];
+            const audioProducer = await sendTransport.produce({
+              track: audioTrack,
+              appData: { kind: 'audio' },
+            });
+            console.log('Audio producer created:', audioProducer.id);
+          });
+        } catch (error) {
+          console.error('Ошибка при подключении к комнате:', error);
+        }
+      };
+      // Функция для получения RTP-возможностей роутера
+  const fetchRouterRtpCapabilities = async (socket: Socket<SocketEvents>) => {
+    return new Promise<any>((resolve, reject) => {
+      socket.emit('getRouterRtpCapabilities', (data) => {
+        if (data.error) {
+          reject(data.error);
+        } else {
+          resolve(data.rtpCapabilities);
+        }
+      });
+    });
+  };
+
+  // Функция для создания транспорта
+  const createTransport = async (socket: Socket<SocketEvents>, direction: 'send' | 'recv') => {
+    return new Promise<types.Transport>((resolve, reject) => {
+      socket.emit('createTransport', { direction }, (data) => {
+        if (data.error) {
+          reject(data.error);
+          return;
+        }
+
+        const transport =
+          direction === 'send'
+            ? deviceRef.current!.createSendTransport(data.transportOptions)
+            : deviceRef.current!.createRecvTransport(data.transportOptions);
+
+        transportsRef.current[transport.id] = transport;
+
+        // Подключаем транспорт
+        transport.on('connect', ({ dtlsParameters }, callback, errback) => {
+          socket.emit('connectTransport', { transportId: transport.id, dtlsParameters }, (result) => {
+            if (result.error) {
+              errback(new Error(result.error));
+            } else {
+              callback();
+            }
+          });
+        });
+
+        resolve(transport);
+      });
+    });
+  };
+
     return ( 
         <>
             <div className="actions">
@@ -149,19 +364,30 @@ export const Action: React.FC = () =>  {
                     <div className="chat-title">
                       <div className="title">
                         
-                      {activeChat}
+                      {activeChat.name}
                       </div>
                       <div className="buttons">
-                        <div className="voice">
-                        <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M28.7478 20.6679L26.0691 17.9892C25.2706 17.197 24.1928 16.7505 23.068 16.7457C21.9433 16.7409 20.8617 17.1783 20.0565 17.9636C19.6269 18.3957 19.06 18.6646 18.4536 18.7239C17.8471 18.7832 17.2389 18.6293 16.7336 18.2887C14.7394 16.9578 13.0262 15.2479 11.6915 13.2562C11.3569 12.7453 11.2085 12.1347 11.2715 11.5272C11.3345 10.9197 11.605 10.3525 12.0373 9.92117C12.8155 9.11518 13.2472 8.03661 13.2402 6.91629C13.2331 5.79597 12.7878 4.72291 11.9996 3.9268L9.3208 1.24802C8.51881 0.448778 7.43274 0 6.30051 0C5.16827 0 4.0822 0.448778 3.28021 1.24802L2.50946 2.01999C-1.50867 6.03816 -1.20792 14.486 7.15223 22.8414C12.1932 27.8836 17.267 29.9949 21.3813 29.9949C22.5924 30.0353 23.7994 29.8341 24.932 29.4033C26.0647 28.9725 27.1002 28.3205 27.9783 27.4854L28.7503 26.7134C29.551 25.9111 30.0005 24.8237 30 23.6902C29.9995 22.5566 29.5492 21.4696 28.7478 20.6679ZM27.0261 24.9917L26.2542 25.7637C23.0884 28.9295 16.1005 28.3511 8.8715 21.1209C1.64252 13.8906 1.06294 6.8978 4.22873 3.73197L4.99461 2.96122C5.33945 2.61762 5.80641 2.4247 6.2932 2.4247C6.77999 2.4247 7.24695 2.61762 7.59179 2.96122L10.2705 5.63999C10.6091 5.98027 10.8013 6.43939 10.8061 6.91939C10.8108 7.39938 10.6278 7.86224 10.2961 8.20918C9.47334 9.03721 8.96011 10.1228 8.8424 11.2842C8.72469 12.4455 9.00966 13.6121 9.64956 14.5883C11.1662 16.8579 13.1164 18.8052 15.3882 20.3185C16.3615 20.9585 17.525 21.2451 18.6842 21.1305C19.8435 21.016 20.9283 20.5071 21.7575 19.689C22.1038 19.3533 22.568 19.1669 23.0502 19.1699C23.5325 19.1728 23.9943 19.3649 24.3364 19.7048L27.0152 22.3836C27.1878 22.5537 27.3251 22.7563 27.4192 22.9797C27.5132 23.2032 27.5621 23.443 27.5632 23.6854C27.5642 23.9278 27.5173 24.168 27.4251 24.3922C27.3329 24.6164 27.1973 24.8201 27.0261 24.9917Z" fill="white"/>
-                          </svg>
-
+                        <div className="voice" onClick={joinRoomWithAudioOnly}>
+                        <svg width="31" height="30" viewBox="0 0 31 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M13.0425 7.79193C12.7779 6.90975 12.5916 5.99362 12.4917 5.05175C12.3935 4.126 11.5861 3.43762 10.6552 3.43762H6.33692C5.22648 3.43762 4.37105 4.39668 4.4688 5.50281C5.45342 16.6456 14.3295 25.5217 25.4723 26.5063C26.5784 26.6041 27.5375 25.7517 27.5375 24.6414V20.7917C27.5375 19.3862 26.849 18.5816 25.9234 18.4834C24.9815 18.3836 24.0654 18.1972 23.1832 17.9326C22.104 17.6089 20.9359 17.9136 20.1392 18.7102L18.2913 20.5581C14.9625 18.7566 12.2185 16.0126 10.417 12.6838L12.2649 10.8359C13.0615 10.0392 13.3662 8.871 13.0425 7.79193Z" stroke="white" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
                         </div>
                       </div>
                     </div>
                     <div className="messages">
-                      
+                    <div>
+                  <h2>Local Audio</h2>
+                  <audio ref={(ref) => { if (ref) ref.srcObject = localStream; }} autoPlay muted />
+                </div>
+                <div>
+                    <h2>Remote Streams</h2>
+                    {Object.entries(remoteStreams).map(([peerId, stream]) => (
+                      <div key={peerId}>
+                        <h3>Peer: {peerId}</h3>
+                        <audio ref={(ref) => { if (ref) ref.srcObject = stream; }} autoPlay />
+                      </div>
+                    ))}
+                  </div>
                       {groupedMessagess && groupedMessagess.map((value: any, index: number ) => (
                         <>
                         { value.length == 1 ?

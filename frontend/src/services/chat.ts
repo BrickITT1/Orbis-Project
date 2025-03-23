@@ -4,7 +4,7 @@ import { useAppSelector } from "../app/hooks";
 export const messageApi = createApi({
     reducerPath: "messageApi",
     baseQuery: fetchBaseQuery({
-        baseUrl: "http://localhost:4000/api",
+        baseUrl: "https://26.234.138.233:4000/api",
         credentials: "include",
         prepareHeaders: (headers, { getState }) => {
             const state = getState() as { auth: { user: { access_token?: string } } }; // Type assertion for state

@@ -31,7 +31,7 @@
     }
 
     .app-menu {
-       
+        gap: 1em;
         background-color: $app-menu-color;
         min-width: 80px;
     }
@@ -62,6 +62,26 @@
         padding: 1em;
         display: flex;
         justify-content: space-between;
+        align-items: center;
+
+        .voice {
+            cursor: pointer;
+            user-select: none;
+        }
+
+        div svg {
+            display: flex;
+            align-items: center;
+            
+        }
+
+        path {
+            transition: all .3s ease-in-out;
+        }
+
+        .voice:hover svg  path{
+            stroke: #848891;
+        }
     }
 
     .chat-input {
@@ -214,7 +234,7 @@
     @extend %flex-col;
     justify-content: space-between;
     align-items: center;
-    padding: 2em 0;
+    padding: 1em 0;
     
     .avatar, .avatar img, .button-items > div:not(button-items), .exit, .avatar-null {
         @extend %base-app-menu-button;

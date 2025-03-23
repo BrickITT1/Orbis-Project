@@ -3,7 +3,7 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 import { messageApi } from '../../services/chat';
 
-interface chat {
+export interface chat {
   id: number;
   name: string;
   type: string;
@@ -17,7 +17,7 @@ interface chat {
 
 interface chatState {
   chat: chat[];
-  activeChat: number;
+  activeChat: chat;
 }
 
 const initialState: chatState = {
@@ -34,7 +34,17 @@ const initialState: chatState = {
       own: 5,
     }
   ],
-  activeChat: 0
+  activeChat: {
+    id: 1,
+    name: "My chat",
+    type: "ls",
+    lastmessage: "hi",
+    created_at: '',
+    updated_at: '',
+    avatar_url: '/img/icon.png',
+    creator: 0,
+    own: 5,
+  }
 };
 
 const chatSlice = createSlice({
@@ -49,7 +59,7 @@ const chatSlice = createSlice({
     //   state.loading = false;
     //   console.log(action.payload)
     // },
-    setActiveChat(state, action: PayloadAction<number>) {
+    setActiveChat(state, action: PayloadAction<chat>) {
       state.activeChat = action.payload;
     }
 

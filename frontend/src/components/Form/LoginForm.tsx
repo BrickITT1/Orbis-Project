@@ -52,7 +52,7 @@ export const LoginForm: React.FC = () => {
           />
           <SubmitButton label="Вход" disabled={isLoading} />
           {error && <div>Error: {(error as any).data?.message}</div>}
-          <span><a href="" onClick={(e) => {
+          <span style={{textAlign: "center"}}><a href="" onClick={(e) => {
                       e.preventDefault();
                       navigate("/register")
                   }}>Нет аккаунта</a></span>

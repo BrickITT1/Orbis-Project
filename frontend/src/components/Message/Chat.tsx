@@ -1,9 +1,9 @@
 
 import React from 'react';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
-import { setActiveChat } from '../../features/chat/chatSlices';
+import { chat, setActiveChat } from '../../features/chat/chatSlices';
 
-export const Chat: React.FC<{name: string, avatar: string, type: string, number: number, chat_id: number}> = ({name, avatar, type, number, chat_id}) =>  {
+export const Chat: React.FC<{chat: chat}> = ({chat}) =>  {
     const active = useAppSelector(state => state.chat.activeChat);
     const dispatch = useAppDispatch();
     
@@ -11,15 +11,15 @@ export const Chat: React.FC<{name: string, avatar: string, type: string, number:
     return ( 
         <>
             <li className="group-item" onClick={()=> {
-                dispatch(setActiveChat(chat_id));
+                dispatch(setActiveChat(chat));
                 
             }}>
-                <div className={active == chat_id ? "active": ""} >
+                <div className={active.id == chat.id ? "active": ""} >
                     <div className="group-item__avatar">
-                        <img src={avatar} alt="" />
+                        <img src={chat.avatar_url} alt="" />
                     </div>
                     <div className="group-item__name">
-                        {name}
+                        {chat.name}
                     </div>
                     
                 </div>

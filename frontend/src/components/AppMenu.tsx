@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useLogoutUserMutation } from '../services/auth';
+import { useNavigate } from 'react-router-dom';
 
 export const AppMenu: React.FC = () =>  {
     const [avatarUrl, setAvatarUrl] = useState<string>();
     const [logout] = useLogoutUserMutation();
+    const navigator = useNavigate();
     
     return ( 
         <>
@@ -17,13 +19,14 @@ export const AppMenu: React.FC = () =>  {
                 </div>
                 <div className="button-items">
                     <div className="button-item">
-                        <button>1</button>
+                        <button onClick={()=> {
+                            navigator('/app')
+                        }}>LS</button>
                     </div>
                     <div className="button-item">
-                        <button>2</button>
-                    </div>
-                    <div className="button-item">
-                        <button>3</button>
+                        <button onClick={()=> {
+                            navigator('/app/server')
+                        }}>SERV</button>
                     </div>
                     <div className="button-item">
                         <button>

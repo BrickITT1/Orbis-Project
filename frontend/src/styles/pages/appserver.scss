@@ -1,0 +1,22 @@
+@use '../variables' as *;
+
+.server-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1em;
+    padding: 1em;
+    .text, .voice {
+        padding: 0.5em;
+        background-color: rgb(68, 79, 104);
+    }
+
+    .in-voice {
+        padding-left: 1em;
+
+        li {
+            display: flex;
+            align-items: center;
+            gap: 0.5em;
+        }
+    }
+}

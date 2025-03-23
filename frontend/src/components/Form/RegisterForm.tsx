@@ -153,7 +153,7 @@ export const RegisterForm: React.FC = () => {
           <SubmitButton label="Зарегистрироваться" />
         </form>
       )}
-      <span><a href="" onClick={(e) => {
+      <span style={{textAlign: "center"}}><a href="" onClick={(e) => {
                       e.preventDefault();
                       navigator("/login")
                   }}>Назад</a></span>

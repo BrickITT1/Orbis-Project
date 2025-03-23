@@ -28,7 +28,7 @@ const Article: React.FC<ArticleProps> = ({ title, description, content }) => {
     const chapters: Chapter[] = [];
     let currentChapter: Chapter | null = null;
     let currentSection: Section | null = null;
-
+    
     content.split('\n').forEach((line) => {
       if (line.startsWith('## ')) {
         // Новая глава
@@ -63,7 +63,6 @@ const Article: React.FC<ArticleProps> = ({ title, description, content }) => {
   };
 
   const chapters = parseContent(content);
-
   return (
     <div className="article-container">
       <h1 className="article-title">{title}</h1>

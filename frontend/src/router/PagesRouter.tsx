@@ -14,6 +14,8 @@ import { selectAuth } from "../features/auth/authSelectors";
 import { useSelector } from "react-redux";
 import { useAppSelector } from "../app/hooks";
 import { useRefreshTokenMutation } from "../services/auth";
+import { AppServerPage } from "../pages/AppServerPage";
+import MovingBlocks from "../pages/Test";
 
 const ProtectedRoute: React.FC<{
     isAuth: boolean;
@@ -138,7 +140,7 @@ export const PagesRouter: React.FC = () => {
                     element= {
                         <Layout>
                             <div className="container">
-                                    <LicescePage />
+                                <LicescePage />
                             </div>
                         </Layout>
                     }
@@ -149,6 +151,20 @@ export const PagesRouter: React.FC = () => {
                         <ProtectedRoute isAuth={isAuth}>
                             <AppPage />
                         </ProtectedRoute>
+                    }
+                />
+                <Route 
+                    path="/app/server"
+                    element= {
+                        <ProtectedRoute isAuth={isAuth}>
+                            <AppServerPage />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route 
+                    path="/test"
+                    element= {
+                            <MovingBlocks />
                     }
                 />
                 {/* <Route
