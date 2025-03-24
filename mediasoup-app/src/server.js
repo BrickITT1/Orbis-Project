@@ -79,20 +79,18 @@ io.on('connection', (socket) => {
   let producers = new Map();
   let consumers = new Map();
 
-  socket.on('joinRoom', async ({ username, roomId, audioOnly }, callback) => {
-    console.log('joinRoom event received:', username, roomId, audioOnly);
+  socket.on('joinRoom', async ({ username, roomId: rId, audioOnly }, callback) => {
+    console.log('joinRoom event received:', username, rId, audioOnly);
     try {
-      socket.join(roomId);
-      
-      // Создаем или получаем комнату
+      socket.join(rId);
+      roomId = rId; // Сохраняем roomId на уровне сокета
+  
       if (!rooms.has(roomId)) {
-        rooms.set(roomId, {
-          peers: new Map(),
-        });
+        rooms.set(roomId, { peers: new Map() });
       }
+  
       const room = rooms.get(roomId);
-
-      // Сохраняем информацию о пире
+  
       room.peers.set(socket.id, {
         socket,
         transports,
@@ -100,12 +98,11 @@ io.on('connection', (socket) => {
         consumers,
         audioOnly,
       });
-
-      // Создаем транспорт
+  
       const transport = await createWebRtcTransport();
       transports.set(transport.id, transport);
-
-      // Проверяем, что callback является функцией
+      room.peers.get(socket.id).transports.set(transport.id, transport); // Добавляем транспорт в объект пира
+  
       if (typeof callback === 'function') {
         callback({
           transport: {
@@ -116,18 +113,16 @@ io.on('connection', (socket) => {
           }
         });
       }
-
-      // Оповещаем других участников
+  
       socket.to(roomId).emit('newPeer', { peerId: socket.id, audioOnly });
-      console.log(rooms)
     } catch (error) {
       console.error('Error joining room:', error);
-      // Проверяем, что callback является функцией
       if (typeof callback === 'function') {
         callback({ error: error.message });
       }
     }
   });
+  
 
   socket.on('getRouterRtpCapabilities', (callback) => {
     try {
@@ -138,69 +133,70 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Обработка медиапотоков
-  // Обработка медиапотоков
-// Обработка медиапотоков
-socket.on('produce', async ({ kind, rtpParameters }, callback) => {
-  try {
-    console.log('Received produce event:', kind, rtpParameters);
-
-    const transport = Array.from(transports.values())[0];
-    if (!transport) {
-      throw new Error('Transport not found');
+  socket.on('produce', async ({ kind, rtpParameters }, callback) => {
+    console.log('🚨 RECEIVED produce event from client:', { kind, rtpParameters });
+    try {
+      
+  
+      if (!roomId) {
+        throw new Error('Room ID is undefined');
+      }
+  
+      const room = rooms.get(roomId);
+      if (!room) {
+        throw new Error('Room not found');
+      }
+  
+      const peer = room.peers.get(socket.id);
+      if (!peer) {
+        throw new Error('Peer not found');
+      }
+  
+      const transport = Array.from(peer.transports.values())[0]; // Берем первый транспорт
+      if (!transport) {
+        throw new Error('Transport not found for this peer');
+      }
+  
+      if (peer.audioOnly && kind !== 'audio') {
+        throw new Error('Video is not allowed for this peer');
+      }
+  
+      const producer = await transport.produce({ kind, rtpParameters });
+  
+      peer.producers.set(producer.id, producer);
+  
+      if (typeof callback === 'function') {
+        callback({ id: producer.id });
+      }
+  
+      socket.to(roomId).emit('newProducer', {
+        peerId: socket.id,
+        producerId: producer.id,
+        kind,
+      });
+  
+      console.log('New producer event emitted:', producer.id);
+    } catch (error) {
+      console.error('Error producing media:', error);
+      if (typeof callback === 'function') {
+        callback({ error: error.message });
+      }
     }
-
-    console.log('Transport found:', transport.id);
-
-    // Проверяем, что пользователь подключился только с микрофоном
-    const room = rooms.get(roomId);
-    const peer = room.peers.get(socket.id);
-    if (peer.audioOnly && kind !== 'audio') {
-      throw new Error('Video is not allowed for this peer');
-    }
-
-    // Создаем продюсер
-    const producer = await transport.produce({
-      kind,
-      rtpParameters,
-    });
-
-    console.log('Producer created:', producer.id);
-    console.log('Producer kind:', producer.kind);
-    console.log('Producer track:', producer.track);
-
-    producers.set(producer.id, producer);
-    if (typeof callback === 'function') {
-      callback({ id: producer.id });
-    }
-
-    // Оповещаем других участников
-    socket.to(roomId).emit('newProducer', {
-      peerId: socket.id,
-      producerId: producer.id,
-      kind,
-    });
-  } catch (error) {
-    console.error('Error producing media:', error);
-    if (typeof callback === 'function') {
-      callback({ error: error.message });
-    }
-  }
-});
-
+  });
+  
   socket.on('consume', async ({ producerId, rtpCapabilities }, callback) => {
     try {
       const transport = Array.from(transports.values())[0];
       if (!transport) {
         throw new Error('Transport not found');
       }
-
+  
       const consumer = await transport.consume({
         producerId,
         rtpCapabilities,
         paused: true,
       });
-
+  
       consumers.set(consumer.id, consumer);
       if (typeof callback === 'function') {
         callback({
@@ -217,6 +213,7 @@ socket.on('produce', async ({ kind, rtpParameters }, callback) => {
       }
     }
   });
+  
 
   socket.on('disconnect', () => {
     console.log('Client disconnected:', socket.id);
