@@ -77,6 +77,10 @@ export const Action: React.FC = () =>  {
     const transportsRef = useRef<any>({});
     const consumersRef = useRef<Record<string, any>>({});
     const producersRef = useRef<Record<string, types.Producer>>({});
+
+    useEffect(() => {
+      console.log(remoteStreams)
+    }, [remoteStreams])
   
 
     useEffect(() => {
@@ -181,52 +185,59 @@ export const Action: React.FC = () =>  {
         socket.on('newPeer', ({ peerId, audioOnly }) => {
           console.log('New peer connected:', peerId, 'Audio only:', audioOnly);
         });
-    
-        // Обработка новых продюсеров
+
         socket.on('newProducer', async ({ peerId, producerId, kind }) => {
+          console.log('Received newProducer event:', peerId, producerId, kind);
+          
           if (kind !== 'audio') {
-            return; // Игнорируем видеопродюсеры
+              return; // Игнорируем видеопродюсеры
           }
-    
-          console.log('New audio producer:', peerId, producerId);
-    
+      
+          console.log('Processing new audio producer...');
           // Проверяем, что устройство инициализировано
           if (!deviceRef.current) {
-            console.error('Device is not initialized');
-            return;
+              console.error('Device is not initialized');
+              return;
           }
-    
+      
           // Получаем транспорт
           const transport: any = Array.from(transportsRef.current.values())[0];
           if (!transport) {
-            console.error('Transport not found');
-            return;
+              console.error('Transport not found');
+              return;
           }
-          
-    
+      
           try {
-            // Создаем консьюмер для аудио
-            const consumer = await transport.consume({
-              producerId,
-              rtpCapabilities: deviceRef.current.rtpCapabilities,
-              paused: false, // Воспроизводим сразу
-            });
-    
-            console.log('Audio consumer created:', consumer.id);
-    
-            // Создаем поток для нового участника
-            const remoteStream = new MediaStream([consumer.track]);
-            setRemoteStreams((prevStreams) => ({
-              ...prevStreams,
-              [peerId]: remoteStream,
-            }));
-    
-            // Сохраняем консьюмер
-            consumersRef.current[consumer.id] = consumer;
+              console.log('Attempting to consume audio from producer:', producerId);
+              const consumer = await transport.consume({
+                  producerId,
+                  rtpCapabilities: deviceRef.current.rtpCapabilities,
+                  paused: false, // Воспроизводим сразу
+              });
+      
+              console.log('Audio consumer created:', consumer.id);
+      
+              // Создаем поток для нового участника
+              const remoteStream = new MediaStream([consumer.track]);
+              setRemoteStreams((prevStreams) => {
+                const updatedStreams = { ...prevStreams, [peerId]: remoteStream };
+                console.log('After update:', updatedStreams);
+                return updatedStreams;
+              });
+
+              if (consumer.track) {
+                console.log("Track is added to the stream:", consumer.track);
+              } else {
+                console.error("No track found for consumer:", consumer);
+              }
+      
+              // Сохраняем консьюмера
+              consumersRef.current[consumer.id] = consumer;
           } catch (error) {
-            console.error('Error creating audio consumer:', error);
+              console.error('Error creating audio consumer:', error);
           }
-        });
+      });
+      
     
         return () => {
           socket.disconnect();
@@ -270,17 +281,23 @@ export const Action: React.FC = () =>  {
               console.error('Error joining room:', response.error);
               return;
             }
-    
+          
             // Создаем транспорт для отправки аудио
-            console.log('Creating send transport...');
             if (!deviceRef.current) {
-              return
+              console.error('Device is not initialized');
+              return;
             }
-
-            const sendTransport = deviceRef.current.createSendTransport(response.transport);
+          
+            console.log('Создаю sendTransport...');
+            const sendTransport = deviceRef.current.createSendTransport({
+              id: response.transport.id,
+              iceParameters: response.transport.iceParameters,
+              iceCandidates: response.transport.iceCandidates,
+              dtlsParameters: response.transport.dtlsParameters,
+            });
+          
             transportsRef.current[sendTransport.id] = sendTransport;
-    
-            // Логирование состояния транспорта
+            
             sendTransport.on('connect', ({ dtlsParameters }, callback, errback) => {
               console.log('Transport connected:', dtlsParameters);
               socket.emit('connectTransport', { transportId: sendTransport.id, dtlsParameters }, (result: { error?: string; transport?: any }) => {
@@ -293,20 +310,45 @@ export const Action: React.FC = () =>  {
                 }
               });
             });
-    
+          
             sendTransport.on('connectionstatechange', (state) => {
               console.log('Transport connection state:', state);
             });
-    
-            // Создаем продюсер для аудио
-            console.log('Creating audio producer...');
+          
+            sendTransport.on('produce', async ({ kind, rtpParameters }: { kind: string; rtpParameters: any }, callback: (id: { id: string }) => void) => {
+              console.log('🔥 onProduce вызван:', { kind, rtpParameters });
+              try {
+                socket.emit('produce', { kind, rtpParameters }, ({ id, error }: { id?: string; error?: string }) => {
+                  if (error) {
+                    callback({ id: '' });
+                  } else {
+                    callback({ id: id! });
+                  }
+                });
+              } catch (error) {
+                callback({ id: '' });
+              }
+            });
+          
+            // Добавление продюсера для аудио
             const audioTrack = stream.getAudioTracks()[0];
             const audioProducer = await sendTransport.produce({
               track: audioTrack,
-              appData: { kind: 'audio' },
+              codecOptions: { opusStereo: true, opusDtx: true },
+            }).then((producer) => {
+              console.log('Producer created:', producer);
+              socket.emit("produce", { kind: "audio", rtpParameters: producer.rtpParameters }, (response: any) => {
+                if (response.error) {
+                  console.error("❌ Error during produce:", response?.error);
+                } else {
+                  console.log("✅ Producer successfully created:", response?.id);
+                }
+              });
+            }).catch((error) => {
+              console.error("❌ Error producing media:", error);
             });
-            console.log('Audio producer created:', audioProducer.id);
           });
+          
         } catch (error) {
           console.error('Ошибка при подключении к комнате:', error);
         }
@@ -320,38 +362,6 @@ export const Action: React.FC = () =>  {
         } else {
           resolve(data.rtpCapabilities);
         }
-      });
-    });
-  };
-
-  // Функция для создания транспорта
-  const createTransport = async (socket: Socket<SocketEvents>, direction: 'send' | 'recv') => {
-    return new Promise<types.Transport>((resolve, reject) => {
-      socket.emit('createTransport', { direction }, (data) => {
-        if (data.error) {
-          reject(data.error);
-          return;
-        }
-
-        const transport =
-          direction === 'send'
-            ? deviceRef.current!.createSendTransport(data.transportOptions)
-            : deviceRef.current!.createRecvTransport(data.transportOptions);
-
-        transportsRef.current[transport.id] = transport;
-
-        // Подключаем транспорт
-        transport.on('connect', ({ dtlsParameters }, callback, errback) => {
-          socket.emit('connectTransport', { transportId: transport.id, dtlsParameters }, (result) => {
-            if (result.error) {
-              errback(new Error(result.error));
-            } else {
-              callback();
-            }
-          });
-        });
-
-        resolve(transport);
       });
     });
   };
@@ -385,6 +395,7 @@ export const Action: React.FC = () =>  {
                       <div key={peerId}>
                         <h3>Peer: {peerId}</h3>
                         <audio ref={(ref) => { if (ref) ref.srcObject = stream; }} autoPlay />
+
                       </div>
                     ))}
                   </div>
