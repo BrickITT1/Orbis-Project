@@ -199,39 +199,39 @@ export const Test: React.FC = () => {
     }
   }, [joined]);
 
-  useEffect(() => {
-  const checkAudio = () => {
-    const audioElements = document.querySelectorAll('audio');
-    console.log('Текущие аудио-элементы:', audioElements.length);
-    
-    audioElements.forEach(el => {
-      const audio = el as HTMLAudioElement;
-      console.log(`Аудио ${audio.id}:`, {
-        playing: !audio.paused,
-        readyState: audio.readyState,
-        error: audio.error
+    useEffect(() => {
+    const checkAudio = () => {
+      const audioElements = document.querySelectorAll('audio');
+      console.log('Текущие аудио-элементы:', audioElements.length);
+      
+      audioElements.forEach(el => {
+        const audio = el as HTMLAudioElement;
+        console.log(`Аудио ${audio.id}:`, {
+          playing: !audio.paused,
+          readyState: audio.readyState,
+          error: audio.error
+        });
       });
-    });
-  };
+    };
 
-  // Проверяем каждые 5 секунд
-  const interval = setInterval(checkAudio, 5000);
-  return () => clearInterval(interval);
-}, []);
+    // Проверяем каждые 5 секунд
+    const interval = setInterval(checkAudio, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
-useEffect(() => {
-  return () => {
-    // Очистка при размонтировании компонента
-    if (joined) leaveRoom();
-    
-    // Дополнительная очистка аудио элементов
-    document.querySelectorAll('audio[id^="audio-"]').forEach((el: any) => {
-      const stream = el.srcObject as MediaStream;
-      if (stream) stream.getTracks().forEach(track => track.stop());
-      el.remove();
-    });
-  };
-}, [joined]);
+  useEffect(() => {
+    return () => {
+      // Очистка при размонтировании компонента
+      if (joined) leaveRoom();
+      
+      // Дополнительная очистка аудио элементов
+      document.querySelectorAll('audio[id^="audio-"]').forEach((el: any) => {
+        const stream = el.srcObject as MediaStream;
+        if (stream) stream.getTracks().forEach(track => track.stop());
+        el.remove();
+      });
+    };
+  }, [joined]);
 
   const joinRoom = async () => {
     if (!socket || !username || !roomId) {
@@ -749,35 +749,10 @@ useEffect(() => {
         </button>
       </div>
       <div className="audio-debug">
-  <h3>Аудио-статус</h3>
-  <button onClick={async () => {
-    const devices = await navigator.mediaDevices.enumerateDevices();
-    const audioDevices = devices.filter(d => d.kind === 'audioinput');
-    console.log('Доступные аудио-устройства:', audioDevices);
-  }}>
-    Показать аудио-устройства
-  </button>
   
-  <button onClick={() => {
-    const audioElements = document.querySelectorAll('audio');
-    console.log('Найдено аудио-элементов:', audioElements.length);
-    audioElements.forEach((el, i) => {
-      console.log(`Аудио-элемент ${i}:`, {
-        playing: !el.paused,
-        src: el.srcObject,
-        error: el.error
-      });
-    });
-  }}>
-    Проверить аудио-элементы
-  </button>
-</div>
-<button onClick={() => {
-  document.querySelectorAll('audio').forEach(el => el.remove());
-  console.log('Removed all audio elements');
-}}>
-  Remove All Audio
-</button>
+  
+  
+        </div>
       {/* Основная область - видео */}
       <div style={{ flex: 1, padding: '10px', display: 'flex', flexDirection: 'column' }}>
         <h2>Video Chat</h2>
