@@ -15,7 +15,7 @@ import { useSelector } from "react-redux";
 import { useAppSelector } from "../app/hooks";
 import { useRefreshTokenMutation } from "../services/auth";
 import { AppServerPage } from "../pages/AppServerPage";
-import MovingBlocks from "../pages/Test";
+import { Test } from "../pages/Test";
 
 const ProtectedRoute: React.FC<{
     isAuth: boolean;
@@ -164,7 +164,7 @@ export const PagesRouter: React.FC = () => {
                 <Route 
                     path="/test"
                     element= {
-                            <MovingBlocks />
+                            <Test />
                     }
                 />
                 {/* <Route
