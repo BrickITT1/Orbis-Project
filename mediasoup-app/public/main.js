@@ -1,11 +1,16 @@
-document.getElementById('join-button').addEventListener('click', () => {{
+// Обработчик нажатия кнопки присоединения к комнате
+document.getElementById('join-button').addEventListener('click', () => {
   const username = document.getElementById('username').value;
   const roomId = document.getElementById('room-id').value;
 
   if (username && roomId) {
+    // Инициализация Socket.IO соединения
     const socket = io();
+    
+    // Отправка события присоединения к комнате
     socket.emit('joinRoom', { username, roomId });
 
+    // Переключение видимости элементов интерфейса
     document.getElementById('join-screen').style.display = 'none';
     document.getElementById('controls').style.display = 'block';
     document.getElementById('participant-view').style.display = 'block';
@@ -14,124 +19,179 @@ document.getElementById('join-button').addEventListener('click', () => {{
     let audioEnabled = true;
     let videoEnabled = true;
 
+    // Запрос доступа к медиаустройствам
     navigator.mediaDevices.getUserMedia({ audio: true, video: true })
       .then(stream => {
         localStream = stream;
+        
+        // Добавление локального видеоэлемента
         addParticipantVideo('local', stream);
 
-        // Emit local stream to other participants
+        // Уведомление других участников о новом подключении
         socket.emit('newParticipant', { id: 'local', stream });
 
-        // Listen for new participants
+        // Обработчик новых участников
         socket.on('newParticipant', ({ id, stream }) => {
           addParticipantVideo(id, stream);
         });
 
-        // Listen for participant leaving
+        // Обработчик выхода участников
         socket.on('participantLeft', id => {
           removeParticipantVideo(id);
         });
       })
       .catch(error => {
-        console.error('Error accessing media devices.', error);
-        alert('Could not access your camera and microphone. Please check your permissions.');
+        console.error('Ошибка доступа к устройствам:', error);
+        alert('Необходимо разрешить доступ к камере и микрофону!');
       });
 
+    // Обработчик кнопки отключения микрофона
     document.getElementById('mute-button').addEventListener('click', () => {
       audioEnabled = !audioEnabled;
       localStream.getAudioTracks()[0].enabled = audioEnabled;
-      document.getElementById('mute-button').textContent = audioEnabled ? 'Mute' : 'Unmute';
+      document.getElementById('mute-button').textContent = 
+        audioEnabled ? 'Mute' : 'Unmute';
     });
 
+    // Обработчик кнопки отключения видео
     document.getElementById('video-button').addEventListener('click', () => {
       videoEnabled = !videoEnabled;
       localStream.getVideoTracks()[0].enabled = videoEnabled;
-      document.getElementById('video-button').textContent = videoEnabled ? 'Stop Video' : 'Start Video';
+      document.getElementById('video-button').textContent = 
+        videoEnabled ? 'Stop Video' : 'Start Video';
     });
 
+    // Обработчик выхода из комнаты
     document.getElementById('leave-button').addEventListener('click', () => {
+      // Отправка события выхода
       socket.emit('leaveRoom', { username, roomId });
+      
+      // Остановка всех медиапотоков
       localStream.getTracks().forEach(track => track.stop());
+      
+      // Разрыв соединения
       socket.disconnect();
 
+      // Восстановление начального состояния интерфейса
       document.getElementById('join-screen').style.display = 'block';
       document.getElementById('controls').style.display = 'none';
       document.getElementById('participant-view').style.display = 'none';
       document.getElementById('participant-view').innerHTML = '';
     });
 
+    // Подтверждение успешного присоединения
     socket.on('roomJoined', (data) => {
-      console.log(`Joined room ${data.roomId} as ${data.username}`);
+      console.log(`Успешно присоединились к комнате ${data.roomId} как ${data.username}`);
     });
 
+    // Обработчик ошибок соединения
     socket.on('connect_error', (error) => {
-      console.error('Connection error:', error);
-      alert('Connection failed. Please try again.');
+      console.error('Ошибка подключения:', error);
+      alert('Ошибка соединения с сервером!');
     });
   } else {
-    alert('Please enter your name and room ID');
+    alert('Пожалуйста, введите имя и ID комнаты');
   }
-}});
+});
 
+/**
+ * Добавление видеоэлемента участника
+ * @param {string} id - Уникальный идентификатор участника
+ * @param {MediaStream} stream - Медиапоток
+ */
 const addParticipantVideo = (id, stream) => {
   const videoElement = document.createElement('video');
-  videoElement.id = id;
-  videoElement.srcObject = stream;
-  videoElement.autoplay = true;
+  videoElement.id = id; // Присваиваем уникальный ID
+  videoElement.srcObject = stream; // Привязываем медиапоток
+  videoElement.autoplay = true; // Автовоспроизведение
+  videoElement.playsInline = true; // Для мобильных устройств
   document.getElementById('participant-view').appendChild(videoElement);
 };
 
+/**
+ * Удаление видеоэлемента участника
+ * @param {string} id - Уникальный идентификатор участника
+ */
 const removeParticipantVideo = (id) => {
   const videoElement = document.getElementById(id);
   if (videoElement) {
+    // Остановка всех треков потока
     videoElement.srcObject.getTracks().forEach(track => track.stop());
+    // Удаление элемента из DOM
     videoElement.remove();
   }
 };
-let device;
-let rtpCapabilities;
-let sendTransport;
-let recvTransport;
 
-// После подключения к комнате
+// Глобальные переменные Mediasoup
+let device;          // Устройство Mediasoup
+let sendTransport;   // Транспорт для отправки медиа
+let recvTransport;   // Транспорт для получения медиа
+
+/**
+ * Инициализация Mediasoup после присоединения к комнате
+ */
 socket.emit('joinRoom', { username, roomId }, async (response) => {
-  // Инициализация медиасервера
+  // Инициализация медиаустройства
   device = new mediasoupClient.Device();
-  await device.load({ routerRtpCapabilities: response.rtpCapabilities });
   
-  // Создаем транспорт для отправки
+  // Загрузка возможностей роутера
+  await device.load({ 
+    routerRtpCapabilities: response.rtpCapabilities 
+  });
+  
+  // Создание транспорта для отправки
   sendTransport = device.createSendTransport({
     id: response.transport.id,
-    iceParameters: response.transport.iceParameters,
-    iceCandidates: response.transport.iceCandidates,
-    dtlsParameters: response.transport.dtlsParameters,
+    iceParameters: response.transport.iceParameters, // ICE параметры
+    iceCandidates: response.transport.iceCandidates, // Список кандидатов
+    dtlsParameters: response.transport.dtlsParameters // DTLS настройки
   });
 
-  // Обработка событий транспорта
+  /**
+   * Обработчик установки соединения транспорта
+   * Отправляет DTLS параметры на сервер
+   */
   sendTransport.on('connect', async ({ dtlsParameters }, callback, errback) => {
     socket.emit('transport-connect', { dtlsParameters }, () => callback());
   });
 
+  /**
+   * Обработчик создания продюсера
+   * Регистрирует новый медиапоток на сервере
+   */
   sendTransport.on('produce', async (parameters, callback, errback) => {
     socket.emit('produce', parameters, ({ id }) => callback({ id }));
   });
 
-  // Создаем продюсеры для аудио и видео
-  const audioProducer = await sendTransport.produce({ track: localStream.getAudioTracks()[0] });
-  const videoProducer = await sendTransport.produce({ track: localStream.getVideoTracks()[0] });
+  // Создание аудио продюсера
+  const audioProducer = await sendTransport.produce({ 
+    track: localStream.getAudioTracks()[0] 
+  });
+
+  // Создание видео продюсера
+  const videoProducer = await sendTransport.produce({ 
+    track: localStream.getVideoTracks()[0] 
+  });
 });
 
-// Обработка новых участников
+/**
+ * Обработка новых медиапотоков от других участников
+ */
 socket.on('newProducer', async ({ peerId, producerId, kind }) => {
+  // Создание консьюмера для нового потока
   const consumer = await recvTransport.consume({
     producerId,
     rtpCapabilities: device.rtpCapabilities,
-    paused: true,
+    paused: true // Начальное состояние паузы
   });
   
+  // Создание медиапотока из трека
   const stream = new MediaStream();
   stream.addTrack(consumer.track);
+  
+  // Добавление элемента в интерфейс
   addParticipantVideo(peerId, stream);
   
+  // Отправка запроса на возобновление потока
   socket.emit('resume', { consumerId: consumer.id });
 });
