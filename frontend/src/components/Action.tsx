@@ -2,28 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { useAppSelector } from '../app/hooks';
 import { SingleMessage } from './Message/SingleMessage';
 import { MessageGroup } from './Message/MessageGroup';
-
-import { io, Socket } from 'socket.io-client';
-import * as mediasoupClient from 'mediasoup-client';
-import type {
-  Transport,
-  DtlsParameters,
-  IceParameters,
-  IceCandidate,
-  RtpCapabilities,
-  RtpParameters,
-  Consumer,
-  Producer
-} from 'mediasoup-client/lib/types';
 import { useChatMessages } from '../app/useChatMessages';
+import { useVoiceChat } from '../app/useVoiceChat';
 
-interface Message {
-  id: number,
-  content: string,
-  user_id: number,
-  is_edited: boolean,
-  timestamp: string,
-}
 
 function scrollToBottom() {
   const messagesDiv = document.querySelector('.messages');
@@ -34,25 +15,49 @@ function scrollToBottom() {
 }
 
 export const Action: React.FC = () =>  {
+
     const activeChat = useAppSelector(state => state.chat.activeChat);
-    const token = useAppSelector(state => state.auth.user?.username);
+    const token = useAppSelector(state => state.auth.user?.access_token);
+    const MyUsername = useAppSelector(state => state.auth.user?.username);
     const {
       messages,
       groupedMessages,
       newMessage,
       setNewMessage,
       sendMessage,
+      setEnable,
+      setDisable,
       isSocketConnected,
-    } = useChatMessages(String(activeChat?.id), token);
-
-    const [voicesocket, setVoiceSocke] = useState<Socket | null>(null);
-    const [audioOnly, setAudioOnly] = useState<boolean>(false);
-    const [joined, setJoined] = useState<boolean>(false);
-    const [peers, setPeers] = useState<Set<string>>(new Set());
-
+    } = useChatMessages(String(activeChat?.id), token, MyUsername);
     
-
+    const {
+      joinRoom,
+      leaveRoom,
+      setEnableV,
+      setDisableV,
+      isVoiceSocketConnected,
+      roomPeers,
+      peers
+    } = useVoiceChat();
     
+    useEffect(()=> {
+      if (activeChat && !isVoiceSocketConnected) {
+        setEnableV();
+      } else {
+        setDisableV();
+      }
+      
+    }, [activeChat])
+
+    useEffect(()=> {
+      if (activeChat && !isSocketConnected) {
+        setEnable();
+      } else {
+        setDisable();
+      }
+      
+    }, [activeChat])
+
     useEffect(() => {
       const searchField: HTMLInputElement | null = document.querySelector('.chat-input input');
       const searchButton: HTMLButtonElement | null = document.querySelector('.enter-message');
@@ -79,21 +84,63 @@ export const Action: React.FC = () =>  {
       scrollToBottom();
     }, [messages]);
 
+    
     return (
-      <div className="actions">
+      activeChat ? (
+        <div className="actions">
         <div className="actions-main">
           <div className="chat-title">
             <div className="title">{activeChat?.name || 'Чат'}</div>
             <div className="buttons">
-              <div className="voice">
+              <div className="voice" onClick={joinRoom}>
                 <svg width="31" height="30" viewBox="0 0 31 30" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M13.0425 7.79193C12.7779 6.90975 12.5916 5.99362 12.4917 5.05175C12.3935 4.126 11.5861 3.43762 10.6552 3.43762H6.33692C5.22648 3.43762 4.37105 4.39668 4.4688 5.50281C5.45342 16.6456 14.3295 25.5217 25.4723 26.5063C26.5784 26.6041 27.5375 25.7517 27.5375 24.6414V20.7917C27.5375 19.3862 26.849 18.5816 25.9234 18.4834C24.9815 18.3836 24.0654 18.1972 23.1832 17.9326C22.104 17.6089 20.9359 17.9136 20.1392 18.7102L18.2913 20.5581C14.9625 18.7566 12.2185 16.0126 10.417 12.6838L12.2649 10.8359C13.0615 10.0392 13.3662 8.871 13.0425 7.79193Z" stroke="white" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </div>
             </div>
           </div>
-          
+          <div className="voice-chat">
+            <ul className='users'>
+            
+              {roomPeers.map(peer => (
+                <li key={peer.id}>
+                  <div className="voice-avatar">
+                    <img 
+                      src="/img/icon.png" 
+                      alt={`Аватар пользователя ${peer?.username}`} 
+                      width={150}
+                      height={150}
+                    />
+                  </div>
+                  <div className="voice-name">
+                    {peer?.username}
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <div className="voice-buttons">
+              <div className="voice-mute">
+                <button>
+                  <svg width="42" height="48" viewBox="0 0 42 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M41 24V26.5C41 37.5458 32.0458 46.5 21 46.5C9.9543 46.5 1 37.5458 1 26.5V24M21 36.5C15.4771 36.5 11 32.0227 11 26.5V11.5C11 5.97715 15.4771 1.5 21 1.5C26.5227 1.5 31 5.97715 31 11.5V26.5C31 32.0227 26.5227 36.5 21 36.5Z" stroke="white" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+              </button>
+              {/* <button><svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M34 20V11.5001C34 5.97722 29.5228 1.50008 24 1.50008C21.6015 1.50008 19.4002 2.3445 17.6771 3.7523M4 24V26.5C4 37.5458 12.9543 46.5 24 46.5C30.1633 46.5 35.6752 43.7122 39.344 39.329M1.5 1.5L46.5 46.5M24 36.5C18.4771 36.5 14 32.023 14 26.5V14.0001L32.2037 32.22C30.3962 34.8075 27.3957 36.5 24 36.5Z" stroke="white" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg> </button>*/}
+
+              </div>
+              <div className="voice-leave" onClick={leaveRoom}>
+              <button>
+                <svg width="52" height="22" viewBox="0 0 52 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path fillRule="evenodd" clipRule="evenodd" d="M26.001 1C46.9715 1.0013 50.2823 7.6485 50.7243 10.4505C50.8323 10.8648 52.5715 20.0957 45.7465 20.8117C28.766 22.5472 40.4397 10.792 25.9992 11.2385C11.5586 11.685 23.232 22.5473 6.25485 20.8125C-0.571774 20.095 1.16773 10.864 1.27583 10.4532C1.71635 7.6495 5.02895 1.0004 26.001 1Z" stroke="white" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+              </div>
+            </div>
+          </div>
           <div className="messages">
+            
           {groupedMessages?.map((group, index) => (
             group.messages.length === 1 ? (
               <SingleMessage 
@@ -134,5 +181,8 @@ export const Action: React.FC = () =>  {
           </div>
         </div>
       </div>
-    );
+    ) : (<div className="actions"> </div>)
+
+  )
+
 }

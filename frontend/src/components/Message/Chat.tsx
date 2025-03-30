@@ -14,7 +14,7 @@ export const Chat: React.FC<{chat: chat}> = ({chat}) =>  {
                 dispatch(setActiveChat(chat));
                 
             }}>
-                <div className={active.id == chat.id ? "active": ""} >
+                <div className={active?.id == chat.id ? "active": ""} >
                     <div className="group-item__avatar">
                         <img src={chat.avatar_url} alt="" />
                     </div>
@@ -24,6 +24,8 @@ export const Chat: React.FC<{chat: chat}> = ({chat}) =>  {
                     
                 </div>
             </li>
+        
+            
         </> 
     );
 }

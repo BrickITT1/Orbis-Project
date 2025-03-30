@@ -228,6 +228,36 @@
         }
     }
 
+    .voice-chat {
+        border-top: 1px solid rgba(141, 149, 165, 0.522);
+        background-color: rgba(51, 57, 68, 0.5215686275);
+        .users {
+            display: flex;
+            gap: 1em;
+            padding: 1em;
+            justify-content: center;
+            flex-wrap: wrap;
+            min-height: 200px;
+            li {
+                .voice-name  {
+                    text-align: center;
+                }
+            }
+        }
+        .voice-buttons {
+            gap: 1em;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 1em;
+
+            button {
+                cursor: pointer;
+                background-color: transparent
+            }
+        }
+    }
+    
 }
 
 .app-menu {
@@ -367,3 +397,4 @@
         text-overflow: ellipsis;
     }
 }
+

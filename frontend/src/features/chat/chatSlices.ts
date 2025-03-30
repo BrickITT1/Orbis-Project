@@ -16,35 +16,11 @@ export interface chat {
 }
 
 interface chatState {
-  chat: chat[];
-  activeChat: chat;
+  chat?: chat[];
+  activeChat?: chat;
 }
 
 const initialState: chatState = {
-  chat: [
-    {
-      id: 1,
-      name: "My chat",
-      type: "ls",
-      lastmessage: "hi",
-      created_at: '',
-      updated_at: '',
-      avatar_url: '/img/icon.png',
-      creator: 0,
-      own: 5,
-    }
-  ],
-  activeChat: {
-    id: 1,
-    name: "My chat",
-    type: "ls",
-    lastmessage: "hi",
-    created_at: '',
-    updated_at: '',
-    avatar_url: '/img/icon.png',
-    creator: 0,
-    own: 5,
-  }
 };
 
 const chatSlice = createSlice({

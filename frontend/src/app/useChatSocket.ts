@@ -1,40 +1,32 @@
-import { useEffect, useRef } from 'react';
+import { useEffect,  useState } from 'react';
 import { useRefreshTokenQueryQuery } from '../services/auth';
 import { io, Socket } from 'socket.io-client';
 
-const useChatSocket = (): Socket | null => {
+const useChatSocket = (start: boolean, socketType: 'CHAT_SOCKET_URL' | 'VOICE_CHAT_SOCKET_URL'): Socket | null => {
+  const [socket, setSocket] = useState<Socket | null>(null); // ← Используем состояние
   const { data: token, isSuccess } = useRefreshTokenQueryQuery({});
-  const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
-    if (isSuccess && token) {
-      // Создаем WebSocket-подключение с токеном
-      
-      socketRef.current = io('https://26.234.138.233:4000', {
-        auth: {
-          token: token.access_token, // Передаем токен в заголовке
-        },
-      });
+    if (isSuccess && token && start) {
+      const newSocket = io(
+        socketType === 'CHAT_SOCKET_URL' 
+          ? 'https://26.234.138.233:4000' 
+          : 'https://26.234.138.233:3000',
+        { auth: { token: token.access_token } }
+      );
 
-      // Обработка событий WebSocket
-      socketRef.current.on('connect', () => {
-        console.log('Connected to WebSocket');
-      });
+      setSocket(newSocket); // ← Обновляем состояние
 
-      socketRef.current.on('disconnect', () => {
-        console.log('Disconnected from WebSocket');
-      });
+      newSocket.on('connect', () => console.log('Connected'));
+      newSocket.on('disconnect', () => console.log('Disconnected'));
 
-      // Очистка при размонтировании
       return () => {
-        if (socketRef.current) {
-          socketRef.current.disconnect();
-        }
+        newSocket.disconnect();
       };
     }
-  }, [isSuccess, token]);
+  }, [isSuccess, token, start, socketType]);
 
-  return socketRef.current;
+  return socket;
 };
 
 export default useChatSocket;

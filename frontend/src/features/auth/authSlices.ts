@@ -9,7 +9,7 @@ interface UserData {
   displayName: string;
   username: string;
   birthDate: string;
-  token: string;
+  access_token: string;
 }
 
 interface AuthState {

@@ -11,7 +11,6 @@ export const MessageMenu: React.FC = () =>  {
     const chats = useAppSelector(state => state.chat.chat)
     const activeChat = useAppSelector(state => state.chat.activeChat);
     const {data, refetch} = useGetChatsQuery({});
-    
     return ( 
         <>
             <MessageMenuLayout>

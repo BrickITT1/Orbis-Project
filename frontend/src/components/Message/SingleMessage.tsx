@@ -11,13 +11,13 @@ export const SingleMessage: React.FC<SingleMessageProps> = ({ message }) => {
       <div className="avatar">
         <img 
           src="/img/icon.png" 
-          alt={`Аватар ${message.user_id}`} 
+          alt={`Аватар ${message.user_name}`} 
           width={50}
           height={50}
         />
       </div>
       <div className="content">
-        <h3 className="username">{message.user_id} <span className='message-time'>{message.timestamp.slice(0,5)}</span></h3>
+        <h3 className="username">{message.user_name} <span className='message-time'>{message.timestamp.slice(0,5)}</span></h3>
         <div className="text">{message.content}</div>
       </div>
     </div>

@@ -5,6 +5,7 @@ import path from 'path';
 
 export default defineConfig({
   plugins: [react()],
+  
   server: {
     https: {
       key: fs.readFileSync(path.resolve(__dirname, 'ssl/selfsigned_key.pem')),
@@ -31,4 +32,6 @@ export default defineConfig({
       scss: {},
     },
   },
+  define: {
+  }
 });

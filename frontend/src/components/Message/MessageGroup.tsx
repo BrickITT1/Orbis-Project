@@ -11,12 +11,12 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({ group }) => {
         <div className="avatar">
           <img 
             src="/img/icon.png" 
-            alt={`Аватар пользователя ${group.user_id}`} 
+            alt={`Аватар пользователя ${group.user_name}`} 
             width={50}
             height={50}
           />
         </div>
-        <h3 className="username">{group.user_id} <span className='message-time'>{group.minute}</span></h3> 
+        <h3 className="username">{group.user_name} <span className='message-time'>{group.minute}</span></h3> 
        
       
       <div className="mess">

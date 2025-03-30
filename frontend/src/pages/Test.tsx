@@ -615,33 +615,6 @@ export const Test: React.FC = () => {
     setPeers(new Set());
   };
 
-  const handlePeerDisconnected = (peerId: string) => {
-    console.log('Peer disconnected:', peerId);
-    
-    // Удаляем из списка пиров
-    setPeers(prev => {
-      const newPeers = new Set(prev);
-      newPeers.delete(peerId);
-      return newPeers;
-    });
-  
-    // Удаляем все видео элементы этого пира
-    const videoElements = document.querySelectorAll(`[id^="video-${peerId}"]`);
-    videoElements.forEach(el => el.remove());
-  
-    // Удаляем все аудио элементы этого пира
-    const audioElements = document.querySelectorAll(`[id^="audio-${peerId}"]`);
-    audioElements.forEach((el: any) => {
-      console.log(`Removing audio element ${el.id}`);
-      // Остановка трека перед удалением
-      const stream = el?.srcObject as MediaStream;
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-      }
-      el.remove();
-    });
-  };
-
   if (!joined) {
     return (
       <div style={{ padding: '20px', maxWidth: '500px', margin: '0 auto' }}>
