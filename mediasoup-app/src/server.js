@@ -5,28 +5,38 @@ const cors = require('cors');
 const socketIo = require('socket.io');
 const { createWorker } = require('./mediasoup-config');
 
+// Конфигурация SSL для HTTPS
 const options = {
   key: fs.readFileSync('./src/selfsigned_key.pem'),
   cert: fs.readFileSync('./src/selfsigned.pem'),
 };
 
+// Инициализация базовых компонентов сервера
 const app = express();
 const server = https.createServer(options, app);
+
+// Настройка Socket.IO с CORS политикой
 const io = socketIo(server, {
   cors: {
     origin: "https://26.234.138.233:5173",
   },
 });
 
+// Middleware для статических файлов и CORS
 app.use(express.static('public'));
 app.use(cors({
     origin: "https://26.234.138.233:5173",
     credentials: true,
 }));
 
-// Инициализация MediaSoup
+// Глобальная переменная для Mediasoup роутера
 let mediasoupRouter;
 
+/**
+ * Асинхронная инициализация Mediasoup Worker и Router
+ * - Создает отдельный процесс для обработки медиа
+ * - Настраивает кодеки и сетевые параметры
+ */
 (async () => {
   try {
     const { router } = await createWorker();
@@ -38,22 +48,33 @@ let mediasoupRouter;
   }
 })();
 
+// Хранилище комнат: ключ - ID комнаты, значение - объект комнаты
 const rooms = new Map();
 
 const PEER_CLEANUP_TIMEOUT = 500;
 
+/**
+ * Создание WebRTC транспорта
+ * @param {string} type - Тип транспорта (send/recv)
+ * @returns {Promise<WebRtcTransport>} Объект транспорта
+ * 
+ * Принцип работы:
+ * 1. Указываем сетевые интерфейсы для ICE
+ * 2. Настраиваем предпочтения протоколов
+ * 3. Добавляем метаданные для идентификации
+ */
 const createWebRtcTransport = async (type = 'send') => {
   const transport = await mediasoupRouter.createWebRtcTransport({
     listenIps: [{ 
-      ip: '0.0.0.0', // Используем 0.0.0.0 для всех интерфейсов
-      announcedIp: '26.234.138.233' // Ваш внешний IP
+      ip: '0.0.0.0', // Слушаем все интерфейсы
+      announcedIp: '26.234.138.233' // Публичный IP для ICE
     }],
-    enableUdp: true,
-    enableTcp: true,
-    preferUdp: true
+    enableUdp: true,  // Разрешить UDP-транспорт
+    enableTcp: true,   // Разрешить TCP как fallback
+    preferUdp: true    // Предпочитать UDP
   });
 
-  transport.appData = { type }; // Сохраняем тип транспорта
+  transport.appData = { type }; // Добавляем метаданные
   return transport;
 };
 
@@ -66,15 +87,25 @@ const safeClose = (obj) => {
   }
 };
 
+// Обработка подключений через Socket.IO
 io.on('connection', (socket) => {
   console.log('New client connected:', socket.id);
 
-  let roomId;
-  const peerTransports = new Map();
-  const peerProducers = new Map();
-  const peerConsumers = new Map();
+  // Состояние подключения клиента
+  let roomId;               // Текущая комната клиента
+  const peerTransports = new Map(); // Все транспорты клиента
+  const peerProducers = new Map();  // Продюсеры клиента
+  const peerConsumers = new Map();  // Консьюмеры клиента
 
-  // Функция обновления списка участников
+  /**
+   * Обновление списка участников комнаты
+   * @param {string} roomId - ID комнаты
+   * 
+   * Алгоритм:
+   * 1. Получаем текущее состояние комнаты
+   * 2. Формируем список пиров
+   * 3. Рассылаем обновление всем участникам
+   */
   const updateRoomPeers = (roomId) => {
     const room = rooms.get(roomId);
     if (!room) return;
@@ -85,10 +116,21 @@ io.on('connection', (socket) => {
       audioOnly: peer.audioOnly
     }));
 
-    // Отправляем обновленный список всем участникам комнаты
     io.to(roomId).emit('roomPeers', { peers });
   };
 
+  /**
+   * Обработчик входа в комнату
+   * Параметры:
+   * - username: Имя пользователя
+   * - rId: ID комнаты
+   * - audioOnly: Режим только аудио
+   * 
+   * Логика работы:
+   * 1. Регистрация в комнате/создание комнаты
+   * 2. Инициализация состояния пира
+   * 3. Уведомление других участников
+   */
   socket.on('joinRoom', async ({ username, roomId: rId, audioOnly }, callback) => {
     try {
       // Очистка предыдущего состояния
@@ -101,6 +143,8 @@ io.on('connection', (socket) => {
   
       roomId = rId;
       socket.join(roomId);
+
+      // Создание новой комнаты при необходимости
   
       if (!rooms.has(roomId)) {
         rooms.set(roomId, {
@@ -110,49 +154,25 @@ io.on('connection', (socket) => {
       }
   
       const room = rooms.get(roomId);
-      if (room.peers.has(socket.id)) {
-        const oldPeer = room.peers.get(socket.id);
-        oldPeer.transports.forEach(t => t.close());
-        room.peers.delete(socket.id);
-      }
-      console.log(room)
-      const newPeer = {
+      room.peers.set(socket.id, {
         socket,
         username,
         audioOnly,
         transports: new Map(),
         producers: new Map(),
         consumers: new Map()
-      };
-      room.peers.set(socket.id, newPeer);
-  
-      // Отправляем новому пользователю всех существующих участников
-      const existingProducers = [];
-      room.peers.forEach(peer => {
-        if (peer.socket.id !== socket.id) {
-          peer.producers.forEach(producer => {
-            existingProducers.push({
-              peerId: peer.socket.id,
-              producerId: producer.id,
-              kind: producer.kind
-            });
-          });
-        }
       });
-  
-      // Отправляем новому пользователю список существующих продюсеров
-      socket.emit('existingProducers', { producers: existingProducers });
-  
-      // Уведомляем всех о новом пользователе
-      io.to(roomId).emit('newPeer', {
-        peerId: socket.id,
+
+      // Уведомляем других участников о новом подключении
+      socket.to(roomId).emit('newPeer', { 
+        peerId: socket.id, 
         username,
         audioOnly
       });
-  
-      // Обновляем список участников у всех
+
+      // Отправляем текущий список участников
       updateRoomPeers(roomId);
-  
+
       callback({ success: true });
     } catch (error) {
       callback({ error: error.message });
@@ -172,6 +192,13 @@ io.on('connection', (socket) => {
   });
   
 
+  /**
+   * Получение списка участников комнаты
+   * Возвращает:
+   * - ID пользователя
+   * - Имя
+   * - Наличие аудио/видео потоков
+   */
   socket.on('getRoomPeers', (callback) => {
     try {
       if (!roomId) return callback({ peers: [] });
@@ -183,7 +210,6 @@ io.on('connection', (socket) => {
         id: p.socket.id,
         username: p.username,
         audioOnly: p.audioOnly,
-        // Добавляем информацию о продюсерах
         hasAudio: Array.from(p.producers.values()).some(prod => prod.kind === 'audio'),
         hasVideo: Array.from(p.producers.values()).some(prod => prod.kind === 'video')
       }));
@@ -195,6 +221,15 @@ io.on('connection', (socket) => {
     }
   });
 
+  /**
+   * Создание WebRTC транспорта
+   * Параметры:
+   * - sender: Флаг отправителя
+   * 
+   * Особенности:
+   * - Для отправителя создается send транспорт
+   * - Для получателя - recv транспорт
+   */
   socket.on('createWebRtcTransport', async ({ sender }, callback) => {
     try {
       if (!roomId) throw new Error('No room assigned');
@@ -215,8 +250,6 @@ io.on('connection', (socket) => {
     }
   
       const transport = await createWebRtcTransport();
-  
-      // Критически важное изменение - сохраняем тип транспорта
       transport.appData = { 
         type: sender ? 'send' : 'recv',
         peerId: socket.id,
@@ -238,6 +271,16 @@ io.on('connection', (socket) => {
     }
   });
 
+  /**
+   * Подключение транспорта
+   * Параметры:
+   * - transportId: ID транспорта
+   * - dtlsParameters: DTLS параметры
+   * 
+   * Процесс:
+   * 1. Поиск транспорта по ID
+   * 2. Установка DTLS соединения
+   */
   socket.on('connectTransport', async ({ transportId, dtlsParameters }, callback) => {
     try {
       console.log(`Connecting transport ${transportId}`);
@@ -250,50 +293,45 @@ io.on('connection', (socket) => {
   
       const transport = peer.transports.get(transportId);
       if (!transport) {
-        throw new Error(`Transport ${transportId} not found. Peer transports: ${
-          Array.from(peer.transports.keys()).join(', ')
-        }`);
+        throw new Error(`Transport ${transportId} not found`);
       }
   
       await transport.connect({ dtlsParameters });
       callback({ success: true });
     } catch (error) {
       console.error(`Connect transport error:`, error);
-      callback({ 
-        error: error.message,
-        details: {
-          transportId,
-          roomId,
-          peerId: socket.id
-        }
-      });
+      callback({ error: error.message });
     }
   });
 
+  /**
+   * Создание продюсера (медиа источника)
+   * Параметры:
+   * - kind: Тип медиа (audio/video)
+   * - rtpParameters: RTP параметры
+   */
   socket.on('produce', async ({ kind, rtpParameters }, callback) => {
-  try {
-    const room = rooms.get(roomId);
-    const peer = room?.peers.get(socket.id);
-    if (!peer) throw new Error('Peer not found');
+    try {
+      const room = rooms.get(roomId);
+      const peer = room?.peers.get(socket.id);
+      if (!peer) throw new Error('Peer not found');
 
-    const sendTransport = Array.from(peer.transports.values())
-      .find(t => t.appData.type === 'send');
+      // Поиск send транспорта
+      const sendTransport = Array.from(peer.transports.values())
+        .find(t => t.appData.type === 'send');
     
-    if (!sendTransport) throw new Error('Send transport not initialized');
+      if (!sendTransport) throw new Error('Send transport not initialized');
 
-    console.log(`Creating ${kind} producer with params:`, {
-      codecs: rtpParameters.codecs,
-      headerExtensions: rtpParameters.headerExtensions
-    });
+      // Создание продюсера
+      const producer = await sendTransport.produce({
+        kind,
+        rtpParameters,
+        appData: { peerId: socket.id, mediaType: kind }
+      });
 
-    const producer = await sendTransport.produce({
-      kind,
-      rtpParameters,
-      appData: { peerId: socket.id, mediaType: kind }
-    });
-
-    room.producers.set(producer.id, producer);
-    peer.producers.set(producer.id, producer);
+      // Сохранение продюсера
+      room.producers.set(producer.id, producer);
+      peer.producers.set(producer.id, producer);
 
     callback({ id: producer.id });
     socket.to(roomId).emit('newProducer', { 
@@ -307,7 +345,10 @@ io.on('connection', (socket) => {
   }
 });
 
-
+  /**
+   * Получение продюсеров конкретного пира
+   * Используется для инициализации потребления
+   */
   socket.on('getPeerProducers', ({ peerId }, callback) => {
     try {
       const room = rooms.get(roomId);
@@ -329,67 +370,52 @@ io.on('connection', (socket) => {
     }
   });
 
+  /**
+   * Создание консьюмера (получателя медиа)
+   * Параметры:
+   * - producerId: ID продюсера
+   * - rtpCapabilities: Возможности клиента
+   * 
+   * Процесс:
+   * 1. Проверка совместимости кодеков
+   * 2. Создание recv транспорта при необходимости
+   * 3. Создание консьюмера
+   */
   socket.on('consume', async ({ producerId, rtpCapabilities }, callback) => {
     try {
       const room = rooms.get(roomId);
       if (!room) throw new Error('Room not found');
 
       const producer = room.producers.get(producerId);
-    if (!producer) throw new Error('Producer not found');
+      if (!producer) throw new Error('Producer not found');
 
-    // Особое внимание на проверку кодеков для аудио
-    if (producer.kind === 'audio' && !mediasoupRouter.canConsume({
-      producerId: producer.id,
-      rtpCapabilities
-    })) {
-      console.warn('Несовместимые аудио-кодеки');
-      throw new Error('Incompatible audio codecs');
-    }
-
-      if (!mediasoupRouter.canConsume({
-        producerId: producer.id,
-        rtpCapabilities
-      })) {
-        throw new Error('Cannot consume - codecs not compatible');
+      // Проверка совместимости кодеков
+      if (!mediasoupRouter.canConsume({ producerId, rtpCapabilities })) {
+        throw new Error('Incompatible codecs');
       }
-
-      // В обработчике 'consume'
-    if (producer.kind === 'video' && !mediasoupRouter.canConsume({
-      producerId: producer.id,
-      rtpCapabilities
-    })) {
-      console.warn('Несовместимые видео-кодеки');
-      throw new Error('Incompatible video codecs');
-    }
 
       const peer = room.peers.get(socket.id);
       if (!peer) throw new Error('Peer not found');
 
+      // Поиск или создание recv транспорта
       let recvTransport = Array.from(peer.transports.values())
         .find(t => t.appData.type === 'recv');
       
       if (!recvTransport) {
-        console.log(`Creating new recvTransport for ${socket.id}`);
         recvTransport = await createWebRtcTransport('recv');
         peer.transports.set(recvTransport.id, recvTransport);
-        peerTransports.set(recvTransport.id, recvTransport);
       }
 
+      // Создание консьюмера
       const consumer = await recvTransport.consume({
         producerId: producer.id,
         rtpCapabilities,
-        paused: true, // Начинаем с паузы
+        paused: true, // Начальное состояние паузы
         appData: { peerId: socket.id }
       });
 
       peer.consumers.set(consumer.id, consumer);
-      peerConsumers.set(consumer.id, consumer);
       
-      console.log(`Consumer created for producer ${producer.id}`, {
-        kind: producer.kind,
-        consumerId: consumer.id
-      });
-
       callback({
         id: consumer.id,
         producerId: producer.id,
@@ -404,10 +430,12 @@ io.on('connection', (socket) => {
     }
   });
 
+  /**
+   * Возобновление работы консьюмера
+   * Необходимо после успешного создания
+   */
   socket.on('resumeConsumer', async ({ consumerId }, callback) => {
     try {
-      console.log(`Resuming consumer ${consumerId}`);
-      
       const room = rooms.get(roomId);
       if (!room) throw new Error('Room not found');
 
@@ -420,14 +448,16 @@ io.on('connection', (socket) => {
       await consumer.resume();
       
       callback({ success: true });
-      console.log(`Consumer ${consumerId} resumed successfully`);
-
     } catch (error) {
-      console.error(`Resume consumer ${consumerId} error:`, error);
+      console.error(`Resume consumer error:`, error);
       callback({ error: error.message });
     }
   });
 
+  /**
+   * Получение RTP возможностей роутера
+   * Используется клиентом для инициализации Device
+   */
   socket.on('getRouterRtpCapabilities', (callback) => {
     try {
       if (!mediasoupRouter) throw new Error('Router not initialized');
@@ -437,6 +467,10 @@ io.on('connection', (socket) => {
     }
   });
 
+  /**
+   * Получение информации о транспортах
+   * Для отладки и мониторинга
+   */
   socket.on('getTransports', (callback) => {
     try {
       const room = rooms.get(roomId);
@@ -457,54 +491,47 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Модифицируем обработчик leaveRoom
-  socket.on('leaveRoom', async (callback) => {
-    try {
-      if (!roomId) return callback?.({ success: true });
+  socket.on('leaveRoom', () => {
+    if (!roomId) return;
 
-      const room = rooms.get(roomId);
-      console.log(room)
-      if (room?.peers.has(socket.id)) {
-        const peer = room.peers.get(socket.id);
-        
-        // Закрытие всех ресурсов
-        peer.consumers.forEach(c => c.close());
-        peer.producers.forEach(p => {
-          p.close();
-          room.producers.delete(p.id);
+    console.log(`Client ${socket.id} leaving room ${roomId}`);
+    
+    const room = rooms.get(roomId);
+    if (room) {
+      // Удаляем все продюсеры этого пира
+      const peer = room.peers.get(socket.id);
+      if (peer) {
+        peer.producers.forEach(producer => {
+          room.producers.delete(producer.id);
+          producer.close();
         });
-        peer.transports.forEach(t => t.close());
-        
-        room.peers.delete(socket.id);
-        socket.to(roomId).emit('peerDisconnected', socket.id);
-        updateRoomPeers(roomId);
+
+        // Закрываем все транспорты и потребители
+        peer.transports.forEach(transport => transport.close());
+        peer.consumers.forEach(consumer => consumer.close());
       }
 
-      callback?.({ success: true });
-    } catch (error) {
-      console.error(`Leave error:`, error);
-      callback?.({ error: error.message });
+      // Удаляем пира из комнаты
+      room.peers.delete(socket.id);
+      
+      // Уведомляем остальных участников
+      socket.to(roomId).emit('peerDisconnected', socket.id);
+      updateRoomPeers(roomId);
     }
+
+    // Очищаем локальные карты
+    peerTransports.forEach(transport => transport.close());
+    peerConsumers.forEach(consumer => consumer.close());
+    peerProducers.forEach(producer => producer.close());
   });
 
-// Модифицируем обработчик disconnect
-socket.on('disconnect', async () => {
-  console.log(`[${socket.id}] Socket disconnected`);
-  try {
-    if (roomId) {
-      await new Promise(resolve => {
-        socket.emit('leaveRoom', resolve);
-        // Таймаут на случай если ответ не придет
-        setTimeout(resolve, 1000);
-      });
-    }
-  } catch (error) {
-    console.error(`[${socket.id}] Disconnect handler error:`, error);
-  }
+  socket.on('disconnect', () => {
+    console.log(`Client disconnected: ${socket.id}`);
+    socket.emit('leaveRoom');
+  });
 });
 
-});
-
+// Запуск сервера
 server.listen(3000, () => {
   console.log('Server running on port 3000');
 });
