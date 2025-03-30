@@ -40,6 +40,8 @@ let mediasoupRouter;
 
 const rooms = new Map();
 
+const PEER_CLEANUP_TIMEOUT = 500;
+
 const createWebRtcTransport = async (type = 'send') => {
   const transport = await mediasoupRouter.createWebRtcTransport({
     listenIps: [{ 
@@ -53,6 +55,15 @@ const createWebRtcTransport = async (type = 'send') => {
 
   transport.appData = { type }; // Сохраняем тип транспорта
   return transport;
+};
+
+const safeClose = (obj) => {
+  if (!obj || typeof obj.close !== 'function' || obj.closed) return;
+  try {
+    obj.close();
+  } catch (e) {
+    console.error('Error closing:', e);
+  }
 };
 
 io.on('connection', (socket) => {
@@ -80,42 +91,86 @@ io.on('connection', (socket) => {
 
   socket.on('joinRoom', async ({ username, roomId: rId, audioOnly }, callback) => {
     try {
+      // Очистка предыдущего состояния
+      if (roomId) {
+        await new Promise(resolve => {
+          socket.emit('leaveRoom', resolve);
+          setTimeout(resolve, PEER_CLEANUP_TIMEOUT);
+        });
+      }
+  
       roomId = rId;
       socket.join(roomId);
-
+  
       if (!rooms.has(roomId)) {
         rooms.set(roomId, {
           peers: new Map(),
           producers: new Map()
         });
       }
-
+  
       const room = rooms.get(roomId);
-      room.peers.set(socket.id, {
+      if (room.peers.has(socket.id)) {
+        const oldPeer = room.peers.get(socket.id);
+        oldPeer.transports.forEach(t => t.close());
+        room.peers.delete(socket.id);
+      }
+      console.log(room)
+      const newPeer = {
         socket,
         username,
         audioOnly,
         transports: new Map(),
         producers: new Map(),
         consumers: new Map()
+      };
+      room.peers.set(socket.id, newPeer);
+  
+      // Отправляем новому пользователю всех существующих участников
+      const existingProducers = [];
+      room.peers.forEach(peer => {
+        if (peer.socket.id !== socket.id) {
+          peer.producers.forEach(producer => {
+            existingProducers.push({
+              peerId: peer.socket.id,
+              producerId: producer.id,
+              kind: producer.kind
+            });
+          });
+        }
       });
-
-      // Уведомляем других участников о новом подключении
-      socket.to(roomId).emit('newPeer', { 
-        peerId: socket.id, 
+  
+      // Отправляем новому пользователю список существующих продюсеров
+      socket.emit('existingProducers', { producers: existingProducers });
+  
+      // Уведомляем всех о новом пользователе
+      io.to(roomId).emit('newPeer', {
+        peerId: socket.id,
         username,
-        audioOnly 
+        audioOnly
       });
-
-      // Отправляем текущий список участников
+  
+      // Обновляем список участников у всех
       updateRoomPeers(roomId);
-
+  
       callback({ success: true });
     } catch (error) {
-      console.error('Error joining room:', error);
       callback({ error: error.message });
     }
   });
+
+  socket.on('newProducer', ({ peerId, producerId, kind }) => {
+    const room = rooms.get(roomId);
+    if (!room) return;
+  
+    // Уведомляем всех участников о новом продюсере
+    io.to(roomId).emit('newProducer', {
+      peerId,
+      producerId,
+      kind
+    });
+  });
+  
 
   socket.on('getRoomPeers', (callback) => {
     try {
@@ -149,6 +204,15 @@ io.on('connection', (socket) => {
   
       const peer = room.peers.get(socket.id);
       if (!peer) throw new Error('Peer not found');
+
+      const transportType = sender ? 'send' : 'recv';
+    const oldTransport = Array.from(peer.transports.values())
+      .find(t => t.appData.type === transportType);
+    
+    if (oldTransport) {
+      oldTransport.close().catch(e => console.error(e));
+      peer.transports.delete(oldTransport.id);
+    }
   
       const transport = await createWebRtcTransport();
   
@@ -242,6 +306,7 @@ io.on('connection', (socket) => {
     callback({ error: error.message });
   }
 });
+
 
   socket.on('getPeerProducers', ({ peerId }, callback) => {
     try {
@@ -392,44 +457,52 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('leaveRoom', () => {
-    if (!roomId) return;
+  // Модифицируем обработчик leaveRoom
+  socket.on('leaveRoom', async (callback) => {
+    try {
+      if (!roomId) return callback?.({ success: true });
 
-    console.log(`Client ${socket.id} leaving room ${roomId}`);
-    
-    const room = rooms.get(roomId);
-    if (room) {
-      // Удаляем все продюсеры этого пира
-      const peer = room.peers.get(socket.id);
-      if (peer) {
-        peer.producers.forEach(producer => {
-          room.producers.delete(producer.id);
-          producer.close();
+      const room = rooms.get(roomId);
+      console.log(room)
+      if (room?.peers.has(socket.id)) {
+        const peer = room.peers.get(socket.id);
+        
+        // Закрытие всех ресурсов
+        peer.consumers.forEach(c => c.close());
+        peer.producers.forEach(p => {
+          p.close();
+          room.producers.delete(p.id);
         });
-
-        // Закрываем все транспорты и потребители
-        peer.transports.forEach(transport => transport.close());
-        peer.consumers.forEach(consumer => consumer.close());
+        peer.transports.forEach(t => t.close());
+        
+        room.peers.delete(socket.id);
+        socket.to(roomId).emit('peerDisconnected', socket.id);
+        updateRoomPeers(roomId);
       }
 
-      // Удаляем пира из комнаты
-      room.peers.delete(socket.id);
-      
-      // Уведомляем остальных участников
-      socket.to(roomId).emit('peerDisconnected', socket.id);
-      updateRoomPeers(roomId);
+      callback?.({ success: true });
+    } catch (error) {
+      console.error(`Leave error:`, error);
+      callback?.({ error: error.message });
     }
-
-    // Очищаем локальные карты
-    peerTransports.forEach(transport => transport.close());
-    peerConsumers.forEach(consumer => consumer.close());
-    peerProducers.forEach(producer => producer.close());
   });
 
-  socket.on('disconnect', () => {
-    console.log(`Client disconnected: ${socket.id}`);
-    socket.emit('leaveRoom');
-  });
+// Модифицируем обработчик disconnect
+socket.on('disconnect', async () => {
+  console.log(`[${socket.id}] Socket disconnected`);
+  try {
+    if (roomId) {
+      await new Promise(resolve => {
+        socket.emit('leaveRoom', resolve);
+        // Таймаут на случай если ответ не придет
+        setTimeout(resolve, 1000);
+      });
+    }
+  } catch (error) {
+    console.error(`[${socket.id}] Disconnect handler error:`, error);
+  }
+});
+
 });
 
 server.listen(3000, () => {
