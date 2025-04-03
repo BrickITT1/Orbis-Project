@@ -67,6 +67,11 @@
         .voice {
             cursor: pointer;
             user-select: none;
+            background-color: transparent;
+        }
+
+        .voice:disabled svg path{
+            stroke: #b5b5b6;
         }
 
         div svg {
@@ -79,7 +84,7 @@
             transition: all .3s ease-in-out;
         }
 
-        .voice:hover svg  path{
+        .voice:hover svg path{
             stroke: #848891;
         }
     }

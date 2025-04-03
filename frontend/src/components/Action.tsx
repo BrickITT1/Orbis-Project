@@ -1,23 +1,43 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useAppSelector } from '../app/hooks';
 import { SingleMessage } from './Message/SingleMessage';
 import { MessageGroup } from './Message/MessageGroup';
 import { useChatMessages } from '../app/useChatMessages';
 import { useVoiceChat } from '../app/useVoiceChat';
+import AudioManager from '../app/AudioManager';
 
+interface ErrorBoundaryProps {
+  children: React.ReactNode; // Явно указываем тип children
+}
 
-function scrollToBottom() {
-  const messagesDiv = document.querySelector('.messages');
-  if (messagesDiv) {
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+interface ErrorBoundaryState {
+  hasError: boolean;
+}
+
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  state: ErrorBoundaryState = { hasError: false };
+
+  static getDerivedStateFromError(): ErrorBoundaryState {
+    return { hasError: true };
   }
-  
+
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
+    console.error("ErrorBoundary caught:", error, info);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return <div className="error-fallback">Произошла ошибка в чате</div>;
+    }
+    return this.props.children; // Теперь TypeScript знает о children
+  }
 }
 
 export const Action: React.FC = () =>  {
-
+  
     const activeChat = useAppSelector(state => state.chat.activeChat);
     const token = useAppSelector(state => state.auth.user?.access_token);
+    const voiceState = useAppSelector(state => state.voice)
     const MyUsername = useAppSelector(state => state.auth.user?.username);
     const {
       messages,
@@ -35,90 +55,138 @@ export const Action: React.FC = () =>  {
       leaveRoom,
       setEnableV,
       setDisableV,
+      audioStreams,
       isVoiceSocketConnected,
       roomPeers,
       peers
     } = useVoiceChat();
-    
-    useEffect(()=> {
-      if (activeChat && !isVoiceSocketConnected) {
-        setEnableV();
-      } else {
-        setDisableV();
-      }
-      
-    }, [activeChat])
 
-    useEffect(()=> {
-      if (activeChat && !isSocketConnected) {
-        setEnable();
-      } else {
-        setDisable();
+    // Используем ref вместо querySelector
+    const messagesDivRef = useRef<HTMLDivElement>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    const scrollToBottom = () => {
+      if (messagesDivRef.current) {
+        messagesDivRef.current.scrollTop = messagesDivRef.current.scrollHeight;
+      }
+    };
+    
+    useEffect(() => {
+      if (activeChat && !isVoiceSocketConnected) {
+        try {
+          setEnableV();
+        } catch (error) {
+          console.error('Voice chat enable error:', error);
+        }
       }
       
-    }, [activeChat])
+      return () => {
+        if (isVoiceSocketConnected) {
+          try {
+            setDisableV();
+          } catch (error) {
+            console.error('Voice chat disable error:', error);
+          }
+        }
+      };
+    }, [activeChat, isVoiceSocketConnected]);
 
     useEffect(() => {
-      const searchField: HTMLInputElement | null = document.querySelector('.chat-input input');
-      const searchButton: HTMLButtonElement | null = document.querySelector('.enter-message');
-  
-      const handleKeyPress = (e: KeyboardEvent) => {
-          if (e.key === 'Enter' && searchButton) {
-              searchButton.click();
-              scrollToBottom();
+      if (activeChat && !isSocketConnected) {
+        try {
+          setEnable();
+        } catch (error) {
+          console.error('Chat enable error:', error);
+        }
+      }
+      
+      return () => {
+        if (isSocketConnected) {
+          try {
+            setDisable();
+          } catch (error) {
+            console.error('Chat disable error:', error);
           }
+        }
+      };
+    }, [activeChat, isSocketConnected]);
+
+    useEffect(() => {
+      const handleKeyPress = (e: KeyboardEvent) => {
+        if (e.key === 'Enter' && newMessage.trim()) {
+          sendMessage();
+          scrollToBottom();
+        }
       };
   
-      if (searchField) {
-          searchField.addEventListener('keydown', handleKeyPress);
+      const inputElement = inputRef.current;
+      if (inputElement) {
+        inputElement.addEventListener('keydown', handleKeyPress);
       }
   
       return () => {
-          if (searchField) {
-              searchField.removeEventListener('keydown', handleKeyPress);
-          }
+        if (inputElement) {
+          inputElement.removeEventListener('keydown', handleKeyPress);
+        }
       };
-    }, []);
+    }, [newMessage, sendMessage]);
 
     useEffect(() => {
       scrollToBottom();
     }, [messages]);
 
-    
+    const handleSendMessage = () => {
+      if (newMessage.trim()) {
+        sendMessage();
+        scrollToBottom();
+      }
+    };
+
     return (
-      activeChat ? (
+      <ErrorBoundary>
+      {activeChat ? (
         <div className="actions">
         <div className="actions-main">
           <div className="chat-title">
             <div className="title">{activeChat?.name || 'Чат'}</div>
             <div className="buttons">
-              <div className="voice" onClick={joinRoom}>
+              <button 
+                className="voice" 
+                onClick={() => {
+                  try {
+                    joinRoom();
+                  } catch (error) {
+                    console.error('Join room error:', error);
+                  }
+                }} 
+                disabled={voiceState.joined}>
                 <svg width="31" height="30" viewBox="0 0 31 30" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M13.0425 7.79193C12.7779 6.90975 12.5916 5.99362 12.4917 5.05175C12.3935 4.126 11.5861 3.43762 10.6552 3.43762H6.33692C5.22648 3.43762 4.37105 4.39668 4.4688 5.50281C5.45342 16.6456 14.3295 25.5217 25.4723 26.5063C26.5784 26.6041 27.5375 25.7517 27.5375 24.6414V20.7917C27.5375 19.3862 26.849 18.5816 25.9234 18.4834C24.9815 18.3836 24.0654 18.1972 23.1832 17.9326C22.104 17.6089 20.9359 17.9136 20.1392 18.7102L18.2913 20.5581C14.9625 18.7566 12.2185 16.0126 10.417 12.6838L12.2649 10.8359C13.0615 10.0392 13.3662 8.871 13.0425 7.79193Z" stroke="white" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
-              </div>
+              </button>
             </div>
           </div>
-          <div className="voice-chat">
-            <ul className='users'>
-            
-              {roomPeers.map(peer => (
-                <li key={peer.id}>
-                  <div className="voice-avatar">
-                    <img 
-                      src="/img/icon.png" 
-                      alt={`Аватар пользователя ${peer?.username}`} 
-                      width={150}
-                      height={150}
-                    />
-                  </div>
-                  <div className="voice-name">
-                    {peer?.username}
-                  </div>
-                </li>
-              ))}
-            </ul>
-            <div className="voice-buttons">
+          {voiceState?.joined && voiceState?.chat === activeChat.id ? 
+            <div className="voice-chat">
+              <ul className='users'>
+              
+                {roomPeers.map(peer => (
+                  <li key={peer.id}>
+                    <div className="voice-avatar">
+                      <img 
+                        src="/img/icon.png" 
+                        alt={`Аватар пользователя ${peer?.username}`} 
+                        width={150}
+                        height={150}
+                      />
+                    </div>
+                    <div className="voice-name">
+                      {peer?.username}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              <div className="voice-buttons">
               <div className="voice-mute">
                 <button>
                   <svg width="42" height="48" viewBox="0 0 42 48" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -139,17 +207,22 @@ export const Action: React.FC = () =>  {
               </div>
             </div>
           </div>
-          <div className="messages">
+          : null}
+
+          {/* Аудио элементы */}
+          <AudioManager  audioStreams={audioStreams} />
+         
+          <div className="messages" ref={messagesDivRef}>
             
           {groupedMessages?.map((group, index) => (
             group.messages.length === 1 ? (
               <SingleMessage 
-                key={`single-${group.messages[0].id}`} 
+                key={`single-${group.messages[0].id}-${index}`} 
                 message={group.messages[0]} 
               />
             ) : (
               <MessageGroup 
-                key={`group-${group.user_id}-${group.minute}`} 
+                key={`group-${group.user_id}-${group.minute}-${index}`} 
                 group={group} 
               />
             )
@@ -158,6 +231,7 @@ export const Action: React.FC = () =>  {
           
           <div className="chat-input">
             <input 
+              ref={inputRef}
               type="text" 
               value={newMessage} 
               onChange={(e) => setNewMessage(e.target.value)}
@@ -173,7 +247,7 @@ export const Action: React.FC = () =>  {
                 <path d="M49 2.44944L49.847 1.21148L49.847 1.21148L49 2.44944ZM51.6765 3.01899C52.1904 3.66878 52.0802 4.61212 51.4304 5.12599C50.7807 5.63986 49.8373 5.52968 49.3235 4.87989L51.6765 3.01899ZM40 6.94944C38.8609 5.97347 38.8612 5.9732 38.8614 5.9729C38.8615 5.97277 38.8618 5.97244 38.862 5.97218C38.8625 5.97164 38.863 5.97101 38.8637 5.97027C38.8649 5.96879 38.8666 5.96691 38.8685 5.96462C38.8725 5.96006 38.8778 5.95389 38.8845 5.94618C38.8979 5.93077 38.9168 5.90919 38.9408 5.88192C38.989 5.82741 39.058 5.75007 39.1459 5.6538C39.3214 5.46144 39.5733 5.19238 39.8852 4.87796C40.505 4.25303 41.3797 3.4307 42.376 2.67323C43.3566 1.92771 44.5383 1.18045 45.7694 0.787473C47.0116 0.390948 48.5131 0.298775 49.847 1.21148L48.153 3.6874C47.8654 3.49062 47.431 3.4062 46.6817 3.6454C45.9213 3.88814 45.0556 4.40457 44.1917 5.06142C43.3434 5.70632 42.5761 6.42505 42.0152 6.99058C41.7367 7.2714 41.5135 7.50992 41.3616 7.67634C41.2857 7.75945 41.2279 7.8243 41.1901 7.86712C41.1712 7.88853 41.1573 7.9044 41.1487 7.91428C41.1444 7.91922 41.1414 7.92266 41.1398 7.92453C41.139 7.92547 41.1386 7.92601 41.1384 7.92616C41.1384 7.92624 41.1384 7.92621 41.1385 7.92609C41.1385 7.92602 41.1387 7.92585 41.1387 7.92582C41.1389 7.92563 41.1391 7.92541 40 6.94944ZM49.847 1.21148C50.339 1.54811 50.8102 2.0312 51.1132 2.36244C51.2759 2.54028 51.4138 2.70087 51.5115 2.81745C51.5606 2.87602 51.6001 2.92419 51.6281 2.95873C51.6422 2.97602 51.6534 2.98995 51.6615 3.00011C51.6656 3.0052 51.6689 3.00934 51.6714 3.0125C51.6727 3.01409 51.6737 3.01542 51.6746 3.0165C51.675 3.01705 51.6754 3.01752 51.6757 3.01794C51.6759 3.01815 51.676 3.01834 51.6762 3.01851C51.6762 3.0186 51.6763 3.01872 51.6764 3.01876C51.6765 3.01888 51.6765 3.01899 50.5 3.94944C49.3235 4.87989 49.3235 4.87999 49.3236 4.88009C49.3236 4.88012 49.3237 4.88021 49.3238 4.88027C49.3238 4.88038 49.3239 4.88048 49.324 4.88056C49.3241 4.88073 49.3242 4.88083 49.3242 4.88087C49.3243 4.88096 49.3242 4.88081 49.3239 4.88042C49.3233 4.87965 49.3219 4.87794 49.3198 4.87535C49.3157 4.87017 49.3087 4.86146 49.2991 4.84961C49.2798 4.82588 49.2502 4.78975 49.212 4.74424C49.1353 4.65267 49.0265 4.52597 48.8996 4.38729C48.6235 4.08547 48.3447 3.81857 48.153 3.6874L49.847 1.21148Z" fill="#1C212C"/>
               </svg>
             </button>
-            <button onClick={sendMessage} className='enter-message'>
+            <button onClick={handleSendMessage} className='enter-message'>
               <svg width="55" height="33" viewBox="0 0 52 40" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M2.9408 2.14745L34.6459 18L2.9407 33.8526C2.50493 34.0705 2.04665 33.6 2.27591 33.1701L9.48824 19.6468C10.0373 18.6174 10.0372 17.3821 9.48823 16.3527L2.27601 2.82996C2.04674 2.40007 2.50504 1.92957 2.9408 2.14745Z" stroke="#1C212C" strokeWidth="3"/>
               </svg>
@@ -182,7 +256,7 @@ export const Action: React.FC = () =>  {
         </div>
       </div>
     ) : (<div className="actions"> </div>)
-
+  }</ErrorBoundary>
   )
 
 }

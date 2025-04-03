@@ -6,7 +6,8 @@ import type {
   Consumer,
   Producer
 } from 'mediasoup-client/lib/types';
-import { useAppSelector } from './hooks';
+import { useAppDispatch, useAppSelector } from './hooks';
+import { addStream, setChat, setJoin } from '../features/voice/voiceSlices';
 
 // Добавьте эти интерфейсы сразу после импортов
 interface PeerInfo {
@@ -35,10 +36,12 @@ export const useVoiceChat = () => {
     const [start, setStartS] = useState(false);
     const [isVoiceSocketConnected, setIsVoiceSocketConnected] = useState(false);
     const socket = useChatSocket(start, 'VOICE_CHAT_SOCKET_URL');
+    const dispatch = useAppDispatch();
+    const voiceStates = useAppSelector(state => state.voice);
+    const [audioStreams, setAudioStreams] = useState<{[key: string]: MediaStream}>({});
 
     const username = useAppSelector(state => state.auth.user?.username);
     const [audioOnly, setAudioOnly] = useState<boolean>(false);
-    const [joined, setJoined] = useState<boolean>(false);
     const [peers, setPeers] = useState<Set<string>>(new Set());
     
     const deviceRef = useRef<mediasoupClient.Device | null>(null);
@@ -117,12 +120,13 @@ export const useVoiceChat = () => {
     
       const handlePeerDisconnected = (peerId: string) => {
         console.log('Peer disconnected:', peerId);
-  setPeers(prev => {
-    const newPeers = new Set(prev);
-    newPeers.delete(peerId);
-    return newPeers;
-  });
-  cleanupConsumer(peerId); // Используем нашу функцию очистки
+        setPeers(prev => {
+          const newPeers = new Set(prev);
+          newPeers.delete(peerId);
+          return newPeers;
+        });
+        setRoomPeers(prev => prev.filter(p => p.id !== peerId));
+        cleanupConsumer(peerId); // Используем нашу функцию очистки
       };
     
       const handleConnection = ({ peers }: any) => {
@@ -187,7 +191,7 @@ export const useVoiceChat = () => {
     }, [socket, peers]);
     
     useEffect(() => {
-        if (joined) {
+        if (voiceStates.joined) {
         const init = async () => {
             await startLocalMedia();
             // Запросить текущих участников
@@ -204,13 +208,12 @@ export const useVoiceChat = () => {
         };
         init();
         }
-    }, [joined]);
+    }, [voiceStates.joined]);
     
     useEffect(() => {
         const checkAudio = () => {
         const audioElements = document.querySelectorAll('audio');
         console.log('Текущие аудио-элементы:', audioElements.length);
-        
         audioElements.forEach(el => {
             const audio = el as HTMLAudioElement;
             console.log(`Аудио ${audio.id}:`, {
@@ -231,6 +234,7 @@ export const useVoiceChat = () => {
     
       const handleDisconnect = () => {
         console.log('Socket disconnected, cleaning up...');
+        
         leaveRoom();
       };
     
@@ -240,9 +244,13 @@ export const useVoiceChat = () => {
       };
     }, [socket]);
 
-    const leaveRoom = useCallback(async () => {
-      if (!socket) return;
-    
+    const leaveRoom = useCallback(() => {
+      
+      if (!socket) {
+        console.log('No socket');
+        return
+      };
+      
       console.log('Leaving room, cleaning resources...');
     
       // Закрываем все потребители
@@ -283,15 +291,16 @@ export const useVoiceChat = () => {
     
       // Сбрасываем устройство
       deviceRef.current = null;
-    
+      console.log(socket)
       if (socket.connected) {
-        await socket.emitWithAck('leaveRoom');
+        socket.emitWithAck('leaveRoom');
       }
-    
-      setJoined(false);
+      dispatch(setJoin(false))
+      
+      dispatch(setChat(undefined));
       setPeers(new Set());
       console.log('Room left and resources cleaned');
-    }, [socket]);
+    }, [voiceStates.joined, socket, ]);
 
     const startLocalMedia = async () => {
       if (!deviceRef.current || !sendTransportRef.current) {
@@ -405,11 +414,10 @@ export const useVoiceChat = () => {
     
   // Отправка сообщения
   const joinRoom = useCallback(async () => {
-    if (joined) {
+    if (voiceStates.joined) {
       console.log('Already joined, leaving first...');
       try {
-        await leaveRoom();
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Пауза для очистки
+        leaveRoom();  
       } catch (leaveError) {
         console.error('Error during leave:', leaveError);
       }
@@ -424,6 +432,7 @@ export const useVoiceChat = () => {
       });
       return;
     }
+
   
     try {
       // 1. Инициализация устройства
@@ -480,7 +489,8 @@ export const useVoiceChat = () => {
         console.log('Send transport state:', state);
         if (state === 'failed' || state === 'disconnected') {
           console.error('Send transport failed, attempting to reconnect...');
-          leaveRoom().then(() => joinRoom());
+          leaveRoom()
+          joinRoom();
         }
       });
   
@@ -524,7 +534,8 @@ export const useVoiceChat = () => {
         console.log('Recv transport state:', state);
         if (state === 'failed' || state === 'disconnected') {
           console.error('Recv transport failed, attempting to reconnect...');
-          leaveRoom().then(() => joinRoom());
+          leaveRoom();
+          joinRoom();
         }
       });
   
@@ -547,7 +558,8 @@ export const useVoiceChat = () => {
   
       const { peers } = await socket.emitWithAck('getRoomPeers');
       setRoomPeers(peers);
-      setJoined(true);
+      dispatch(setJoin(true));
+      dispatch(setChat(active));
       console.log('[5] Room joined successfully');
   
     } catch (error) {
@@ -557,15 +569,13 @@ export const useVoiceChat = () => {
       sendTransportRef.current?.close();
       recvTransportRef.current?.close();
       deviceRef.current = null;
-      setJoined(false);
-  
+      dispatch(setJoin(false))
+      dispatch(setChat(undefined));
       if (!(error as Error).message.includes('Media access')) {
         alert(`Join error: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     }
-  }, [socket, username, active, audioOnly, joined, leaveRoom, startLocalMedia]);
-  
-    console.log(peers)
+  }, [socket, username, active, audioOnly, voiceStates.joined, leaveRoom, startLocalMedia]);
   
     const consumeMedia = async (peerId: string) => {
       if (!recvTransportRef.current || peerId === socket?.id) return;
@@ -578,8 +588,6 @@ export const useVoiceChat = () => {
         for (const producer of producers) {
           try {
             if (producer.kind !== 'audio') continue;
-            
-            
 
             const response: ConsumerInfo = await socket!.emitWithAck('consume', {
               producerId: producer.id,
@@ -592,17 +600,11 @@ export const useVoiceChat = () => {
               kind: response.kind as 'audio' | 'video',
               rtpParameters: response.rtpParameters
             });
-    
-            const audioElement = document.createElement('audio');
-            audioElement.id = `audio-${peerId}`;
-            audioElement.autoplay = true;
-            audioElement.srcObject = new MediaStream([consumer.track]);
-            
-            const playAudio = () => audioElement.play().catch(e => console.log('Autoplay prevented:', e));
-            if (audioElement.readyState > 0) playAudio();
-            else audioElement.onloadedmetadata = playAudio;
-    
-            document.body.appendChild(audioElement);
+
+            setAudioStreams(prev => ({
+              ...prev,
+              [`${peerId}-${producer.id}`]: new MediaStream([consumer.track])
+            }));
             
             await socket!.emitWithAck('resumeConsumer', { consumerId: consumer.id });
     
@@ -618,11 +620,16 @@ export const useVoiceChat = () => {
     const cleanupConsumer = (peerId: string) => {
       // Удаляем все аудио элементы для этого пользователя
       
-      document.querySelectorAll(`audio[id^="audio-${peerId}"]`).forEach(el => {
-        const audio = el as HTMLAudioElement;
-        const stream = audio.srcObject as MediaStream;
-        if (stream) stream.getTracks().forEach(track => track.stop());
-        audio.remove();
+      document.querySelectorAll(`audio`).forEach(el => {
+        try {
+          const audio = el as HTMLAudioElement;
+          const stream = audio.srcObject as MediaStream;
+          if (stream) stream.getTracks().forEach(track => track.stop());
+          audio.remove();
+        }  catch (error) {
+          console.error(`Error cleaning audio for peer ${peerId}:`, error);
+        }
+        
       });
     
       // Закрываем всех consumers для этого пользователя
@@ -637,7 +644,7 @@ export const useVoiceChat = () => {
     };
 
     const cleanupPeerAudioElements = (peerId: string) => {
-      document.querySelectorAll<HTMLAudioElement>(`audio[data-peer="${peerId}"]`).forEach(el => {
+      document.querySelectorAll<HTMLAudioElement>(`audio`).forEach(el => {
         try {
           // Останавливаем все треки в потоке
           const stream = el.srcObject as MediaStream;
@@ -655,13 +662,12 @@ export const useVoiceChat = () => {
       });
     };
   
-    
-
   return {
     leaveRoom,
     joinRoom,
     setEnableV,
     setDisableV,
+    audioStreams,
     peers,
     roomPeers,
     isVoiceSocketConnected
