@@ -322,13 +322,25 @@ io.on('connection', (socket) => {
     
       if (!sendTransport) throw new Error('Send transport not initialized');
 
+      peer.producers.forEach(producer => {
+        if (producer.appData.mediaType === kind) {
+          producer.close();
+          peer.producers.delete(producer.id);
+        }
+      });
+
+      const existingProducer = Array.from(peer.producers.values()).find(p => p.appData.mediaType === kind);
+      if (existingProducer) {
+        return callback({ error: 'Producer already exists' });
+      }
+
       // Создание продюсера
       const producer = await sendTransport.produce({
         kind,
         rtpParameters,
         appData: { peerId: socket.id, mediaType: kind }
       });
-
+      console.log(`Producing ${kind} for peer ${socket.id}`);
       // Сохранение продюсера
       room.producers.set(producer.id, producer);
       peer.producers.set(producer.id, producer);
@@ -362,7 +374,6 @@ io.on('connection', (socket) => {
         kind: producer.kind,
         peerId: producer.appData.peerId
       }));
-
       callback({ producers });
     } catch (error) {
       console.error('Get peer producers error:', error);
@@ -525,10 +536,54 @@ io.on('connection', (socket) => {
     peerProducers.forEach(producer => producer.close());
   });
 
-  socket.on('disconnect', () => {
-    console.log(`Client disconnected: ${socket.id}`);
-    socket.emit('leaveRoom');
+  // server.ts (Node.js серверная часть)
+socket.on('disconnect', () => {
+  console.log(`Client disconnected: ${socket.id}`);
+  
+  // Получаем все комнаты, в которых был этот пир
+  const roomsToClean = Array.from(rooms.values())
+    .filter(room => room.peers.has(socket.id));
+
+  roomsToClean.forEach(room => {
+    const peer = room.peers.get(socket.id);
+    if (!peer) return;
+
+    console.log(`Cleaning up peer ${socket.id} in room ${room.id}`);
+
+    // 1. Закрываем все продюсеры пира
+    peer.producers.forEach(producer => {
+      room.producers.delete(producer.id);
+      producer.close();
+      console.log(`Closed producer ${producer.id}`);
+    });
+
+    // 2. Закрываем все потребители пира
+    peer.consumers.forEach(consumer => {
+      consumer.close();
+      console.log(`Closed consumer ${consumer.id}`);
+    });
+
+    // 3. Закрываем все транспорты пира
+    peer.transports.forEach(transport => {
+      transport.close();
+      console.log(`Closed transport ${transport.id}`);
+    });
+
+    // 4. Удаляем пира из комнаты
+    room.peers.delete(socket.id);
+
+    // 5. Уведомляем остальных участников
+    socket.to(room.id).emit('peerDisconnected', socket.id);
+    updateRoomPeers(room.id);
   });
+
+  // 6. Полная очистка локальных карт для этого сокета
+  peerTransports.delete(socket.id);
+  peerConsumers.delete(socket.id);
+  peerProducers.delete(socket.id);
+
+  console.log(`Client ${socket.id} completely cleaned up`);
+});
 });
 
 // Запуск сервера
