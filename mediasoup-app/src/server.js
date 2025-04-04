@@ -3,7 +3,12 @@ const fs = require('fs');
 const https = require('https');
 const cors = require('cors');
 const socketIo = require('socket.io');
+const jwt = require('jsonwebtoken');
+const dotenv = require('dotenv')
 const { createWorker } = require('./mediasoup-config');
+
+
+dotenv.config();
 
 // Конфигурация SSL для HTTPS
 const options = {
@@ -50,6 +55,7 @@ let mediasoupRouter;
 
 // Хранилище комнат: ключ - ID комнаты, значение - объект комнаты
 const rooms = new Map();
+const activeSocketsByToken = new Map();
 
 const PEER_CLEANUP_TIMEOUT = 500;
 
@@ -78,14 +84,45 @@ const createWebRtcTransport = async (type = 'send') => {
   return transport;
 };
 
-const safeClose = (obj) => {
-  if (!obj || typeof obj.close !== 'function' || obj.closed) return;
+const authenticateSocket = (socket, next) => {
+  const token = socket.handshake.auth.token;
+  
+  if (!token) {
+    return next(new Error('Токен отсутствует'));
+  }
+
   try {
-    obj.close();
-  } catch (e) {
-    console.error('Error closing:', e);
+    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+    socket.user = decoded;
+    socket.token = token;
+    console.log(activeSocketsByToken)
+    // Проверяем, есть ли активное подключение с этим токеном
+    if (activeSocketsByToken.has(token)) {
+      const existingSocketId = activeSocketsByToken.get(token);
+      
+      // Если это повторное подключение того же сокета - пропускаем
+      if (existingSocketId === socket.id) {
+        return next();
+      }
+      
+      // Если другой сокет активен - отключаем его
+      const existingSocket = io.sockets.sockets.get(existingSocketId);
+      if (existingSocket) {
+        console.log(`Force disconnecting previous socket for token ${token}`);
+        existingSocket.disconnect(true); // Принудительное отключение
+      }
+    }
+    
+    // Регистрируем новый сокет для этого токена
+    activeSocketsByToken.set(token, socket.id);
+    next();
+  } catch (err) {
+    console.log(err)
+    return next(new Error('Неверный токен'));
   }
 };
+
+io.use(authenticateSocket);
 
 // Обработка подключений через Socket.IO
 io.on('connection', (socket) => {
@@ -135,10 +172,12 @@ io.on('connection', (socket) => {
     try {
       // Очистка предыдущего состояния
       if (roomId) {
+        socket.isReconnecting = true;
         await new Promise(resolve => {
           socket.emit('leaveRoom', resolve);
           setTimeout(resolve, PEER_CLEANUP_TIMEOUT);
         });
+        delete socket.isReconnecting;
       }
   
       roomId = rId;
@@ -581,6 +620,15 @@ socket.on('disconnect', () => {
   peerTransports.delete(socket.id);
   peerConsumers.delete(socket.id);
   peerProducers.delete(socket.id);
+
+  if (socket.token) {
+    // Удалим токен через 30 секунд, если не было повторного входа
+    setTimeout(() => {
+      if (activeSocketsByToken.get(socket.token) === socket.id) {
+        activeSocketsByToken.delete(socket.token);
+      }
+    }, 30000);
+  }
 
   console.log(`Client ${socket.id} completely cleaned up`);
 });
