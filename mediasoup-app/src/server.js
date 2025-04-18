@@ -130,10 +130,6 @@ io.on('connection', (socket) => {
 
   // Состояние подключения клиента
   let roomId;               // Текущая комната клиента
-  const peerTransports = new Map(); // Все транспорты клиента
-  const peerProducers = new Map();  // Продюсеры клиента
-  const peerConsumers = new Map();  // Консьюмеры клиента
-
   /**
    * Обновление списка участников комнаты
    * @param {string} roomId - ID комнаты
@@ -221,6 +217,8 @@ io.on('connection', (socket) => {
   socket.on('newProducer', ({ peerId, producerId, kind }) => {
     const room = rooms.get(roomId);
     if (!room) return;
+
+    console.log(room)
   
     // Уведомляем всех участников о новом продюсере
     io.to(roomId).emit('newProducer', {
@@ -541,7 +539,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('leaveRoom', () => {
+  socket.on('leaveRoom', (callback) => {
     if (!roomId) return;
 
     console.log(`Client ${socket.id} leaving room ${roomId}`);
@@ -550,88 +548,79 @@ io.on('connection', (socket) => {
     if (room) {
       // Удаляем все продюсеры этого пира
       const peer = room.peers.get(socket.id);
-      if (peer) {
-        peer.producers.forEach(producer => {
-          room.producers.delete(producer.id);
-          producer.close();
-        });
+    if (peer) {
+      console.log(
+        `Cleaning up peer ${socket.id}:`,
+        `producers=${peer.producers.size}`,
+        `consumers=${peer.consumers.size}`,
+        `transports=${peer.transports.size}`
+      );
 
-        // Закрываем все транспорты и потребители
-        peer.transports.forEach(transport => transport.close());
-        peer.consumers.forEach(consumer => consumer.close());
-      }
+      // 1) Close and clear all producers
+      peer.producers.forEach(p => p.close());
+      peer.producers.clear();
 
-      // Удаляем пира из комнаты
+      // 2) Close and clear all consumers
+      peer.consumers.forEach(c => c.close());
+      peer.consumers.clear();
+
+      // 3) Close and clear all transports
+      peer.transports.forEach(t => t.close());
+      peer.transports.clear();
+    }
+
+      // Убираем из комнаты и шлём эвент
       room.peers.delete(socket.id);
-      
-      // Уведомляем остальных участников
       socket.to(roomId).emit('peerDisconnected', socket.id);
       updateRoomPeers(roomId);
     }
-
-    // Очищаем локальные карты
-    peerTransports.forEach(transport => transport.close());
-    peerConsumers.forEach(consumer => consumer.close());
-    peerProducers.forEach(producer => producer.close());
+    callback({ success: true });
   });
 
   // server.ts (Node.js серверная часть)
-socket.on('disconnect', () => {
-  console.log(`Client disconnected: ${socket.id}`);
+  socket.on('disconnect', () => {
+    console.log(`Client disconnected: ${socket.id}`);
   
-  // Получаем все комнаты, в которых был этот пир
-  const roomsToClean = Array.from(rooms.values())
-    .filter(room => room.peers.has(socket.id));
-
-  roomsToClean.forEach(room => {
-    const peer = room.peers.get(socket.id);
-    if (!peer) return;
-
-    console.log(`Cleaning up peer ${socket.id} in room ${room.id}`);
-
-    // 1. Закрываем все продюсеры пира
-    peer.producers.forEach(producer => {
-      room.producers.delete(producer.id);
-      producer.close();
-      console.log(`Closed producer ${producer.id}`);
+    rooms.forEach((room, rId) => {
+      if (!room.peers.has(socket.id)) return;
+  
+      const peer = room.peers.get(socket.id);
+      console.log(
+        `Disconnect cleanup for peer ${socket.id} in room ${rId}:`,
+        `producers=${peer.producers.size}`,
+        `consumers=${peer.consumers.size}`,
+        `transports=${peer.transports.size}`
+      );
+  
+      // 1) Close and clear all producers
+      peer.producers.forEach(p => p.close());
+      peer.producers.clear();
+  
+      // 2) Close and clear all consumers
+      peer.consumers.forEach(c => c.close());
+      peer.consumers.clear();
+  
+      // 3) Close and clear all transports
+      peer.transports.forEach(t => t.close());
+      peer.transports.clear();
+  
+      // Remove peer from room and notify others
+      room.peers.delete(socket.id);
+      socket.to(rId).emit('peerDisconnected', socket.id);
+      updateRoomPeers(rId);
     });
-
-    // 2. Закрываем все потребители пира
-    peer.consumers.forEach(consumer => {
-      consumer.close();
-      console.log(`Closed consumer ${consumer.id}`);
-    });
-
-    // 3. Закрываем все транспорты пира
-    peer.transports.forEach(transport => {
-      transport.close();
-      console.log(`Closed transport ${transport.id}`);
-    });
-
-    // 4. Удаляем пира из комнаты
-    room.peers.delete(socket.id);
-
-    // 5. Уведомляем остальных участников
-    socket.to(room.id).emit('peerDisconnected', socket.id);
-    updateRoomPeers(room.id);
+  
+    // Remove token entry after timeout if no reconnection
+    if (socket.token) {
+      setTimeout(() => {
+        if (activeSocketsByToken.get(socket.token) === socket.id) {
+          activeSocketsByToken.delete(socket.token);
+        }
+      }, 30000);
+    }
+  
+    console.log(`Client ${socket.id} completely cleaned up`);
   });
-
-  // 6. Полная очистка локальных карт для этого сокета
-  peerTransports.delete(socket.id);
-  peerConsumers.delete(socket.id);
-  peerProducers.delete(socket.id);
-
-  if (socket.token) {
-    // Удалим токен через 30 секунд, если не было повторного входа
-    setTimeout(() => {
-      if (activeSocketsByToken.get(socket.token) === socket.id) {
-        activeSocketsByToken.delete(socket.token);
-      }
-    }, 30000);
-  }
-
-  console.log(`Client ${socket.id} completely cleaned up`);
-});
 });
 
 // Запуск сервера
