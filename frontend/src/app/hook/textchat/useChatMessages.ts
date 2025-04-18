@@ -15,7 +15,7 @@ export const useChatMessages = (activeChatId: string | undefined, token: string 
   const [newMessage, setNewMessage] = useState('');
   const [isSocketConnected, setIsSocketConnected] = useState(false);
   const [start, setStartS] = useState(false);
-  const socket = useChatSocket(start, 'CHAT_SOCKET_URL');
+  const socket = useChatSocket();
   
 
   // Группировка сообщений

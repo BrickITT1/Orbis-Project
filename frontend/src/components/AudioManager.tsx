@@ -29,7 +29,7 @@ const AudioManager: React.FC<AudioManagerProps> = ({
 
   // Обработчик ошибок воспроизведения
   const handlePlaybackError = (streamId: string, error: Error) => {
-    console.warn(`Audio playback failed for stream ${streamId}:`, error);
+    console.warn('Audio playback failed for stream ${streamId}:', error);
     dispatch(removeStream(streamId));
     onPlaybackError?.(streamId, error);
   };
@@ -51,6 +51,18 @@ const AudioManager: React.FC<AudioManagerProps> = ({
     });
   }, [audioStreams]);
 
+  // Следим за потоком, чтобы обновить элемент audio
+  useEffect(() => {
+    Object.entries(audioStreams).forEach(([streamId, stream]) => {
+      const audioElement = audioRefs.current[streamId];
+      if (audioElement && audioElement.srcObject !== stream) {
+        audioElement.srcObject = stream;
+        audioElement.play().catch(error => handlePlaybackError(streamId, error));
+      }
+    });
+  }, [audioStreams]);
+
+  
   return (
     <>
       {Object.entries(audioStreams).map(([streamId, stream]) => (
@@ -62,11 +74,6 @@ const AudioManager: React.FC<AudioManagerProps> = ({
           ref={(audioElement) => {
             if (audioElement) {
               audioRefs.current[streamId] = audioElement;
-              if (audioElement.srcObject !== stream) {
-                audioElement.srcObject = stream;
-                audioElement.play()
-                  .catch(error => handlePlaybackError(streamId, error));
-              }
             } else {
               delete audioRefs.current[streamId];
             }

@@ -2,9 +2,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useAppSelector } from '../app/hooks';
 import { SingleMessage } from './Message/SingleMessage';
 import { MessageGroup } from './Message/MessageGroup';
-import { useChatMessages } from '../app/useChatMessages';
-import { useVoiceChat } from '../app/useVoiceChat';
-import AudioManager from '../app/AudioManager';
+import { useChatMessages } from '../app/hook/textchat/useChatMessages';
+import { useVoiceChat } from '../app/hook/voicechat/useVoiceChat';
+import AudioManager from './AudioManager';
 
 interface ErrorBoundaryProps {
   children: React.ReactNode; // Явно указываем тип children
@@ -36,6 +36,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
 export const Action: React.FC = () =>  {
   
     const activeChat = useAppSelector(state => state.chat.activeChat);
+    const activeServer = useAppSelector((state) => state.server.activeserver);
     const token = useAppSelector(state => state.auth.user?.access_token);
     const voiceState = useAppSelector(state => state.voice)
     const MyUsername = useAppSelector(state => state.auth.user?.username);
@@ -49,16 +50,16 @@ export const Action: React.FC = () =>  {
       setDisable,
       isSocketConnected,
     } = useChatMessages(String(activeChat?.id), token, MyUsername);
+
+    
     
     const {
       joinRoom,
       leaveRoom,
-      setEnableV,
-      setDisableV,
       audioStreams,
-      isVoiceSocketConnected,
+      
       roomPeers,
-      peers
+      
     } = useVoiceChat();
 
     // Используем ref вместо querySelector
@@ -70,26 +71,6 @@ export const Action: React.FC = () =>  {
         messagesDivRef.current.scrollTop = messagesDivRef.current.scrollHeight;
       }
     };
-    
-    useEffect(() => {
-      if (activeChat && !isVoiceSocketConnected) {
-        try {
-          setEnableV();
-        } catch (error) {
-          console.error('Voice chat enable error:', error);
-        }
-      }
-      
-      return () => {
-        if (isVoiceSocketConnected) {
-          try {
-            setDisableV();
-          } catch (error) {
-            console.error('Voice chat disable error:', error);
-          }
-        }
-      };
-    }, [activeChat, isVoiceSocketConnected]);
 
     useEffect(() => {
       if (activeChat && !isSocketConnected) {
@@ -150,11 +131,11 @@ export const Action: React.FC = () =>  {
           <div className="chat-title">
             <div className="title">{activeChat?.name || 'Чат'}</div>
             <div className="buttons">
-              <button 
+              {!activeServer ? <button 
                 className="voice" 
                 onClick={() => {
                   try {
-                    joinRoom();
+                    joinRoom(activeChat.id);
                   } catch (error) {
                     console.error('Join room error:', error);
                   }
@@ -163,10 +144,11 @@ export const Action: React.FC = () =>  {
                 <svg width="31" height="30" viewBox="0 0 31 30" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M13.0425 7.79193C12.7779 6.90975 12.5916 5.99362 12.4917 5.05175C12.3935 4.126 11.5861 3.43762 10.6552 3.43762H6.33692C5.22648 3.43762 4.37105 4.39668 4.4688 5.50281C5.45342 16.6456 14.3295 25.5217 25.4723 26.5063C26.5784 26.6041 27.5375 25.7517 27.5375 24.6414V20.7917C27.5375 19.3862 26.849 18.5816 25.9234 18.4834C24.9815 18.3836 24.0654 18.1972 23.1832 17.9326C22.104 17.6089 20.9359 17.9136 20.1392 18.7102L18.2913 20.5581C14.9625 18.7566 12.2185 16.0126 10.417 12.6838L12.2649 10.8359C13.0615 10.0392 13.3662 8.871 13.0425 7.79193Z" stroke="white" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
-              </button>
+              </button> : null}
+              
             </div>
           </div>
-          {voiceState?.joined && voiceState?.chat === activeChat.id ? 
+          {!activeServer && voiceState?.joined && activeChat.id == voiceState.chat ? 
             <div className="voice-chat">
               <ul className='users'>
               
@@ -208,10 +190,10 @@ export const Action: React.FC = () =>  {
             </div>
           </div>
           : null}
-
-          {/* Аудио элементы */}
+          {!activeServer ? 
+          
           <AudioManager  audioStreams={audioStreams} />
-         
+          : null}
           <div className="messages" ref={messagesDivRef}>
             
           {groupedMessages?.map((group, index) => (
