@@ -5,18 +5,44 @@
     flex-direction: column;
     gap: 1em;
     padding: 1em;
-    .text, .voice {
-        padding: 0.5em;
-        background-color: rgb(68, 79, 104);
+
+    .voice {
+        button {
+            padding: 0;
+            background-color: transparent;
+            text-align: left;
+            font-weight: normal;
+        }
+        
     }
 
+
     .in-voice {
+        position: relative;
         padding-left: 1em;
 
         li {
             display: flex;
             align-items: center;
             gap: 0.5em;
+        }
+        
+        .voice-leave {
+            position: absolute;
+            right: 0;
+            button {
+                background-color: transparent;
+                
+            }
+        }
+    }
+    .group-item {
+        cursor: pointer;
+        .group-item__avatar {
+            display: none;
+        }
+        .group-item__name::before  {
+            content: '# ';
         }
     }
 }

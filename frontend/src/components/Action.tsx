@@ -5,6 +5,7 @@ import { MessageGroup } from './Message/MessageGroup';
 import { useChatMessages } from '../app/hook/textchat/useChatMessages';
 import { useVoiceChat } from '../app/hook/voicechat/useVoiceChat';
 import AudioManager from './AudioManager';
+import RemoteVideo from './RemoteVideo';
 
 interface ErrorBoundaryProps {
   children: React.ReactNode; // Явно указываем тип children
@@ -50,17 +51,16 @@ export const Action: React.FC = () =>  {
       setDisable,
       isSocketConnected,
     } = useChatMessages(String(activeChat?.id), token, MyUsername);
+    const localVideoRef = useRef<HTMLVideoElement>(null);
 
-    
-    
     const {
       joinRoom,
       leaveRoom,
       audioStreams,
-      
+      videoStreams,
       roomPeers,
       
-    } = useVoiceChat();
+    } = useVoiceChat({localVideoRef});
 
     // Используем ref вместо querySelector
     const messagesDivRef = useRef<HTMLDivElement>(null);
@@ -74,24 +74,15 @@ export const Action: React.FC = () =>  {
 
     useEffect(() => {
       if (activeChat && !isSocketConnected) {
-        try {
-          setEnable();
-        } catch (error) {
-          console.error('Chat enable error:', error);
-        }
+        setEnable();
       }
-      
       return () => {
         if (isSocketConnected) {
-          try {
-            setDisable();
-          } catch (error) {
-            console.error('Chat disable error:', error);
-          }
+          setDisable();
         }
       };
     }, [activeChat, isSocketConnected]);
-
+    
     useEffect(() => {
       const handleKeyPress = (e: KeyboardEvent) => {
         if (e.key === 'Enter' && newMessage.trim()) {
@@ -116,12 +107,20 @@ export const Action: React.FC = () =>  {
       scrollToBottom();
     }, [messages]);
 
+    useEffect(() => {
+      if (voiceState.joined && activeChat && localVideoRef.current) {
+        joinRoom(activeChat.id);
+      }
+    }, [voiceState.joined, activeChat?.id, joinRoom, localVideoRef]);
+    
+
     const handleSendMessage = () => {
       if (newMessage.trim()) {
         sendMessage();
         scrollToBottom();
       }
     };
+    console.log(videoStreams)
 
     return (
       <ErrorBoundary>
@@ -167,6 +166,21 @@ export const Action: React.FC = () =>  {
                     </div>
                   </li>
                 ))}
+                <div>
+                  <h3>Мое видео:</h3>
+                  <div>
+                    <video ref={localVideoRef} autoPlay muted playsInline style={{ width: '200px' }} />
+                  </div>
+
+                </div>
+                <div>
+                <h3>Участники:</h3>
+                <div style={{ display: 'flex', flexWrap: 'wrap' }}>
+                  {Object.entries(videoStreams).map(([id, stream]) => (
+                    <RemoteVideo key={id} stream={stream} />
+                  ))}
+                </div>
+              </div>
               </ul>
               <div className="voice-buttons">
               <div className="voice-mute">
@@ -237,8 +251,9 @@ export const Action: React.FC = () =>  {
           </div>
         </div>
       </div>
-    ) : (<div className="actions"> </div>)
-  }</ErrorBoundary>
+      ) : (<div className="actions"> </div>)
+      }
+  </ErrorBoundary>
   )
 
 }

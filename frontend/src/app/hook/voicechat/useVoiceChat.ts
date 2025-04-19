@@ -27,7 +27,11 @@ interface ConsumerInfo {
   peerId: string;
 }
 
-export const useVoiceChat = () => {
+export interface UseVoiceChatParams {
+  localVideoRef: React.RefObject<HTMLVideoElement>;
+}
+
+export const useVoiceChat = ({localVideoRef}: UseVoiceChatParams) => {
   const socket = useVoiceSocket();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
@@ -43,61 +47,62 @@ export const useVoiceChat = () => {
   const audioProducerRef = useRef<Producer | null>(null);
   const videoProducerRef = useRef<Producer | null>(null);
   const consumersRef = useRef<Map<string, Consumer>>(new Map());
-
-  const localVideoRef = useRef<HTMLVideoElement>(null);
+  
   const [audioStreams, setAudioStreams] = useState<Record<string, MediaStream>>({});
+  const [videoStreams, setVideoStreams] = useState<Record<string, MediaStream>>({});
+
   const [roomPeers, setRoomPeers] = useState<PeerInfo[]>([]);
 
-  const leaveRoom = useSafeLeaveRoom({
-    socket,
-    consumersRef,
-    audioProducerRef,
-    videoProducerRef,
-    sendTransportRef,
-    recvTransportRef,
-    localVideoRef,
-    deviceRef,
-    audioStreams,
-    setAudioStreams,
-    setRoomPeers,
-  });
+  const leaveRoom = useSafeLeaveRoom
+  ? useSafeLeaveRoom({
+      socket,
+      consumersRef,
+      audioProducerRef,
+      videoProducerRef,
+      sendTransportRef,
+      recvTransportRef,
+      localVideoRef,
+      deviceRef,
+      audioStreams,
+      setAudioStreams,
+      setRoomPeers,
+    })
+  : () => {};
+
 
   // Помощник для консьюма
   const consumeMedia = useCallback(async (peerId: string) => {
     if (!recvTransportRef.current || peerId === socket?.id) return;
-
-    // очищаем старые элементы
+    setVideoStreams({})
     setAudioStreams({})
-
     try {
       const { producers }: { producers: ProducerInfo[] } =
         await socket!.emitWithAck('getPeerProducers', { peerId });
-
+  
       for (const producer of producers) {
-        if (producer.kind !== 'audio') continue;
-
+        if (!['audio', 'video'].includes(producer.kind)) continue;
+  
         const response: ConsumerInfo = await socket!.emitWithAck('consume', {
           producerId: producer.id,
           rtpCapabilities: deviceRef.current!.rtpCapabilities,
         });
-
+  
         const consumer = await recvTransportRef.current.consume({
           id: response.id,
           producerId: response.producerId,
-          kind: response.kind as 'audio',
+          kind: response.kind as 'audio' | 'video',
           rtpParameters: response.rtpParameters,
         });
-
+  
         const stream = new MediaStream([consumer.track]);
-        setAudioStreams(prev => ({ ...prev, [`${peerId}-${producer.id}`]: stream }));
-
-        // создаём аудио-элемент и вставляем в DOM
-        // const audioEl = document.createElement('audio');
-        // audioEl.srcObject = stream;
-        // audioEl.autoplay = true;
-        // audioEl.id = `${peerId}-${producer.id}`;
-        // document.body.appendChild(audioEl);
-
+  
+        if (producer.kind === 'audio') {
+          setAudioStreams(prev => ({ ...prev, [`${peerId}-${producer.id}`]: stream }));
+        } else if (producer.kind === 'video') {
+          setVideoStreams(prev => ({ ...prev, [`${peerId}-${producer.id}`]: stream }));
+        }
+      
+  
         await socket!.emitWithAck('resumeConsumer', { consumerId: consumer.id });
         consumersRef.current.set(`${peerId}-${producer.id}`, consumer);
       }
@@ -105,6 +110,7 @@ export const useVoiceChat = () => {
       console.error('consumeMedia error:', err);
     }
   }, [socket]);
+  
 
   // Функция присоединения в комнату
   const connectToVoiceRoom = useCallback(async (roomId: number) => {
@@ -164,7 +170,6 @@ export const useVoiceChat = () => {
           eb(e as Error);
         }
       });
-
       // хендлер для recvTransport
       recvTransportRef.current.on('connect', async ({ dtlsParameters }, cb, eb) => {
         try {
@@ -186,10 +191,12 @@ export const useVoiceChat = () => {
         video: !audioOnly && hasVideo,
       };
       const localStream = await navigator.mediaDevices.getUserMedia(constraints);
+      
 
       // видео отображаем если есть
-      if (localVideoRef.current && !audioOnly) {
+      if (hasVideo && localVideoRef.current) {
         localVideoRef.current.srcObject = localStream;
+        console.log('Локальное видео установлено');
       }
 
       // отправляем аудио
@@ -286,5 +293,6 @@ export const useVoiceChat = () => {
     isConnected,
     setAudioOnly,
     localVideoRef,
+    videoStreams,
   };
 };

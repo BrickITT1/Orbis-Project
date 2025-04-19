@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Chat } from './Message/Chat';
 import { useAppSelector } from '../app/hooks';
 import { useGetChatsQuery } from '../services/chat';
@@ -18,13 +18,14 @@ export const MessageMenuServer: React.FC = () =>  {
     const {data, isLoading, isFetching, isError} = useGetServersInsideQuery(activeServer?.id);
     const voiceState = useAppSelector(state => state.voice)
     const navigator = useNavigate();
+    const localVideoRef = useRef<HTMLVideoElement>(null);
 
     const {
           joinRoom,
           leaveRoom,
           audioStreams,
           roomPeers,
-    } = useVoiceChat();
+    } = useVoiceChat({localVideoRef});
 
     useEffect(()=> {
         if (!activeServer) {
@@ -82,20 +83,23 @@ export const MessageMenuServer: React.FC = () =>  {
                                 <li key={peer.id}>
                                     <span><img src="/img/icon.png" alt="" width={"30px"} height={"30px"} /></span>
                                     {peer?.username}
-                                    
+                                    <div className="voice-leave" onClick={leaveRoom}>
+                                    <button>
+                                        <svg width="52" height="22" viewBox="0 0 52 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path fillRule="evenodd" clipRule="evenodd" d="M26.001 1C46.9715 1.0013 50.2823 7.6485 50.7243 10.4505C50.8323 10.8648 52.5715 20.0957 45.7465 20.8117C28.766 22.5472 40.4397 10.792 25.9992 11.2385C11.5586 11.685 23.232 22.5473 6.25485 20.8125C-0.571774 20.095 1.16773 10.864 1.27583 10.4532C1.71635 7.6495 5.02895 1.0004 26.001 1Z" stroke="white" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"/>
+                                        </svg>
+                                    </button>
+                                </div>
                                 </li>
+                                
                             ))}
+
+                            
                             </ul>
                         </li>
                         
                     ))}
-                     <div className="voice-leave" onClick={leaveRoom}>
-                        <button>
-                            <svg width="52" height="22" viewBox="0 0 52 22" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path fillRule="evenodd" clipRule="evenodd" d="M26.001 1C46.9715 1.0013 50.2823 7.6485 50.7243 10.4505C50.8323 10.8648 52.5715 20.0957 45.7465 20.8117C28.766 22.5472 40.4397 10.792 25.9992 11.2385C11.5586 11.685 23.232 22.5473 6.25485 20.8125C-0.571774 20.095 1.16773 10.864 1.27583 10.4532C1.71635 7.6495 5.02895 1.0004 26.001 1Z" stroke="white" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"/>
-                            </svg>
-                        </button>
-                    </div>
+                     
                     <AudioManager  audioStreams={audioStreams} />
                 </ul>
             </MessageMenuLayout>
