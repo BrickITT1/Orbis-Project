@@ -10,7 +10,7 @@ import { useGetServersInsideQuery } from '../services/server';
 import { chat } from '../features/chat/chatSlices';
 import { voice } from '../features/server/serverSlices';
 import { useVoiceChat } from '../app/hook/voicechat/useVoiceChat';
-import AudioManager from './AudioManager';
+import AudioManager from './Voice/AudioManager';
 
 
 export const MessageMenuServer: React.FC = () =>  {
@@ -25,6 +25,8 @@ export const MessageMenuServer: React.FC = () =>  {
           leaveRoom,
           audioStreams,
           roomPeers,
+          mutedPeers,
+          localPeerId
     } = useVoiceChat({localVideoRef});
 
     useEffect(()=> {
@@ -72,7 +74,8 @@ export const MessageMenuServer: React.FC = () =>  {
                                 } catch (error) {
                                   console.error('Join room error:', error);
                                 }
-                              }} >
+                              }} 
+                            disabled={voiceState.joined}>
                             
                                 <span>#</span> {val.name}
                            
@@ -100,7 +103,7 @@ export const MessageMenuServer: React.FC = () =>  {
                         
                     ))}
                      
-                    <AudioManager  audioStreams={audioStreams} />
+                    <AudioManager  audioStreams={audioStreams} mutedPeers={mutedPeers} localPeerId={localPeerId!}/>
                 </ul>
             </MessageMenuLayout>
         </> 

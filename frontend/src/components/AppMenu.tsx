@@ -13,9 +13,6 @@ export const AppMenu: React.FC = () =>  {
     const dispatch = useAppDispatch();
     const navigator = useNavigate();
     const server = useAppSelector((state) => state.server);
-    
-    
-    //console.log(server)    
     return ( 
         <>
             <div className="app-menu">
@@ -29,7 +26,7 @@ export const AppMenu: React.FC = () =>  {
                 <div className="button-items">
                     <div className="button-item">
                         <button onClick={()=> {
-                            navigator('/app')
+                            dispatch(setActiveServer(undefined));
                         }}>LS</button>
                     </div>
                     {/* <div className="button-item">
@@ -41,11 +38,8 @@ export const AppMenu: React.FC = () =>  {
                     </div> */}
                     {server.servers && server.servers.map((val, index) => (
                         <div className="button-item" key={`server-${val.id}`}>
-                            <button onClick={async()=> {
-                                await dispatch(setActiveServer(val));
-                                
-                                navigator('/app/server')
-                                
+                            <button onClick={()=> {
+                                dispatch(setActiveServer(val));
                             }}>{val.id}</button>
                         </div>
                     ))}

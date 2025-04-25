@@ -153,14 +153,14 @@ export const PagesRouter: React.FC = () => {
                         </ProtectedRoute>
                     }
                 />
-                <Route 
+                {/* <Route 
                     path="/app/server"
                     element= {
                         <ProtectedRoute isAuth={isAuth}>
                             <AppServerPage />
                         </ProtectedRoute>
                     }
-                />
+                /> */}
                 <Route 
                     path="/test"
                     element= {

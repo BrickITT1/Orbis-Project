@@ -14,6 +14,8 @@ const RemoteVideo: React.FC<RemoteVideoProps> = ({ stream }) => {
 
     // Подаём поток в <video>
     video.srcObject = stream;
+    video.muted = true;
+    video.volume = 0;
 
     // Пробуем автозапуск (многие браузеры блокируют звук до взаимодействия)
     video.play().catch(err => {
@@ -31,7 +33,6 @@ const RemoteVideo: React.FC<RemoteVideoProps> = ({ stream }) => {
   return (
     <video
       ref={videoRef}
-      autoPlay
       playsInline
       muted
       style={{ width: '200px', borderRadius: '8px', margin: '0.5rem' }}

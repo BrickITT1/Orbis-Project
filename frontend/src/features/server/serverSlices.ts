@@ -10,16 +10,16 @@ export interface voice {
 }
 
 export interface server {
-    id: number;
-    name: string;
+  id: number;
+  name: string;
   voices: voice[];
   chats: chat[];
 }
 
 interface serverState {
   servers?: server[];
-    activeserver?: server| undefined;
-    isActive?: boolean; 
+  activeserver?: server| undefined;
+  isActive?: boolean; 
 
 }
 

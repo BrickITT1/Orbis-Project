@@ -12,9 +12,9 @@ export const MessageMenuLayout: React.FC<{children: React.ReactNode}> = ({ child
                 {children}
                     </div>
                 </div>
-                <div className="messages-menu_list-search">
+                {/* <div className="messages-menu_list-search">
                     <input type="text" />
-                </div>
+                </div> */}
             </div>
         </>
     )

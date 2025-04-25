@@ -1,24 +1,52 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { io, Socket } from 'socket.io-client';
 import { useRefreshTokenQueryQuery } from '../../../services/auth';
-import { getVoiceSocket, disconnectVoiceSocket } from './voiceSocketInstance';
-import { Socket } from 'socket.io-client';
 
-const useVoiceSocket = (): Socket | null => {
-  const [socket, setSocket] = useState<Socket | null>(null);
-  const { data: token, isSuccess } = useRefreshTokenQueryQuery({});
+export const useVoiceSocket = () => {
+  const socketRef = useRef<Socket | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
+  const { data: tokenData, isSuccess } = useRefreshTokenQueryQuery({});
 
   useEffect(() => {
-    if (isSuccess && token) {
-      const newSocket = getVoiceSocket(token.access_token);
-      setSocket(newSocket);
+    if (!isSuccess || !tokenData) return;
 
-      return () => {
-        disconnectVoiceSocket();
-      };
+    // Создаем новый сокет только если его еще нет
+    if (!socketRef.current) {
+      const newSocket = io('https://26.234.138.233:3000', {
+        auth: { token: tokenData.access_token },
+        autoConnect: true,
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 3000,
+      });
+
+      newSocket.on('connect', () => {
+        console.log('[VoiceSocket] Connected');
+        setIsConnected(true);
+      });
+
+      newSocket.on('disconnect', () => {
+        console.log('[VoiceSocket] Disconnected');
+        setIsConnected(false);
+      });
+
+      newSocket.on('connect_error', (err) => {
+        console.error('[VoiceSocket] Connection error:', err);
+        setIsConnected(false);
+      });
+
+      socketRef.current = newSocket;
     }
-  }, [isSuccess, token]);
 
-  return socket;
+    return () => {
+      // Очищаем только если компонент полностью размонтируется
+      // socketRef.current?.disconnect();
+      // socketRef.current = null;
+    };
+  }, [isSuccess, tokenData]);
+
+  return {
+    socket: socketRef.current,
+    isConnected,
+  };
 };
-
-export default useVoiceSocket;

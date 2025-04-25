@@ -1,5 +1,6 @@
 // features/authSlice.ts
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { PeerInfo } from '../../types/Channel';
 
 interface AudioStream {
   id: string;
@@ -11,12 +12,16 @@ interface AudioState {
   streams: AudioStream[];
   joined: boolean;
   chat: number | undefined;
+  peers: PeerInfo[];
+  audioOnly: boolean;
 }
 
 const initialState: AudioState = {
   joined: false,
   chat: undefined,
   streams: [],
+  peers: [],
+  audioOnly: true,
 };
 
 const voiceSlice = createSlice({
@@ -29,46 +34,24 @@ const voiceSlice = createSlice({
     setChat(state, action: PayloadAction<number | undefined>) {
       state.chat = action.payload;
     },
-    addStream: (state, action: PayloadAction<{id: string; stream: MediaStream}>) => {
-      const existing = state.streams.find(s => s.id === action.payload.id);
-      if (!existing) {
-        state.streams.push({
-          id: action.payload.id,
-          stream: action.payload.stream,
-          isPlaying: false,
-        });
-      }
-    },
-    removeStream: (state, action: PayloadAction<string>) => {
-      state.streams = state.streams.filter(s => s.id !== action.payload);
-    },
-    setPlaying: (state, action: PayloadAction<{id: string; playing: boolean}>) => {
-      const stream = state.streams.find(s => s.id === action.payload.id);
-      if (stream) {
-        stream.isPlaying = action.payload.playing;
-      }
-    },
     setCurrentRoom: (state, action: PayloadAction<number | undefined>) => {
       state.chat = action.payload;
     },
-    clearAllStreams: (state) => {
-      state.streams.forEach(s => {
-        s.stream?.getTracks().forEach(track => track.stop());
-      });
-      state.streams = [];
-      state.chat = undefined;
+    setPeers(state, action: PayloadAction<PeerInfo[]>) {
+      state.peers = action.payload;
     },
+    setAudioOnly(state, action: PayloadAction<boolean>) {
+      state.audioOnly = action.payload;
+    }
   },
 });
 
 export const {
   setJoin,
   setChat,
-  addStream, 
-  removeStream, 
-  setPlaying, 
   setCurrentRoom, 
-  clearAllStreams
+  setPeers,
+  setAudioOnly
 } = voiceSlice.actions;
 
 export default voiceSlice.reducer;
