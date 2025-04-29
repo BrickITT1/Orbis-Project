@@ -1,7 +1,10 @@
 import React, { useEffect, useRef } from 'react';
-import { useAppSelector } from '../app/hooks';
-
+import { useAppSelector, useAppDispatch } from '../app/hooks';
+import { setJoin } from '../features/voice/voiceSlices'; // Например, для управления состоянием чата
 import { VoiceRoomChat } from './Voice/VoiceRoomChat';
+import { Message } from '../types/Message';
+import { HistoryChat } from './Chat/HistoryChat';
+import { InputChat } from './Chat/InputChat';
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
@@ -31,13 +34,23 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
 }
 
 interface ActionProps {
-  joinRoom: (roomId: number, attempt?: number) => Promise<boolean>;
-  localVideo: React.RefObject<HTMLVideoElement>
+  handleSendMessage: (newMessage: string) => void;
+  joinRoomApi: (roomId: number, attempt?: number) => Promise<boolean>
+  Messages: {
+    messages: Message[];
+    user_id: number;
+    user_name: string;
+    minute: string;
+}[] | null;
+videoStreams: Record<string, MediaStream>
+
 }
 
 export const Action: React.FC<ActionProps> = ({
-  joinRoom,
-  localVideo
+  joinRoomApi,
+  handleSendMessage,
+  Messages,
+  videoStreams
 }) => {
   const activeChat = useAppSelector(state => state.chat.activeChat);
   const activeServer = useAppSelector(state => state.server.activeserver);
@@ -45,50 +58,21 @@ export const Action: React.FC<ActionProps> = ({
   const voiceState = useAppSelector(state => state.voice);
   const MyUsername = useAppSelector(state => state.auth.user?.username);
 
-  
-
   const messagesDivRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
 
-  const scrollToBottom = () => {
-    if (messagesDivRef.current) {
-      messagesDivRef.current.scrollTop = messagesDivRef.current.scrollHeight;
+
+  const joinRoom = async (roomId: number, attempt = 1) => {
+    try {
+      // Логика подключения к комнате, например, через сокет
+      const success = await joinRoomApi(roomId); // Здесь joinRoomApi - это твоя функция подключения
+      
+    } catch (error) {
+      console.error("Error while joining room:", error);
+      if (attempt < 3) {
+        setTimeout(() => joinRoom(roomId, attempt + 1), 2000); // Повторить попытку подключения
+      }
     }
   };
-
-  // Подключаем/отключаем socket.io чат
-  
-
-  // Enter → отправка
-  // useEffect(() => {
-  //   const onKey = (e: KeyboardEvent) => {
-  //     if (e.key === 'Enter' && newMessage.trim()) {
-  //       sendMessage();
-  //       scrollToBottom();
-  //     }
-  //   };
-  //   inputRef.current?.addEventListener('keydown', onKey);
-  //   return () => {
-  //     inputRef.current?.removeEventListener('keydown', onKey);
-  //   };
-  // }, [newMessage, sendMessage]);
-
-  // // Скролл при новых сообщениях
-  // useEffect(scrollToBottom, [messages]);
-
-  // Как только залогинены в голосовую (voiceState.joined), сразу joinRoom
-  useEffect(() => {
-    if (voiceState.joined && activeChat?.id) {
-      joinRoom(activeChat.id);
-    }
-  }, [voiceState.joined, activeChat?.id, joinRoom]);
-
-  // const handleSendMessage = () => {
-  //   if (newMessage.trim()) {
-  //     sendMessage();
-  //     scrollToBottom();
-  //   }
-  // };
 
   return (
     <ErrorBoundary>
@@ -109,7 +93,7 @@ export const Action: React.FC<ActionProps> = ({
                         console.error('Join room error:', err);
                       }
                     }}
-                    disabled={voiceState.joined}
+                    disabled={voiceState.isConnected}
                   >
                     {/* SVG-иконка */}
                     🎤
@@ -117,40 +101,15 @@ export const Action: React.FC<ActionProps> = ({
                 )}
               </div>
             </div>
-            {voiceState.joined && (<VoiceRoomChat />)} 
+
+            {/* Компонент голосового чата, если пользователь подключен */}
+            {voiceState.isConnected && (<VoiceRoomChat videoStreams={videoStreams}/>)} 
                 
-            
+            {/* История чатов */}
+            <HistoryChat groupMessage={Messages} />
 
-            {/* Список сообщений */}
-            {/* <div className="messages" ref={messagesDivRef}>
-              {groupedMessages?.map((group, idx) =>
-                group.messages.length === 1 ? (
-                  <SingleMessage
-                    key={`single-${group.messages[0].id}-${idx}`}
-                    message={group.messages[0]}
-                  />
-                ) : (
-                  <MessageGroup
-                    key={`group-${group.user_id}-${group.minute}-${idx}`}
-                    group={group}
-                  />
-                )
-              )}
-            </div> */}
-
-            {/* Ввод сообщения */}
-            {/* <div className="chat-input">
-              <input
-                ref={inputRef}
-                type="text"
-                value={newMessage}
-                onChange={e => setNewMessage(e.target.value)}
-                placeholder="Введите сообщение..."
-              />
-              <button onClick={handleSendMessage} className="enter-message">
-                Отправить
-              </button>
-            </div> */}
+            {/* Ввод нового сообщения */}
+            <InputChat handleSendMessage={handleSendMessage} />
           </div>
         </div>
       ) : (

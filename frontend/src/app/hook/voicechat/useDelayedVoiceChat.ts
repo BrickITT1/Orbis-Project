@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { useVoiceChat, UseVoiceChatParams } from "./useVoiceChat";
+import { useVoiceChat } from "./useVoiceChat";
 
 
-export const useDelayedVoiceChat = (params: UseVoiceChatParams, delay = 2000) => {
-    const voiceChat = useVoiceChat(params);
+export const useDelayedVoiceChat = (delay = 2000) => {
+    const voiceChat = useVoiceChat();
     const [isReady, setIsReady] = useState(false);
   
     useEffect(() => {

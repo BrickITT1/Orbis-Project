@@ -1,9 +1,6 @@
 import React, { useEffect, useRef } from 'react';
-import { Chat } from './Message/Chat';
+import { ChatItem } from './Message/ChatItem';
 import { useAppSelector } from '../app/hooks';
-import { useGetChatsQuery } from '../services/chat';
-import useChatSocket from '../app/hook/textchat/useChatSocket';
-import { useRefreshTokenQueryQuery } from '../services/auth';
 import { MessageMenuLayout } from './Message/MessageMenuLayout';
 import { useNavigate } from 'react-router-dom';
 import { useGetServersInsideQuery } from '../services/server';
@@ -18,16 +15,15 @@ export const MessageMenuServer: React.FC = () =>  {
     const {data, isLoading, isFetching, isError} = useGetServersInsideQuery(activeServer?.id);
     const voiceState = useAppSelector(state => state.voice)
     const navigator = useNavigate();
-    const localVideoRef = useRef<HTMLVideoElement>(null);
 
     const {
           joinRoom,
           leaveRoom,
-          audioStreams,
+          streams,
           roomPeers,
           mutedPeers,
           localPeerId
-    } = useVoiceChat({localVideoRef});
+    } = useVoiceChat();
 
     useEffect(()=> {
         if (!activeServer) {
@@ -60,7 +56,7 @@ export const MessageMenuServer: React.FC = () =>  {
                     {data && data.chats.map((val: chat, index: number) => (
                         
                         
-                            <Chat key={index} chat={val} />
+                            <ChatItem key={index} chat={val} />
                         
                         
                     ))}
@@ -75,14 +71,14 @@ export const MessageMenuServer: React.FC = () =>  {
                                   console.error('Join room error:', error);
                                 }
                               }} 
-                            disabled={voiceState.joined}>
+                            disabled={voiceState.isConnected}>
                             
                                 <span>#</span> {val.name}
                            
                             
                             </button>
                             <ul className="in-voice">
-                            {voiceState.chat == val.id && roomPeers.map(peer => (
+                            {voiceState.roomId == val.id && roomPeers.map(peer => (
                                 <li key={peer.id}>
                                     <span><img src="/img/icon.png" alt="" width={"30px"} height={"30px"} /></span>
                                     {peer?.username}
@@ -103,7 +99,7 @@ export const MessageMenuServer: React.FC = () =>  {
                         
                     ))}
                      
-                    <AudioManager  audioStreams={audioStreams} mutedPeers={mutedPeers} localPeerId={localPeerId!}/>
+                    <AudioManager  audioStreams={streams.audioStreams!} mutedPeers={mutedPeers} localPeerId={localPeerId!}/>
                 </ul>
             </MessageMenuLayout>
         </> 

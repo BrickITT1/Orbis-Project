@@ -1,37 +1,38 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Device } from 'mediasoup-client';
 import type { Transport, Consumer, Producer, TransportOptions } from 'mediasoup-client/lib/types';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../hooks';
 import { useSafeLeaveRoom } from './useSafeLeaveRoom';
-import { setChat, setJoin, setPeers } from '../../../features/voice/voiceSlices';
+import { setChat, setJoin, setPeers, setMuted, resetVoiceState, setMyPeer } from '../../../features/voice/voiceSlices';
 import { PeerInfo, ProducerInfo, ConsumerInfo } from '../../../types/Channel';
 import { useVoiceSocketContext } from '../../../contexts/VoiceSocketContext';
-
-
+import { debounce } from 'lodash';
 
 type SafeConsumer = Consumer & {
   on(event: 'producerpause' | 'producerresume', listener: () => void): SafeConsumer;
   producerPaused: boolean;
 };
 
-export interface UseVoiceChatParams {
-  localVideoRef: React.RefObject<HTMLVideoElement>;
+const stopTrackSafely = (track: MediaStreamTrack) => {
+  track.dispatchEvent(new Event('ended'));
+  setTimeout(() => track.stop(), 1000);
 }
 
-export const useVoiceChat = ({ localVideoRef }: UseVoiceChatParams) => {
-  const {socket} = useVoiceSocketContext();
+export const useVoiceChat = () => {
+  const { socket } = useVoiceSocketContext();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const username = useAppSelector(s => s.auth.user?.username);
 
-  const [audioOnly, setAudioOnly] = useState(true);
-  const [isConnected, setIsConnected] = useState(false);
-  const [roomPeers, setRoomPeers] = useState<PeerInfo[]>([]);
-  const [mutedPeers, setMutedPeers] = useState<Record<string, boolean>>({});
-  const [audioStreams, setAudioStreams] = useState<Record<string, MediaStream>>({});
-  const [videoStreams, setVideoStreams] = useState<Record<string, MediaStream>>({});
-  const prevRoomPeersRef = useRef<PeerInfo[]>([]);
+  const username = useAppSelector((s) => s.auth.user?.username);
+  const roomPeers = useAppSelector((s) => s.voice.roomPeers);
+  const mutedPeers = useAppSelector((s) => s.voice.mutedPeers);
+  const [streams, setStreams] = useState<{ 
+    audioStreams?: Record<string, MediaStream>;
+    videoStreams?: Record<string, MediaStream> 
+  }>({audioStreams: {}, videoStreams: {}});
+
+  const audioOnly = useAppSelector(s => s.voice.myPeer.audioOnly);
 
   const deviceRef = useRef<Device | null>(null);
   const sendTransportRef = useRef<Transport | null>(null);
@@ -40,67 +41,34 @@ export const useVoiceChat = ({ localVideoRef }: UseVoiceChatParams) => {
   const videoProducerRef = useRef<Producer | null>(null);
   const consumersRef = useRef<Map<string, Consumer>>(new Map());
   const localStreamRef = useRef<MediaStream | null>(null);
-
-  const leaveRoom = useSafeLeaveRoom({
-    socket,
-    consumersRef,
-    audioProducerRef,
-    videoProducerRef,
-    sendTransportRef,
-    recvTransportRef,
-    localVideoRef,
-    deviceRef,
-    audioStreams,
-    setAudioStreams,
-    setRoomPeers,
-  });
-  // Consume media from a peer, guard against unloaded device
+  const prevRoomPeersRef = useRef<PeerInfo[]>([]);
+  const streamsRef = useRef(streams);
+  const activeOperations = useRef(new Set<Symbol>());
+  const isLeavingRef = useRef(false);
+  
   const consumeMedia = useCallback(
     async (peerId: string) => {
-      
-      if (!recvTransportRef.current || peerId === socket?.id) return;
-      if (!deviceRef.current || !(deviceRef.current as any).loaded) {
-        console.warn('Device not loaded yet, skipping consumeMedia for', peerId);
-        return;
-      }
+      if (!recvTransportRef.current || !socket?.id || peerId === socket.id) return;
+
+      const iterationKey = Symbol();
+      activeOperations.current.add(iterationKey);
 
       try {
-        const { producers }: { producers: ProducerInfo[] } =
-          await socket!.emitWithAck('getPeerProducers', { peerId });
-        
-          consumersRef.current.forEach((consumer, key) => {
-            if (key.startsWith(`${peerId}-`)) {
-              consumer.close();
-              consumersRef.current.delete(key);
-            }
-          });
-          
-          setAudioStreams(prev => {
-            const updated = { ...prev };
-            Object.keys(updated).forEach(key => {
-              if (key.startsWith(`${peerId}-`)) {
-                updated[key].getTracks().forEach(t => t.stop());
-                delete updated[key];
-              }
-            });
-            return updated;
-          });
-          
-          setVideoStreams(prev => {
-            const updated = { ...prev };
-            Object.keys(updated).forEach(key => {
-              if (key.startsWith(`${peerId}-`)) {
-                updated[key].getTracks().forEach(t => t.stop());
-                delete updated[key];
-              }
-            });
-            return updated;
-          });
+        const { producers } = await socket.emitWithAck('getPeerProducers', { peerId });
+        if (!activeOperations.current.has(iterationKey)) return;
+
+        const newConsumers = new Map<string, Consumer>();
+        const audioToAdd: Record<string, MediaStream> = {};
+        const videoToAdd: Record<string, MediaStream> = {};
 
         for (const producer of producers) {
-          if (!['audio', 'video'].includes(producer.kind)) continue;
+          const consumerKey = `${peerId}-${producer.id}`;
+          if (consumersRef.current.has(consumerKey)) {
+            newConsumers.set(consumerKey, consumersRef.current.get(consumerKey)!);
+            continue;
+          }
 
-          const response: ConsumerInfo = await socket!.emitWithAck('consume', {
+          const response = await socket.emitWithAck('consume', {
             producerId: producer.id,
             rtpCapabilities: deviceRef.current!.rtpCapabilities,
           });
@@ -112,362 +80,324 @@ export const useVoiceChat = ({ localVideoRef }: UseVoiceChatParams) => {
             rtpParameters: response.rtpParameters,
           });
 
-          const stream = new MediaStream([consumer.track]);
-          const safeConsumer = consumer as SafeConsumer;
+          const cloned = consumer.track.clone();
+          const stream = new MediaStream([cloned]);
+          if (response.kind === 'audio') audioToAdd[consumerKey] = stream;
+          else videoToAdd[consumerKey] = stream;
 
-          if (producer.kind === 'audio') {
-            setAudioStreams(prev => ({ ...prev, [`${peerId}-${producer.id}`]: stream }));
-          } else {
-            setVideoStreams(prev => ({ ...prev, [`${peerId}-${producer.id}`]: stream }));
+          newConsumers.set(consumerKey, consumer);
+          await socket.emitWithAck('resumeConsumer', { consumerId: consumer.id });
+        }
+
+        setStreams((prev) => {
+          const prevAudio = prev.audioStreams ?? {};
+          const prevVideo = prev.videoStreams ?? {};
+
+          Object.keys(prevAudio)
+            .filter((key) => key.startsWith(`${peerId}-`) && !newConsumers.has(key))
+            .forEach((key) => prevAudio[key].getTracks().forEach(stopTrackSafely));
+
+          Object.keys(prevVideo)
+            .filter((key) => key.startsWith(`${peerId}-`) && !newConsumers.has(key))
+            .forEach((key) => prevVideo[key].getTracks().forEach(stopTrackSafely));
+
+          const remainingAudio = Object.fromEntries(
+            Object.entries(prevAudio).filter(([key]) => newConsumers.has(key))
+          );
+          const remainingVideo = Object.fromEntries(
+            Object.entries(prevVideo).filter(([key]) => newConsumers.has(key))
+          );
+
+          return {
+            audioStreams: { ...remainingAudio, ...audioToAdd },
+            videoStreams: { ...remainingVideo, ...videoToAdd }
+          };
+        });
+
+        consumersRef.current.forEach((_, key) => {
+          if (key.startsWith(`${peerId}-`) && !newConsumers.has(key)) {
+            consumersRef.current.get(key)?.close();
+            consumersRef.current.delete(key);
           }
-
-          await socket!.emitWithAck('resumeConsumer', { consumerId: consumer.id });
-          consumersRef.current.set(`${peerId}-${producer.id}`, consumer);
-         
-      }
-      } catch (err: any) {
+        });
+        newConsumers.forEach((c, key) => consumersRef.current.set(key, c));
+      } catch (err) {
         console.error('consumeMedia error:', err);
+      } finally {
+        activeOperations.current.delete(iterationKey);
       }
     },
     [socket]
   );
-
-  // useEffect(() => {
-  //   if (!socket) return;
   
-  //   console.log('[DEBUG] useVoiceChat logger init');
-  //   console.log('[DEBUG] My socket.id:', socket.id);
+  const leaveRoom = useSafeLeaveRoom({
+    socket,
+    consumersRef,
+    audioProducerRef,
+    videoProducerRef,
+    sendTransportRef,
+    recvTransportRef,
+    deviceRef,
+    audioStreams: streams.audioStreams!,
+    setStreams: setStreams,
+  });
+
+  useEffect(() => {
+    streamsRef.current = streams;
+  }, [streams]);
+
+  const connectToVoiceRoom = useCallback(async (roomId: number) => {
+    if (!socket?.connected || !username) return false;
     
-  //   // Логим список пиров
-  //   console.log('[DEBUG] Current roomPeers:', roomPeers.map(p => ({
-  //     id: p.id,
-  //     username: p.username,
-  //     muted: p.muted
-  //   })));
-  
-  //   // Логим список аудио стримов
-  //   console.log('[DEBUG] Current audioStreams:', Object.keys(audioStreams));
-  
-  //   // Логим mute статус
-  //   console.log('[DEBUG] Muted peers:', mutedPeers);
-  
-  //   // Логим активные consumers
-  //   console.log('[DEBUG] Consumers:', Array.from(consumersRef.current.entries()).map(([key, consumer]) => ({
-  //     id: key,
-  //     trackId: consumer.track?.id,
-  //     kind: consumer.kind,
-  //     paused: consumer.paused
-  //   })));
-  
-  // }, [roomPeers, audioStreams, mutedPeers]);
-  
+    try {
+      deviceRef.current = new Device();
+      const { rtpCapabilities } = await socket.emitWithAck('getRouterRtpCapabilities');
+      await deviceRef.current.load({ routerRtpCapabilities: rtpCapabilities });
 
-  useEffect(() => {
-    if (!socket) return;
-  
-    const updatePeers = async () => {
-      const { peers }: { peers: PeerInfo[] } = await socket.emitWithAck('getRoomPeers');
-      setRoomPeers(peers);
-      const newMuted: Record<string, boolean> = {};
-      peers.forEach(p => { newMuted[p.id] = p.muted ?? false; });
-      setMutedPeers(newMuted);
-    };
-  
-    // Теперь аргумент — это просто peerId: string
-    const handlePeerDisconnected = (peerId: string) => {
-      console.log('[DEBUG] peerDisconnected:', peerId);
-  
-      // 1) обновляем список пиров / статусы
-      updatePeers();
-  
-      // 2) закрываем Consumer’ы этого пира
-      consumersRef.current.forEach((consumer, key) => {
-        if (key.startsWith(`${peerId}-`)) {
-          consumer.close();
-          consumersRef.current.delete(key);
+      const { error: joinError } = await socket.emitWithAck('joinRoom', {
+        username, 
+        roomId, 
+        audioOnly 
+      });
+      if (joinError) throw new Error(joinError as string);
+
+      const createTransport = async (sender: boolean) => {
+        const res = await socket.emitWithAck('createWebRtcTransport', { sender });
+        if (res.error) throw new Error(res.error);
+        return res.transport;
+      };
+
+      const [sendParams, recvParams] = await Promise.all([
+        createTransport(true),
+        createTransport(false)
+      ]);
+
+      sendTransportRef.current = deviceRef.current.createSendTransport({ ...sendParams, appData: { sender: true } });
+      recvTransportRef.current = deviceRef.current.createRecvTransport({ ...recvParams, appData: { sender: false } });
+
+      const connectHandler = async (params: any, cb: any, eb: any, transport: Transport) => {
+        try {
+          await socket.emitWithAck('connectTransport', { transportId: transport.id, dtlsParameters: params.dtlsParameters });
+          cb();
+        } catch (e: any) {
+          eb(e);
+        }
+      };
+      sendTransportRef.current.on('connect', (p, cb, eb) => connectHandler(p, cb, eb, sendTransportRef.current!));
+      recvTransportRef.current.on('connect', (p, cb, eb) => connectHandler(p, cb, eb, recvTransportRef.current!));
+
+      sendTransportRef.current.on('produce', async ({ kind, rtpParameters }, cb, eb) => {
+        try {
+          const { id } = await socket.emitWithAck('produce', { kind, rtpParameters });
+          cb({ id });
+        } catch (err: any) {
+          eb(err);
         }
       });
-  
-      // 3) удаляем аудио-потоки и останавливаем их
-      setAudioStreams(prev => {
-        const next: Record<string, MediaStream> = {};
-        Object.entries(prev).forEach(([key, stream]) => {
-          if (!key.startsWith(`${peerId}-`)) {
-            next[key] = stream;
-          } else {
-            stream.getTracks().forEach(t => t.stop());
-          }
-        });
-        return next;
-      });
-  
-      // 4) аналогично для видео
-      setVideoStreams(prev => {
-        const next: Record<string, MediaStream> = {};
-        Object.entries(prev).forEach(([key, stream]) => {
-          if (!key.startsWith(`${peerId}-`)) {
-            next[key] = stream;
-          } else {
-            stream.getTracks().forEach(t => t.stop());
-          }
-        });
-        return next;
-      });
-    };
-  
-    socket.on('newProducer', updatePeers);
-    socket.on('newPeer', updatePeers);
-    socket.on('peerDisconnected', handlePeerDisconnected);
-    socket.on('peerMuteStatusChanged', ({ peerId, muted }) => {
-      setMutedPeers(prev => ({ ...prev, [peerId]: muted }));
-      setRoomPeers(prev =>
-        prev.map(p => (p.id === peerId ? { ...p, muted } : p))
-      );
-    });
-    socket.on('disconnect', leaveRoom);
-  
-    return () => {
-      socket.off('newProducer', updatePeers);
-      socket.off('newPeer', updatePeers);
-      socket.off('peerDisconnected', handlePeerDisconnected);
-      socket.off('peerMuteStatusChanged', () => {});
-      socket.off('disconnect', leaveRoom);
-    };
-  }, [socket, leaveRoom]);
-  
 
-  useEffect(() => {
-    if (localVideoRef.current) {
-      localVideoRef.current.srcObject = audioOnly ? null : localStreamRef.current;
-    }
-  }, [audioOnly, localVideoRef]);
-
-  const connectToVoiceRoom = useCallback(
-    async (roomId: number) => {
-      if (!socket?.connected || !username) return false;
-      try {
-        deviceRef.current = new Device();
-        const { rtpCapabilities } = await socket.emitWithAck('getRouterRtpCapabilities');
-        await deviceRef.current.load({ routerRtpCapabilities: rtpCapabilities });
-
-        const { error: joinError } = await socket.emitWithAck('joinRoom', { username, roomId, audioOnly });
-        if (joinError) throw new Error(joinError as string);
-
-        const createTransport = async (
-          sender: boolean
-        ): Promise<TransportOptions<{ sender: boolean }>> => {
-          const res = (await socket.emitWithAck('createWebRtcTransport', { sender })) as {
-            error?: string;
-            transport: TransportOptions<{ sender: boolean }>;
-          };
-          if (res.error) throw new Error(res.error);
-          return res.transport;
-        };
-
-        const sendParams = await createTransport(true);
-        const recvParams = await createTransport(false);
-
-        sendTransportRef.current = deviceRef.current.createSendTransport({
-          id: sendParams.id,
-          iceParameters: sendParams.iceParameters,
-          iceCandidates: sendParams.iceCandidates,
-          dtlsParameters: sendParams.dtlsParameters,
-          appData: { sender: true },
-        });
-        recvTransportRef.current = deviceRef.current.createRecvTransport({
-          id: recvParams.id,
-          iceParameters: recvParams.iceParameters,
-          iceCandidates: recvParams.iceCandidates,
-          dtlsParameters: recvParams.dtlsParameters,
-          appData: { sender: false },
-        });
-
-        const connectHandler = async (params: any, cb: any, eb: any, transport: Transport) => {
-          try {
-            await socket.emitWithAck('connectTransport', { transportId: transport.id, dtlsParameters: params.dtlsParameters });
-            cb();
-          } catch (e: any) {
-            eb(e);
-          }
-        };
-        sendTransportRef.current.on('connect', (p, cb, eb) => connectHandler(p, cb, eb, sendTransportRef.current!));
-        recvTransportRef.current.on('connect', (p, cb, eb) => connectHandler(p, cb, eb, recvTransportRef.current!));
-
-        sendTransportRef.current.on('produce', async ({ kind, rtpParameters }, cb, eb) => {
-          try {
-            const { id } = await socket.emitWithAck('produce', { kind, rtpParameters });
-            cb({ id });
-          } catch (err: any) {
-            eb(err);
-          }
-        });
-
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        const hasVideo = devices.some(d => d.kind === 'videoinput');
-        
-
-        const audioStream = await navigator.mediaDevices.getUserMedia({
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            channelCount: 1
-          },
-          video: false
-        });
-
+      const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
         localStreamRef.current = audioStream;
-        let videoStream: MediaStream | null = null;
+        audioProducerRef.current = await sendTransportRef.current.produce({
+          track: audioStream.getAudioTracks()[0],
+          appData: { mediaType: 'audio' },
+        });
 
-        if (!audioOnly && hasVideo) {
-          videoStream = await navigator.mediaDevices.getUserMedia({
-            audio: false,     // **отключаем аудио**
-            video: true
-          });
+      if (!audioOnly) {
+        const videoStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
         
-          // показа локального видео
-          if (localVideoRef.current) {
-            localVideoRef.current.srcObject = videoStream;
-          }
-        }
-
-        if (audioStream.getAudioTracks().length) {
-          const audioTrack = audioStream.getAudioTracks()[0];
-          audioProducerRef.current = await sendTransportRef.current.produce({
-            track: audioTrack,
-            appData: { mediaType: 'audio' }
-          });
-        }
-        
-        if (videoStream?.getVideoTracks().length) {
-          const videoTrack = videoStream.getVideoTracks()[0];
-          videoProducerRef.current = await sendTransportRef.current.produce({
-            track: videoTrack,
-            appData: { mediaType: 'video' }
-          });
-        }
-
-        const { peers }: { peers: PeerInfo[] } = await socket.emitWithAck('getRoomPeers');
-        setRoomPeers(peers);
-        //peers.filter((p: PeerInfo) => p.id !== socket.id).forEach((p: PeerInfo) => consumeMedia(p.id));
-
-        dispatch(setJoin(true));
-        dispatch(setChat(roomId));
-        setIsConnected(true);
-        return true;
-      } catch (e: any) {
-        console.error('connectToVoiceRoom error:', e);
-        leaveRoom();
-        return false;
+        videoProducerRef.current = await sendTransportRef.current.produce({
+          track: videoStream.getVideoTracks()[0],
+          appData: { mediaType: 'video' },
+        });
       }
-    },
-    [socket, username, audioOnly, consumeMedia, dispatch, leaveRoom]
-  );
 
-  const joinRoom = useCallback(
-    async (roomId: number, attempt = 1): Promise<boolean> => {
-      if (attempt > 5) return false;
-      const ok = await connectToVoiceRoom(roomId);
-      if (!ok) {
-        await new Promise(res => setTimeout(res, 1000));
-        return joinRoom(roomId, attempt + 1);
-      }
+      const [{ peers }, peer] = await Promise.all([
+        socket.emitWithAck('getRoomPeers'),
+        socket.emitWithAck('getMyPeer')
+      ]);
+
+      dispatch(setPeers(peers));
+      dispatch(setMyPeer(peer))
+      dispatch(setJoin(true));
+      dispatch(setChat(roomId));
       return true;
-    },
-    [connectToVoiceRoom]
-  );
-
-  useEffect(() => {
-    return () => {
-      if (localStreamRef.current) {
-        localStreamRef.current.getTracks().forEach(t => t.stop());
+    } catch (e: any) {
+      console.error('connectToVoiceRoom error:', e);
+      if (!isLeavingRef.current) {
+        isLeavingRef.current = true;
+        leaveRoom();
       }
-      leaveRoom();
-    };
-  }, [leaveRoom]);
+      return false;
+    }
+  }, [socket, username, audioOnly, dispatch, leaveRoom]);
 
-  useEffect(() => {
+  const joinRoom = useCallback(async (roomId: number, attempt = 1): Promise<boolean> => {
+    if (attempt > 5) return false;
+    const ok = await connectToVoiceRoom(roomId);
+    if (!ok) {
+      await new Promise((res) => setTimeout(res, 1000));
+      return joinRoom(roomId, attempt + 1);
+    }
+    return true;
+  }, [connectToVoiceRoom]);
+
+  const mute = useCallback(async (shouldMute: boolean) => {
+    if (!sendTransportRef.current?.connectionState || !audioProducerRef.current || !socket?.id) {
+      return;
+    }
+    if (!sendTransportRef.current?.connectionState) {
+      console.error('Transport not connected');
+      return;
+    }
+    
+    try {
+      const producer = audioProducerRef.current;
+      shouldMute ? await producer.pause() : await producer.resume();
+      dispatch(setMuted({ peerId: socket.id, muted: shouldMute }));
+
+      socket.emit('setMute', { muted: shouldMute }, (res: any) => {
+        if (!res?.success) console.error('Mute update failed:', res?.error);
+      });
+    } catch (err) {
+      console.error('Mute error:', err);
+    }
+  }, [socket, dispatch]);
+
+  const updatePeers = useCallback(async () => {
     if (!socket) return;
     try {
-      if (!roomPeers) return;
-      
-      const peersChanged = roomPeers.length !== prevRoomPeersRef.current.length || 
-      !roomPeers.every((id, index) => id === prevRoomPeersRef.current[index]);
-
-      if (!peersChanged) {
-        console.log('[DEBUG] No changes in roomPeers, skipping consumeMedia.');
-        return;
-      }
-
-      roomPeers.filter((p: PeerInfo) => p.id !== socket.id).forEach((p: PeerInfo) => consumeMedia(p.id));
-      dispatch(setPeers(roomPeers))
-
-      prevRoomPeersRef.current = roomPeers
+      const { peers } = await socket.emitWithAck('getRoomPeers');
+      console.log('Give peer in room')
+      dispatch(setPeers(peers));
     } catch (err) {
-      console.log(err)
+      console.error('Failed to update peers:', err);
     }
-   }, [roomPeers, mutedPeers]);
-   
+  }, [socket, dispatch]);
+
+  const debouncedUpdatePeers = useMemo(() => debounce(updatePeers, 500, { leading: false, trailing: true }), [updatePeers]);
+  console.log(roomPeers)
+  useEffect(() => {
+    if (!socket) return;
+
+    const onNewProducer = async () => {
+      debouncedUpdatePeers();
+    };
+    const onPeerDisconnected = () => {
+      console.log(12322)
+      debouncedUpdatePeers()};
+    const onPeerMuteStatusChanged = ({ peerId, muted }: any) => {
+      dispatch(setMuted({ peerId, muted }));
+      debouncedUpdatePeers();
+    };
+    const onPeerAudioOnlyStatusChanged = () => debouncedUpdatePeers();
+    const onDisconnect = () => {
+      if (!isLeavingRef.current) leaveRoom();
+    };
+
+    socket.on('newProducer', onNewProducer);
+    socket.on('newPeer', () => {
+      debouncedUpdatePeers()});
+    socket.on('peerDisconnected', onPeerDisconnected);
+    socket.on('peerMuteStatusChanged', onPeerMuteStatusChanged);
+    socket.on('peerAudioOnlyStatusChanged', onPeerAudioOnlyStatusChanged);
+    socket.on('disconnect', onDisconnect);
+
+    return () => {
+      socket.off('newProducer', onNewProducer);
+      socket.off('newPeer', debouncedUpdatePeers);
+      socket.off('peerDisconnected', onPeerDisconnected);
+      socket.off('peerMuteStatusChanged', onPeerMuteStatusChanged);
+      socket.off('peerAudioOnlyStatusChanged', onPeerAudioOnlyStatusChanged);
+      socket.off('disconnect', onDisconnect);
+      debouncedUpdatePeers.cancel();
+    };
+  }, [socket, consumeMedia, dispatch, leaveRoom, debouncedUpdatePeers]);
 
 
-  // Mute/unmute local audio: pause/resume producer, disable local track, update state
-  // В функции mute добавьте проверки и обновление roomPeers:
-const mute = async (shouldMute: boolean) => {
-  if (!sendTransportRef.current?.connectionState) {
-    console.error('Transport not connected');
-    return;
-  }
-  const producer = audioProducerRef.current;
-  if (!socket || !producer || !socket.id) return;
+  useEffect(() => {
+    if (!socket || !roomPeers.length) return;
 
-  try {
-    shouldMute ? await producer.pause() : await producer.resume();
+    const consumerInside = async (id: string) => {
+      await consumeMedia(id)
+    }
 
-    console.log(
-      '[DEBUG] Local mute:', 
-      shouldMute, 
-      'Producer state:', 
-      producer.paused, 
-      'Track enabled:', 
-      producer.track?.enabled
-    );
-    
+    // Сравниваем с предыдущими пирами
+    const changed =
+      roomPeers.length !== prevRoomPeersRef.current.length ||
+      roomPeers.some((p, i) => p.id !== prevRoomPeersRef.current[i]?.id);
 
-    // Обновление локального состояния
-    const localPeerId = socket.id;
-    setMutedPeers(prev => ({ ...prev, [localPeerId]: shouldMute }));
-    
-    // Обновление списка пиров
-    setRoomPeers(prev => {
-      const updatedPeers = prev.map(p => 
-        p.id === localPeerId ? { ...p, muted: shouldMute } : p
-      );
-      // Если изменения не было — не обновляем состояние
-      return updatedPeers.some(p => p.muted !== shouldMute) ? updatedPeers : prev;
-    });
-    
+    if (changed) {
+      prevRoomPeersRef.current = roomPeers;  // Обновляем ссылку на пиров
+      roomPeers.forEach(({id}: {id: string}) => {
+        consumerInside(id);
+      })
+      //debouncedUpdatePeers();  // Теперь мы обновляем только при изменении пиров
+    }
+  }, [roomPeers, socket, debouncedUpdatePeers]);
 
-    // Отправка на сервер
-    socket.emit('setMute', { muted: shouldMute }, (res: any) => {
-      if (!res?.success) console.error('Mute update failed:', res?.error);
-    });
-  } catch (err) {
-    console.error('Mute error:', err);
-  }
-};
   
+  
+  useEffect(() => {
+    if (!socket || audioOnly === undefined) return;
+    
+    const timer = setTimeout(() => {
+      socket.emitWithAck('setAudioOnly', { audioOnly });
+    }, 500);
 
-  return {
+    return () => clearTimeout(timer);
+  }, [audioOnly, socket]);
+  
+  useEffect(() => {
+    let isMounted = true;
+    const cleanup = async () => {
+      if (!isMounted) return;
+      
+      try {
+        // Плавная остановка локального потока
+        if (localStreamRef.current) {
+          localStreamRef.current.getTracks().forEach(t => {
+            t.dispatchEvent(new Event('ended'));
+            setTimeout(() => t.stop(), 500);
+          });
+        }
+        
+        // Отложенная очистка состояния
+        setTimeout(() => {
+          dispatch(resetVoiceState());
+        }, 1000);
+  
+        await leaveRoom();
+      } catch (err) {
+        console.error('Cleanup error:', err);
+      }
+    };
+  
+    return () => {
+      isMounted = false;
+      cleanup();
+    };
+  }, [dispatch, leaveRoom]);
+
+  const api = useMemo(() => ({
     joinRoom,
     leaveRoom,
     mute,
-    audioStreams,
-    videoStreams,
+    localStreamRef,
+    streams,
     roomPeers,
     mutedPeers,
-    isConnected,
     audioOnly,
-    setAudioOnly,
-    localVideoRef,
-    localPeerId: socket?.id, 
-  };
+    localPeerId: socket?.id,
+  }), [
+    joinRoom,
+    leaveRoom,
+    mute,
+    streams,
+    roomPeers,
+    mutedPeers,
+    audioOnly,
+    socket?.id,
+  ]);
+
+  return api;
 };

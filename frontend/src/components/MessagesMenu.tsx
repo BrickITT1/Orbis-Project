@@ -1,10 +1,9 @@
 import React, { useEffect } from 'react';
-import { Chat } from './Message/Chat';
 import { useAppSelector } from '../app/hooks';
 import { useGetChatsQuery } from '../services/chat';
-import useChatSocket from '../app/hook/textchat/useChatSocket';
 import { useRefreshTokenQueryQuery } from '../services/auth';
 import { MessageMenuLayout } from './Message/MessageMenuLayout';
+import { ChatItem } from './Message/ChatItem';
 
 
 export const MessageMenu: React.FC = () =>  {
@@ -20,7 +19,7 @@ export const MessageMenu: React.FC = () =>  {
                     {
                         chats && (
                             chats.map((val, index)=>(
-                                <Chat key={index} chat={val}/>
+                                <ChatItem key={index} chat={val}/>
                             ))
                         )
                     }

@@ -12,13 +12,13 @@ import AudioManager from '../components/Voice/AudioManager';
 import RemoteVideo from '../components/RemoteVideo';
 import { VoiceManager } from '../components/Voice/VoiceManager';
 import { useDelayedVoiceChat } from '../app/hook/voicechat/useDelayedVoiceChat';
+import { MessageGroupp } from '../types/Message';
 
 export const AppPage: React.FC = () =>  {
     const dispatch = useAppDispatch();
     const server = useAppSelector(state => state.server);
     const token = useAppSelector(state => state.auth.user?.access_token);
-    const MyUsername = useAppSelector(state => state.auth.user?.username);
-    const localVideoRef = useRef<HTMLVideoElement>(null);
+    const myUsername = useAppSelector(state => state.auth.user?.username) ?? '';
     
     useEffect(()=> {
         dispatch(setActiveServer(undefined))
@@ -26,30 +26,24 @@ export const AppPage: React.FC = () =>  {
     const activeChat = useAppSelector(state => state.chat.activeChat);
 
     const {
-        messages,
         groupedMessages,
-        newMessage,
-        setNewMessage,
         sendMessage,
         setEnable,
         setDisable,
         isSocketConnected,
-      } = useChatMessages(String(activeChat?.id), token, MyUsername);
+      } = useChatMessages(String(activeChat?.id), token, myUsername);
     
     const {
         joinRoom,
         leaveRoom,
-        audioStreams,
-        videoStreams,
-        roomPeers,
+        streams,
+        localStreamRef,
         mutedPeers,
         mute,
         audioOnly,
-        setAudioOnly,
         localPeerId
-      } = useDelayedVoiceChat({ localVideoRef });
+      } = useDelayedVoiceChat();
 
-      
 
     useEffect(() => {
         if (activeChat && !isSocketConnected) setEnable();
@@ -57,7 +51,7 @@ export const AppPage: React.FC = () =>  {
         if (isSocketConnected) setDisable();
         };
     }, [activeChat, isSocketConnected, setEnable, setDisable]);
-
+    
     return ( 
         <>
             <div className="main-app">
@@ -70,24 +64,25 @@ export const AppPage: React.FC = () =>  {
                     <MessageMenu />
                 )}
                 
-                <Action localVideo={localVideoRef} joinRoom={joinRoom}/>
-                <AudioManager
-                    audioStreams={audioStreams}
+                <Action
+                    joinRoomApi={joinRoom}
+                    handleSendMessage={sendMessage}
+                    Messages={groupedMessages as MessageGroupp[]}
+                    videoStreams={streams.videoStreams!}
+                />
+                {streams.audioStreams ? <AudioManager
+                    audioStreams={streams.audioStreams}
                     mutedPeers={mutedPeers}
                     localPeerId={localPeerId!}
                     onPlaybackError={(id, err) =>
                         console.error(`Playback error for ${id}:`, err)
                 }
                 
-                />
-                <VoiceManager leaveRoom={leaveRoom} setAudioOnly={setAudioOnly} mute={mute} audioOnly={audioOnly}/>
+                /> : null}
                 
-                <video ref={localVideoRef} autoPlay muted playsInline style={{ width: 200 }} />
-                <div style={{ display: 'flex', flexWrap: 'wrap' }}>
-                    {Object.entries(videoStreams).map(([id, stream]) => (
-                        <RemoteVideo key={id} stream={stream} />
-                    ))}
-                </div>
+                <VoiceManager leaveRoom={leaveRoom} mute={mute} audioOnly={audioOnly}/>
+                
+                
             </div>
         </> 
     );

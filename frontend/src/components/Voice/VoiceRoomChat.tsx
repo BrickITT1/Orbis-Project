@@ -4,18 +4,17 @@ import { VoiceMember } from "./VoiceMember";
 import RemoteVideo from "../RemoteVideo";
 import AudioManager from "./AudioManager";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
-import { setAudioOnly } from "../../features/voice/voiceSlices";
 
 
-export const VoiceRoomChat: React.FC =() => {
-    const roomPeers = useAppSelector(state => state.voice.peers);
+export const VoiceRoomChat: React.FC<{videoStreams: Record<string, MediaStream>}> =({videoStreams}) => {
+    const roomPeers = useAppSelector(state => state.voice.roomPeers);
     
     return (
         <>
         <div className="voice-chat">
             <ul className="users">
                 {/* Участники */}
-                <VoiceMember typeMember='chat' roomPeers={roomPeers} />
+                <VoiceMember typeMember='chat' roomPeers={roomPeers} videoStreams={videoStreams} />
             </ul>
             
             </div>

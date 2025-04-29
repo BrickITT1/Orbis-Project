@@ -1,57 +1,61 @@
-// features/authSlice.ts
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { PeerInfo } from '../../types/Channel';
 
-interface AudioStream {
-  id: string;
-  stream: MediaStream | null;
-  isPlaying: boolean;
+interface VoiceState {
+  roomPeers: PeerInfo[];
+  mutedPeers: Record<string, boolean>;
+  isConnected: boolean;
+  roomId: number | null;
+  myPeer: PeerInfo;
 }
 
-interface AudioState {
-  streams: AudioStream[];
-  joined: boolean;
-  chat: number | undefined;
-  peers: PeerInfo[];
-  audioOnly: boolean;
-}
-
-const initialState: AudioState = {
-  joined: false,
-  chat: undefined,
-  streams: [],
-  peers: [],
-  audioOnly: true,
+const initialState: VoiceState = {
+  roomPeers: [],
+  mutedPeers: {},
+  isConnected: false,
+  roomId: null,
+  myPeer: {
+    id: '',
+    username: '',
+    audioOnly: false
+  }
 };
 
-const voiceSlice = createSlice({
+export const voiceSlice = createSlice({
   name: 'voice',
   initialState,
   reducers: {
-    setJoin(state, action: PayloadAction<boolean>) {
-      state.joined = action.payload;
+    setPeers: (state, action: PayloadAction<PeerInfo[]>) => {
+      state.roomPeers = action.payload;
     },
-    setChat(state, action: PayloadAction<number | undefined>) {
-      state.chat = action.payload;
+    setMuted: (state, action: PayloadAction<{ peerId: string; muted: boolean }>) => {
+      state.mutedPeers[action.payload.peerId] = action.payload.muted;
     },
-    setCurrentRoom: (state, action: PayloadAction<number | undefined>) => {
-      state.chat = action.payload;
+    setJoin: (state, action: PayloadAction<boolean>) => {
+      state.isConnected = action.payload;
     },
-    setPeers(state, action: PayloadAction<PeerInfo[]>) {
-      state.peers = action.payload;
+    setChat: (state, action: PayloadAction<number | null>) => {
+      state.roomId = action.payload;
     },
-    setAudioOnly(state, action: PayloadAction<boolean>) {
-      state.audioOnly = action.payload;
-    }
+    setMyPeer: (state, action: PayloadAction<PeerInfo>) => {
+      state.myPeer = action.payload;
+    },
+    resetVoiceState: (state) => {
+      state.roomPeers = [];
+      state.mutedPeers = {};
+      state.isConnected = false;
+      state.roomId = null;
+    },
   },
 });
 
 export const {
+  setPeers,
+  setMuted,
   setJoin,
   setChat,
-  setCurrentRoom, 
-  setPeers,
-  setAudioOnly
+  resetVoiceState,
+  setMyPeer
 } = voiceSlice.actions;
 
 export default voiceSlice.reducer;

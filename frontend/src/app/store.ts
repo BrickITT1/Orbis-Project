@@ -18,7 +18,13 @@ export const store = configureStore({
         [serverApi.reducerPath]: serverApi.reducer
     },
     middleware: (getDefaultMiddleware) =>
-        getDefaultMiddleware().concat(userApi.middleware, messageApi.middleware, serverApi.middleware)
+        getDefaultMiddleware({
+            serializableCheck: {
+                ignoredActions: ['voice/setStreams'], // Игнорируем действия, связанные с `setStreams`
+                ignoredPaths: ['voice.audioStreams', 'voice.videoStreams'], // Игнорируем конкретные пути состояния
+              },
+        }).concat(userApi.middleware, messageApi.middleware, serverApi.middleware)
+    
 });
 
 export type RootState = ReturnType<typeof store.getState>;

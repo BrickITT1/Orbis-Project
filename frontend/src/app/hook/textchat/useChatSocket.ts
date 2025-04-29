@@ -1,30 +1,47 @@
-import { useEffect,  useState } from 'react';
-import { useRefreshTokenQueryQuery } from '../../../services/auth';
+import { useEffect, useRef, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
+import { useRefreshTokenQueryQuery } from '../../../services/auth';
 
-const useChatSocket = (): Socket | null => {
-  const [socket, setSocket] = useState<Socket | null>(null); // ← Используем состояние
-  const { data: token, isSuccess } = useRefreshTokenQueryQuery({});
-
+export const useChatSocket = () => {
+  const socketRef = useRef<Socket | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
+  const { data: tokenData, isSuccess } = useRefreshTokenQueryQuery({});
+  
   useEffect(() => {
-    if (isSuccess && token) {
-      const newSocket = io(
-        'https://26.234.138.233:4000',
-        { auth: { token: token.access_token } }
-      );
+    if (!isSuccess || !tokenData) return;
 
-      setSocket(newSocket); // ← Обновляем состояние
+    // Создаем новый сокет только если его еще нет
+    if (!socketRef.current) {
+      const newSocket = io('https://26.234.138.233:4000', {
+        auth: { token: tokenData.access_token },
+        autoConnect: true,
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 3000,
+      });
 
-      newSocket.on('connect', () => console.log(`Connected chat`));
-      newSocket.on('disconnect', () => console.log(`Disconnected chat`));
+      newSocket.on('connect', () => {
+        console.log('[TextSocket] Connected');
+        setIsConnected(true);
+      });
 
-      return () => {
-        newSocket.disconnect();
-      };
-    }
-  }, [isSuccess, token]);
+      newSocket.on('disconnect', () => {
+        console.log('[TextSocket] Disconnected');
+        setIsConnected(false);
+      });
 
-  return socket;
+      newSocket.on('connect_error', (err) => {
+        console.error('[TextSocket] Connection error:', err);
+        setIsConnected(false);
+      });
+
+      socketRef.current = newSocket;
+    }    
+  }, [isSuccess, tokenData]);
+
+  return {
+    socket: socketRef.current,
+    isConnected
+    
+  };
 };
-
-export default useChatSocket;

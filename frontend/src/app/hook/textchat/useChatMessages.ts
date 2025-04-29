@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import  useChatSocket from './useChatSocket';
+import  { useChatSocket } from './useChatSocket';
 
 interface Message {
     id: number,
@@ -12,10 +12,9 @@ interface Message {
 
 export const useChatMessages = (activeChatId: string | undefined, token: string | undefined, user_name: string | undefined) => {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [newMessage, setNewMessage] = useState('');
   const [isSocketConnected, setIsSocketConnected] = useState(false);
   const [start, setStartS] = useState(false);
-  const socket = useChatSocket();
+  const {socket} = useChatSocket();
   
 
   // Группировка сообщений
@@ -68,7 +67,7 @@ export const useChatMessages = (activeChatId: string | undefined, token: string 
   }, [socket]);
 
   // Отправка сообщения
-  const sendMessage = useCallback(() => {
+  const sendMessage = useCallback((newMessage: string) => {
     if (!newMessage.trim() || !activeChatId || !token || !socket?.connected) return;
 
     try {
@@ -78,17 +77,14 @@ export const useChatMessages = (activeChatId: string | undefined, token: string 
         text: newMessage,
         user_name: user_name
       });
-      setNewMessage('');
     } catch (error) {
       console.error("Ошибка при отправке сообщения:", error);
     }
-  }, [newMessage, activeChatId, token, socket]);
+  }, [ activeChatId, token, socket]);
 
   return {
     messages,
     groupedMessages,
-    newMessage,
-    setNewMessage,
     sendMessage,
     setEnable,
     setDisable,

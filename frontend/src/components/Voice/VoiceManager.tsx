@@ -1,18 +1,19 @@
 import React from "react";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
+import { setMyPeer } from "../../features/voice/voiceSlices";
 
 interface VoiceManagerProps {
     leaveRoom: () => Promise<void> | any;
-    setAudioOnly: React.Dispatch<React.SetStateAction<boolean>> | any;
     mute: (shouldMute: boolean) => Promise<void> | any
     audioOnly: boolean;
 }
 
-export const VoiceManager: React.FC<VoiceManagerProps> = ({leaveRoom, setAudioOnly, mute, audioOnly}) => {
-    if (!leaveRoom && !setAudioOnly && !mute && !audioOnly) return;
-
+export const VoiceManager: React.FC<VoiceManagerProps> = ({leaveRoom, mute, audioOnly}) => {
+    if (!leaveRoom && !mute && !audioOnly) return;
+    const dispatch = useAppDispatch()
+    const MyPeer = useAppSelector(s => s.voice.myPeer)
     const toggleAudioOnly = () => {
-        setAudioOnly(!audioOnly)
+        dispatch(setMyPeer({...MyPeer, audioOnly: !audioOnly}))
     }
     
     return (

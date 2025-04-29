@@ -14,7 +14,7 @@ const AudioManager: React.FC<AudioManagerProps> = ({
   onPlaybackError,
 }) => {
   const audioRefs = useRef<Record<string, HTMLAudioElement | null>>({});
-
+  
   // Отфильтровываем локальный поток
   const filteredAudioStreams = useMemo(() => {
     return Object.fromEntries(

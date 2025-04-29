@@ -1,8 +1,7 @@
-// src/hooks/useSafeLeaveRoom.ts
 import { useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch } from '../../hooks';
-import { setChat, setJoin } from '../../../features/voice/voiceSlices';
+import { setChat, setJoin, setPeers } from '../../../features/voice/voiceSlices';
 import type { Socket } from 'socket.io-client';
 import type { Transport, Producer, Consumer } from 'mediasoup-client/lib/types';
 
@@ -19,13 +18,14 @@ interface SafeLeaveParams {
   videoProducerRef: React.MutableRefObject<Producer | null>;
   sendTransportRef: React.MutableRefObject<Transport | null>;
   recvTransportRef: React.MutableRefObject<Transport | null>;
-  localVideoRef: React.MutableRefObject<HTMLVideoElement | null>;
-  audioStreams:Record<string, MediaStream>;
   deviceRef: React.MutableRefObject<any>;
-  setAudioStreams: (streams: Record<string, MediaStream>) => void;
-  setRoomPeers: React.Dispatch<React.SetStateAction<PeerInfo[]>>;
+  audioStreams: Record<string, MediaStream>;
+  videoStreams?: Record<string, MediaStream>;
+  setStreams: (streams: { 
+    audioStreams?: Record<string, MediaStream>; 
+    videoStreams?: Record<string, MediaStream> 
+  }) => void;
 }
-
 
 export const useSafeLeaveRoom = ({
   socket,
@@ -34,129 +34,149 @@ export const useSafeLeaveRoom = ({
   videoProducerRef,
   sendTransportRef,
   recvTransportRef,
-  localVideoRef,
   deviceRef,
   audioStreams,
-  setAudioStreams,
-  setRoomPeers, 
+  videoStreams = {},
+  setStreams,
 }: SafeLeaveParams) => {
   const isLeavingRef = useRef(false);
   const dispatch = useAppDispatch();
-  const router = useNavigate();
-  
-    
+  const navigate = useNavigate();
+
   const waitForSocketReady = useCallback(async (maxWait = 3000) => {
+    if (!socket) return false;
+    
     const interval = 100;
-    const maxTries = maxWait / interval;
+    const maxTries = Math.floor(maxWait / interval);
     let tries = 0;
-    while (tries < maxTries) {
-      if (socket?.connected) return true;
-      await new Promise(res => setTimeout(res, interval));
+
+    while (tries < maxTries && !socket.connected) {
+      await new Promise((resolve) => setTimeout(resolve, interval));
       tries++;
     }
-    return false;
+
+    return socket.connected;
   }, [socket]);
 
-  const leaveRoom = useCallback(async () => {
-    if (!socket) {
-      console.warn('No socket instance found.');
-      return;
-    }
-  
-    if (isLeavingRef.current) {
-      console.warn('Already leaving...');
-      return;
-    }
-    isLeavingRef.current = true;
-  
-    console.log('Leaving room and cleaning up...');
-  
+  const cleanupMediaElements = useCallback(() => {
+    // Clean up DOM media elements
+    document.querySelectorAll('audio[id^="audio-"], video[id^="video-"]').forEach((el) => {
+      const mediaEl = el as HTMLMediaElement;
+      const stream = mediaEl.srcObject as MediaStream | null;
+      stream?.getTracks().forEach((t) => t.stop());
+      mediaEl.remove();
+    });
+  }, []);
+
+  const cleanupProducers = useCallback(async () => {
+    // Close producers
     try {
-      // Закрыть потребителей
-      consumersRef.current.forEach((consumer: any) => {
-        if (!consumer.closed) consumer.close();
-      });
-      consumersRef.current.clear();
-  
-      // Закрыть продюсеров
       audioProducerRef.current?.close();
       videoProducerRef.current?.close();
+    } finally {
       audioProducerRef.current = null;
       videoProducerRef.current = null;
-  
-      // Закрыть транспорты
+    }
+  }, [audioProducerRef, videoProducerRef]);
+
+  const cleanupConsumers = useCallback(() => {
+    // Close consumers
+    consumersRef.current.forEach((consumer) => {
+      try {
+        consumer.close();
+      } catch (error) {
+        console.warn('Error closing consumer:', error);
+      }
+    });
+    consumersRef.current.clear();
+  }, [consumersRef]);
+
+  const cleanupTransports = useCallback(() => {
+    // Close transports
+    try {
       sendTransportRef.current?.close();
       recvTransportRef.current?.close();
+    } finally {
       sendTransportRef.current = null;
       recvTransportRef.current = null;
-  
-      // Остановить локальные потоки
-      if (localVideoRef.current?.srcObject) {
-        const stream = localVideoRef.current.srcObject as MediaStream;
-        stream.getTracks().forEach(track => track.stop());
-        localVideoRef.current.srcObject = null;
-      }
-  
-      // Удалить медиапотоки из DOM
-      document.querySelectorAll('audio[id^="audio-"], video[id^="video-"]').forEach(el => {
-        console.log(el)
-        const mediaEl = el as HTMLMediaElement;
-        const stream = mediaEl.srcObject as MediaStream;
-        if (stream) stream.getTracks().forEach(track => track.stop());
-        mediaEl.remove();
-      });
-  
-      // Остановка всех аудио потоков
-      Object.values(audioStreams).forEach(stream => {
-        stream.getTracks().forEach(track => {
-          console.log(`[leaveRoom] Stopping track:`, track);
-          track.stop();
-        });
-      });
-  
-      // Очистка состояния audioStreams
-      setAudioStreams({});
-  
-      // Сброс устройства
-      deviceRef.current = null;
-  
-      // Попытка уведомить сервер
+    }
+  }, [sendTransportRef, recvTransportRef]);
+
+  const cleanupStreams = useCallback(() => {
+    // Stop all audio tracks
+    Object.values(audioStreams).forEach((stream) => {
+      stream.getTracks().forEach((track) => track.stop());
+    });
+
+    // Stop all video tracks if they exist
+    Object.values(videoStreams).forEach((stream) => {
+      stream.getTracks().forEach((track) => track.stop());
+    });
+
+    // Clear streams state
+    setStreams({ audioStreams: {}, videoStreams: {} });
+  }, [audioStreams, videoStreams, setStreams]);
+
+  const notifyServer = useCallback(async () => {
+    if (!socket) return;
+
+    try {
       const ready = await waitForSocketReady();
-      setTimeout(async () => {
-        if (ready && socket.connected) {
-            console.log(123);
-            await socket.emitWithAck?.('leaveRoom');
-            console.log(1234);
-        } else {
-            console.warn('Socket was not ready, skipping leaveRoom emit');
-        }
-    }, 500);
-    } catch (e) {
-      console.error('Error while leaving room:', e);
-    } finally {
-      dispatch(setJoin(false));
-      dispatch(setChat(undefined));
-      setRoomPeers([]);
+      if (ready) {
+        await socket.emitWithAck('leaveRoom');
+      }
+    } catch (error) {
+      console.warn('Failed to notify server about leaving:', error);
+    }
+  }, [socket, waitForSocketReady]);
+
+  const leaveRoom = useCallback(async () => {
+    if (isLeavingRef.current) {
+      console.warn('Already in the process of leaving the room');
+      return;
+    }
+    if (!socket) {
+      console.warn('Socket instance not available');
+      return;
+    }
+
+    isLeavingRef.current = true;
+
+    try {
+      // Order of cleanup matters
+      await cleanupProducers();
+      cleanupConsumers();
+      cleanupTransports();
+      cleanupMediaElements();
+      cleanupStreams();
+
+      // Reset device
+      deviceRef.current = null;
+
+      // Notify server
+      await notifyServer();
+    } catch (error) {
+      console.error('Error during room cleanup:', error);
       isLeavingRef.current = false;
-      console.log('Cleanup complete.');
+    } finally {
+      // Reset state
+      dispatch(setJoin(false));
+      dispatch(setChat(null));
+      dispatch(setPeers([]));
+      isLeavingRef.current = false;
     }
   }, [
     socket,
-    consumersRef,
-    audioProducerRef,
-    videoProducerRef,
-    sendTransportRef,
-    recvTransportRef,
-    localVideoRef,
+    isLeavingRef,
+    cleanupProducers,
+    cleanupConsumers,
+    cleanupTransports,
+    cleanupMediaElements,
+    cleanupStreams,
     deviceRef,
-    dispatch,
-    waitForSocketReady,
-    setAudioStreams,
-    setRoomPeers,
+    notifyServer,
+    dispatch
   ]);
-  
-  
-  
 
   return leaveRoom;
 };
