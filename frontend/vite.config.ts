@@ -3,6 +3,9 @@ import react from '@vitejs/plugin-react';
 import fs from 'fs';
 import path from 'path';
 
+
+const socketServerUrl = process.env.VITE_MEDIA_SERVICE_SERVER_URL || 'https://26.234.138.233:3007';
+
 export default defineConfig({
   plugins: [react()],
   
@@ -13,11 +16,12 @@ export default defineConfig({
     },
     proxy: {
       '/socket.io': {
-        target: 'https://26.234.138.233:4000', // Ваш бэкенд
+        target: socketServerUrl, // Ваш бэкенд
         ws: true, // Проксировать WebSocket
         changeOrigin: true,
         secure: false, // Отключить проверку SSL для самоподписанных сертификатов
       },
+      
     }
   },
   build: {
@@ -33,5 +37,6 @@ export default defineConfig({
     },
   },
   define: {
-  }
+    'process.env': process.env
+  },
 });

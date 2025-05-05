@@ -1,9 +1,10 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import { config } from "../config";
 
 export const serverApi = createApi({
     reducerPath: "serverApi",
     baseQuery: fetchBaseQuery({
-        baseUrl: "https://26.234.138.233:4000/api",
+        baseUrl: `${config.userServiceUrl}/api`,
         credentials: "include",
         prepareHeaders: (headers, { getState }) => {
             const state = getState() as { auth: { user: { access_token?: string } } }; // Type assertion for state

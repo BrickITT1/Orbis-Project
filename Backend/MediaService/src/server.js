@@ -765,7 +765,8 @@ io.on('connection', (socket) => {
   });
 });
 
+const PORT = process.env.MEDIAPORT || 3000;
 // Запуск сервера
-server.listen(process.env.MEDIAPORT || 3000, () => {
-  console.log('Server running on port 3000');
+server.listen(PORT , () => {
+  console.log(`Server running on port ${PORT}`);
 });

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useRefreshTokenQueryQuery } from '../../../services/auth';
+import { config } from '../../../config';
 
 export const useChatSocket = () => {
   const socketRef = useRef<Socket | null>(null);
@@ -12,7 +13,7 @@ export const useChatSocket = () => {
 
     // Создаем новый сокет только если его еще нет
     if (!socketRef.current) {
-      const newSocket = io('https://26.234.138.233:4000', {
+      const newSocket = io(config.chatServiceUrl, {
         auth: { token: tokenData.access_token },
         autoConnect: true,
         reconnection: true,
@@ -41,7 +42,6 @@ export const useChatSocket = () => {
 
   return {
     socket: socketRef.current,
-    isConnected
-    
+    isConnected,
   };
 };
