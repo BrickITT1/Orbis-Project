@@ -11,8 +11,9 @@
 
 # Текущие задачи:
 1. Интегрировать в BACKEND базы данных:
-- PostgreSQL
-- Redis
-- ElasticSearch
+- PostgreSQL,
+- Redis,
+- ElasticSearch.
 2. Разработать CDN сервис.
-3. Соединить с FRONTEND
+3. Разработаь USER сервис.
+4. Соединить с FRONTEND.
