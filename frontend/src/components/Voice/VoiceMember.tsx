@@ -5,20 +5,19 @@ import { useAppSelector } from "../../app/hooks";
 type TypeMember = "chat" | "server";
 
 interface VoiceMemberProps {
-  roomPeers: PeerInfo[];
   typeMember: TypeMember;
   videoStreams: Record<string, MediaStream>;
 }
 
-export const VoiceMember: React.FC<VoiceMemberProps> = ({ 
-  roomPeers, 
+export const VoiceMember: React.FC<VoiceMemberProps> = ({  
   typeMember, 
   videoStreams 
 }) => {
   const isConnected = useAppSelector((s) => s.voice.isConnected);
   const myPeer = useAppSelector((s) => s.voice.myPeer);
+  const roomPeers = useAppSelector((s) => s.voice.roomPeers)
   const audioOnly = myPeer?.audioOnly ?? false;
-
+  
   const videoRefs = useRef<Record<string, HTMLVideoElement | null>>({});
   const localStreamRef = useRef<MediaStream | null>(null);
 
@@ -33,6 +32,7 @@ export const VoiceMember: React.FC<VoiceMemberProps> = ({
       localStreamRef.current?.getTracks().forEach(t => t.stop());
     };
   }, []);
+
 
   // Управление локальным потоком для текущего пользователя
   useEffect(() => {
@@ -64,7 +64,7 @@ export const VoiceMember: React.FC<VoiceMemberProps> = ({
     };
 
     initLocalStream();
-
+    console.log('Init')
     return () => {
       localStreamRef.current?.getTracks().forEach(t => t.stop());
       localStreamRef.current = null;

@@ -275,7 +275,7 @@ export const useVoiceChat = () => {
   }, [socket, dispatch]);
 
   const debouncedUpdatePeers = useMemo(() => debounce(updatePeers, 500, { leading: false, trailing: true }), [updatePeers]);
-  console.log(roomPeers)
+  
   useEffect(() => {
     if (!socket) return;
 
@@ -283,7 +283,6 @@ export const useVoiceChat = () => {
       debouncedUpdatePeers();
     };
     const onPeerDisconnected = () => {
-      console.log(12322)
       debouncedUpdatePeers()};
     const onPeerMuteStatusChanged = ({ peerId, muted }: any) => {
       dispatch(setMuted({ peerId, muted }));
@@ -296,7 +295,8 @@ export const useVoiceChat = () => {
 
     socket.on('newProducer', onNewProducer);
     socket.on('newPeer', () => {
-      debouncedUpdatePeers()});
+      debouncedUpdatePeers()
+    });
     socket.on('peerDisconnected', onPeerDisconnected);
     socket.on('peerMuteStatusChanged', onPeerMuteStatusChanged);
     socket.on('peerAudioOnlyStatusChanged', onPeerAudioOnlyStatusChanged);
@@ -316,18 +316,26 @@ export const useVoiceChat = () => {
 
   useEffect(() => {
     if (!socket || !roomPeers.length) return;
-
+    
     const consumerInside = async (id: string) => {
       await consumeMedia(id)
     }
-
+  
     // Сравниваем с предыдущими пирами
     const changed =
       roomPeers.length !== prevRoomPeersRef.current.length ||
-      roomPeers.some((p, i) => p.id !== prevRoomPeersRef.current[i]?.id);
-
+      roomPeers.some((p, i) => {
+        return p.id !== prevRoomPeersRef.current[i]?.id || 
+          p.audioOnly !== prevRoomPeersRef.current[i]?.audioOnly ||
+          p.muted !== prevRoomPeersRef.current[i]?.muted 
+      }
+        
+    
+    );
+    console.log('chage:  ' + changed)
     if (changed) {
       prevRoomPeersRef.current = roomPeers;  // Обновляем ссылку на пиров
+      console.log(roomPeers)
       roomPeers.forEach(({id}: {id: string}) => {
         consumerInside(id);
       })

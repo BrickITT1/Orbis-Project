@@ -9,6 +9,7 @@ export  interface ProducerInfo {
     id: string;
     kind: 'audio' | 'video';
     peerId: string;
+    change: boolean;
 }
   
 export interface ConsumerInfo {

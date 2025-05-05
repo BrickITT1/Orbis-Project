@@ -1,19 +1,25 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Socket } from 'socket.io-client';
 import { useVoiceSocket } from '../app/hook/voicechat/useVoiceSocket';
+import { useVoiceStreams } from '../app/hook/voicechat/useVoiceStreams';
 
 interface VoiceSocketContextType {
   socket: Socket | null;
   isConnected: boolean;
+  audioStreams: Record<string, MediaStream> | null;
+  videoStreams: Record<string, MediaStream> | null;
 }
 
 const VoiceSocketContext = createContext<VoiceSocketContextType>({
   socket: null,
   isConnected: false,
+  audioStreams: null,
+  videoStreams: null,
 });
 
 export const VoiceSocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { socket, isConnected } = useVoiceSocket();
+  const { audioStreams, videoStreams} = useVoiceStreams();
 
   // Добавляем задержку для показа "Connecting..."
   const [showConnecting, setShowConnecting] = useState(true);
@@ -27,7 +33,7 @@ export const VoiceSocketProvider: React.FC<{ children: React.ReactNode }> = ({ c
   }
 
   return (
-    <VoiceSocketContext.Provider value={{ socket, isConnected }}>
+    <VoiceSocketContext.Provider value={{ socket, isConnected, audioStreams, videoStreams }}>
       {children}
     </VoiceSocketContext.Provider>
   );
