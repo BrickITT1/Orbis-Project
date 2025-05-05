@@ -7,14 +7,16 @@ export const serverApi = createApi({
         baseUrl: `${config.userServiceUrl}/api`,
         credentials: "include",
         prepareHeaders: (headers, { getState }) => {
-            const state = getState() as { auth: { user: { access_token?: string } } }; // Type assertion for state
+            const state = getState() as {
+                auth: { user: { access_token?: string } };
+            }; // Type assertion for state
             const token = state.auth.user?.access_token;
 
             if (token) {
-                headers.set('authorization', `Bearer ${token}`);
+                headers.set("authorization", `Bearer ${token}`);
             }
             return headers;
-        }
+        },
     }),
     endpoints: (builder) => ({
         GetServers: builder.query({
@@ -37,14 +39,14 @@ export const serverApi = createApi({
             }),
         }),
         CreateChat: builder.mutation({
-            query: ({id, data}) => ({
+            query: ({ id, data }) => ({
                 url: `/server/${id}/chat`,
                 method: "POST",
                 body: data,
             }),
         }),
         CreateVoice: builder.mutation({
-            query: ({id, data}) => ({
+            query: ({ id, data }) => ({
                 url: `/server/${id}/voice`,
                 method: "POST",
                 body: data,
@@ -58,5 +60,5 @@ export const {
     useCreateSeverMutation,
     useGetServersInsideQuery,
     useCreateChatMutation,
-    useCreateVoiceMutation
+    useCreateVoiceMutation,
 } = serverApi;

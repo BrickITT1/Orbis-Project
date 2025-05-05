@@ -4,18 +4,18 @@ export interface PeerInfo {
     muted?: boolean;
     audioOnly: boolean;
 }
-  
-export  interface ProducerInfo {
+
+export interface ProducerInfo {
     id: string;
-    kind: 'audio' | 'video';
+    kind: "audio" | "video";
     peerId: string;
     change: boolean;
 }
-  
+
 export interface ConsumerInfo {
     id: string;
     producerId: string;
-    kind: 'audio' | 'video';
+    kind: "audio" | "video";
     rtpParameters: any;
     peerId: string;
 }

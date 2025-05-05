@@ -15,16 +15,19 @@ export const store = configureStore({
         server: serverReducer,
         [userApi.reducerPath]: userApi.reducer,
         [messageApi.reducerPath]: messageApi.reducer,
-        [serverApi.reducerPath]: serverApi.reducer
+        [serverApi.reducerPath]: serverApi.reducer,
     },
     middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware({
             serializableCheck: {
-                ignoredActions: ['voice/setStreams'], // Игнорируем действия, связанные с `setStreams`
-                ignoredPaths: ['voice.audioStreams', 'voice.videoStreams'], // Игнорируем конкретные пути состояния
-              },
-        }).concat(userApi.middleware, messageApi.middleware, serverApi.middleware)
-    
+                ignoredActions: ["voice/setStreams"], // Игнорируем действия, связанные с `setStreams`
+                ignoredPaths: ["voice.audioStreams", "voice.videoStreams"], // Игнорируем конкретные пути состояния
+            },
+        }).concat(
+            userApi.middleware,
+            messageApi.middleware,
+            serverApi.middleware,
+        ),
 });
 
 export type RootState = ReturnType<typeof store.getState>;

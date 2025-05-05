@@ -1,13 +1,11 @@
-import React, { PureComponent } from 'react';
+import React, { PureComponent } from "react";
 
 export const Footer = () => {
     return (
         <>
             <footer>
-                <div className="footer-body">
-                    
-                </div>
+                <div className="footer-body"></div>
             </footer>
         </>
-    )
-}
+    );
+};

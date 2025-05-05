@@ -1,6 +1,6 @@
-import React from 'react';
-import { ArticleNavigator } from '../../components/ArticleNavigator';
-import Article from '../../components/Layouts/Article';
+import React from "react";
+import { ArticleNavigator } from "../../components/ArticleNavigator";
+import Article from "../../components/Layouts/Article";
 
 const title = "Политика конфиденциальности Orbis";
 const description = `Добро пожаловать!
@@ -138,11 +138,15 @@ const content = `
 9.3. Администрация Платформы обязуется рассмотреть и направить ответ на поступивший запрос пользователя в течение 30 дней с момента поступления обращения.
 9.4. Вся корреспонденция, полученная Администрацией Платформы от пользователей (обращения в письменной или электронной форме), относится к информации ограниченного доступа и не разглашается без письменного согласия Пользователя. Персональные данные и иная информация о Пользователе, направившем запрос, не могут быть без специального согласия Пользователя использованы иначе, как для ответа по теме полученного запроса или в случаях, прямо предусмотренных законодательством.`;
 
-export const SafePage: React.FC = () =>  {    
+export const SafePage: React.FC = () => {
     return (
-        <div className='Terms'>
+        <div className="Terms">
             <ArticleNavigator />
-            <Article title={title} description={description} content={content} />
+            <Article
+                title={title}
+                description={description}
+                content={content}
+            />
         </div>
     );
-}
+};

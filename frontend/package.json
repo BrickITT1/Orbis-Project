@@ -5,7 +5,9 @@
     "scripts": {
         "dev": "vite --host",
         "build": "vite build",
-        "preview": "vite preview"
+        "preview": "vite preview",
+        "lint": "eslint --config eslint.config.mjs",
+        "lint:fix": "eslint --config eslint.config.mjs --fix"
     },
     "dependencies": {
         "@reduxjs/toolkit": "^1.9.5",
@@ -19,11 +21,20 @@
         "socket.io-client": "^4.7.2"
     },
     "devDependencies": {
+        "@stylistic/eslint-plugin-js": "^3.0.1",
         "@types/lodash": "^4.17.16",
         "@types/node": "^22.13.11",
         "@types/react": "^18.2.24",
         "@types/react-dom": "^18.2.8",
+        "@typescript-eslint/eslint-plugin": "^8.20.0",
+        "@typescript-eslint/parser": "^8.20.0",
         "@vitejs/plugin-react": "^4.2.1",
+        "eslint": "^9.18.0",
+        "eslint-config-prettier": "^10.0.1",
+        "eslint-define-config": "^2.1.0",
+        "eslint-plugin-prettier": "^5.2.2",
+        "eslint-plugin-react": "^7.37.4",
+        "globals": "^16.0.0",
         "sass": "^1.85.0",
         "typescript": "^5.2.2",
         "vite": "^4.4.9"

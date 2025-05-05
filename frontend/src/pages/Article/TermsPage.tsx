@@ -1,6 +1,6 @@
-import React from 'react';
-import Article from '../../components/Layouts/Article';
-import { ArticleNavigator } from '../../components/ArticleNavigator';
+import React from "react";
+import Article from "../../components/Layouts/Article";
+import { ArticleNavigator } from "../../components/ArticleNavigator";
 
 const title = "Условия использования Orbis";
 const description = `Добро пожаловать в Orbis! Orbis — это онлайн-платформа, где вы можете общаться, отдыхать и проводить время в кругу друзей. Мы рады, что вы решили присоединиться к нашему Сообществу.
@@ -191,9 +191,13 @@ const content = `
 
 export const TermsPage: React.FC = () => {
     return (
-        <div className='Terms'>
+        <div className="Terms">
             <ArticleNavigator />
-        <Article title={title} description={description} content={content} />
+            <Article
+                title={title}
+                description={description}
+                content={content}
+            />
         </div>
     );
 };

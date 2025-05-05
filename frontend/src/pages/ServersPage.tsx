@@ -1,12 +1,9 @@
-import React from 'react';
+import React from "react";
 
-export const ServersPage: React.FC = () =>  {
-    
-    return ( 
+export const ServersPage: React.FC = () => {
+    return (
         <>
-            <div className="block">
-                serverss
-            </div>
-        </> 
+            <div className="block">serverss</div>
+        </>
     );
-}
+};

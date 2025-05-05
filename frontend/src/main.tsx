@@ -1,7 +1,7 @@
 import React, { StrictMode } from "react";
 import ReactDOM from "react-dom/client";
 import "./styles/global.scss";
-import "./styles/typography.scss"
+import "./styles/typography.scss";
 import { App } from "./App";
 
 import { store } from "./app/store";
@@ -18,6 +18,6 @@ if (rootElement) {
             <Provider store={store}>
                 <App />
             </Provider>
-        </StrictMode>
+        </StrictMode>,
     );
 }

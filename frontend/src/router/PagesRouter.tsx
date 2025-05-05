@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
-import { HomePage } from "../pages/HomePage"
+import { HomePage } from "../pages/HomePage";
 import { Layout } from "../components/Layouts/Layout";
 import { ServersPage } from "../pages/ServersPage";
 import { SafePage } from "../pages/Article/SafePage";
@@ -10,11 +10,8 @@ import { LicescePage } from "../pages/Article/LicescePage";
 import { PrivacyPage } from "../pages/Article/PrivacyPage";
 import { AppPage } from "../pages/AppPage";
 import { AuthPageController } from "../pages/AuthForm";
-import { selectAuth } from "../features/auth/authSelectors";
-import { useSelector } from "react-redux";
 import { useAppSelector } from "../app/hooks";
 import { useRefreshTokenMutation } from "../services/auth";
-import { AppServerPage } from "../pages/AppServerPage";
 import { Test } from "../pages/Test";
 
 const ProtectedRoute: React.FC<{
@@ -28,9 +25,9 @@ const ProtectedRoute: React.FC<{
     return isAuth ? <>{children}</> : <Navigate to={"/"} />;
 };
 
-
 export const PagesRouter: React.FC = () => {
-    const isAuth = useAppSelector(state => state.auth.isAuthenticated) || false;
+    const isAuth =
+        useAppSelector((state) => state.auth.isAuthenticated) || false;
     const [data, { isLoading }] = useRefreshTokenMutation({});
     const [isRefreshing, setIsRefreshing] = useState(true);
 
@@ -38,7 +35,7 @@ export const PagesRouter: React.FC = () => {
         try {
             await data({});
             setIsRefreshing(false);
-            console.log(isAuth)
+            console.log(isAuth);
         } catch (error) {
             console.error("Refresh failed:", error);
             setIsRefreshing(false);
@@ -47,12 +44,12 @@ export const PagesRouter: React.FC = () => {
 
     useEffect(() => {
         refresh();
-    }, [])
+    }, []);
 
     if (isRefreshing) {
         return <div>Loading...</div>; // Показать индикатор загрузки, пока обновляется токен
     }
-    
+
     return (
         <BrowserRouter>
             <Routes>
@@ -66,14 +63,13 @@ export const PagesRouter: React.FC = () => {
                                 </CustomScroll>
                             </div>
                         </Layout>
-
                     }
                 />
                 <Route
                     path="/login"
                     element={
                         <ProtectedRoute isAuth={!isAuth} path="/app">
-                            <AuthPageController type='login' />
+                            <AuthPageController type="login" />
                         </ProtectedRoute>
                     }
                 />
@@ -81,7 +77,7 @@ export const PagesRouter: React.FC = () => {
                     path="/register"
                     element={
                         <>
-                            <AuthPageController type='register' />
+                            <AuthPageController type="register" />
                         </>
                     }
                 />
@@ -93,51 +89,51 @@ export const PagesRouter: React.FC = () => {
                         </>
                     }
                 /> */}
-                <Route 
+                <Route
                     path="/servers"
-                    element= {
+                    element={
                         <Layout>
                             <div className="container">
-                            <CustomScroll>
-                                <ServersPage />
-                            </CustomScroll>
+                                <CustomScroll>
+                                    <ServersPage />
+                                </CustomScroll>
                             </div>
                         </Layout>
                     }
                 />
-                <Route 
+                <Route
                     path="/safety"
-                    element= {
+                    element={
                         <Layout>
                             <div className="container">
-                                    <SafePage />
+                                <SafePage />
                             </div>
                         </Layout>
                     }
                 />
-                <Route 
+                <Route
                     path="/terms"
-                    element= {
+                    element={
                         <Layout>
                             <div className="container">
-                                    <TermsPage />
+                                <TermsPage />
                             </div>
                         </Layout>
                     }
                 />
-                <Route 
+                <Route
                     path="/privacy"
-                    element= {
+                    element={
                         <Layout>
                             <div className="container">
-                                    <PrivacyPage />
+                                <PrivacyPage />
                             </div>
                         </Layout>
                     }
                 />
-                <Route 
+                <Route
                     path="/licesce"
-                    element= {
+                    element={
                         <Layout>
                             <div className="container">
                                 <LicescePage />
@@ -145,9 +141,9 @@ export const PagesRouter: React.FC = () => {
                         </Layout>
                     }
                 />
-                <Route 
+                <Route
                     path="/app"
-                    element= {
+                    element={
                         <ProtectedRoute isAuth={isAuth}>
                             <AppPage />
                         </ProtectedRoute>
@@ -161,12 +157,7 @@ export const PagesRouter: React.FC = () => {
                         </ProtectedRoute>
                     }
                 /> */}
-                <Route 
-                    path="/test"
-                    element= {
-                            <Test />
-                    }
-                />
+                <Route path="/test" element={<Test />} />
                 {/* <Route
                     path="/profile"
                     element={
@@ -178,7 +169,6 @@ export const PagesRouter: React.FC = () => {
                     }
                 ></Route> */}
             </Routes>
-            
         </BrowserRouter>
     );
 };

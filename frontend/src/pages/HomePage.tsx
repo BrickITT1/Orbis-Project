@@ -1,18 +1,22 @@
-import React from 'react';
+import React from "react";
 
-import '../styles/pages/home.scss'
+import "../styles/pages/home.scss";
 
-export const HomePage = () =>  {    
-
-    return ( 
+export const HomePage = () => {
+    return (
         <>
             <div className="block">
                 <div className="main-home">
                     <div className="main-home__bg">
                         <div className="flex-col main-home__desc">
-                            <h1 className='main-title'>Чат группы, где всегда весело</h1>
+                            <h1 className="main-title">
+                                Чат группы, где всегда весело
+                            </h1>
                             <p className="main-description">
-                                Orbis — отличное место, чтобы встретиться с друзьями или создать глобальное сообщество. Организуйте собственное пространство для бесед, игр и хобби
+                                Orbis — отличное место, чтобы встретиться с
+                                друзьями или создать глобальное сообщество.
+                                Организуйте собственное пространство для бесед,
+                                игр и хобби
                             </p>
                         </div>
                         <div className="main-home__img"></div>
@@ -30,15 +34,11 @@ export const HomePage = () =>  {
             {/* <div className="definition">
                 <div className="definition-background"></div>
             </div> */}
-            <div className="block">
-                Демонстрация продукта,(общение)
-            </div>
+            <div className="block">Демонстрация продукта,(общение)</div>
             {/* <div className="definition">
                 <div className="definition-background"></div>
             </div> */}
-            <div className="block">
-                (хорошее качество звука)
-            </div>
-        </> 
+            <div className="block">(хорошее качество звука)</div>
+        </>
     );
-}
+};

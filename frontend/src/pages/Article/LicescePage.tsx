@@ -1,6 +1,6 @@
-import React from 'react';
-import { ArticleNavigator } from '../../components/ArticleNavigator';
-import Article from '../../components/Layouts/Article';
+import React from "react";
+import { ArticleNavigator } from "../../components/ArticleNavigator";
+import Article from "../../components/Layouts/Article";
 
 const title = "Условия использования Orbis";
 const description = `
@@ -202,14 +202,15 @@ const content = `
 11.8. По вопросам, связанным с исполнением Соглашения, просьба обращаться по адресу: adesrfdtfyuio9p0[-rtdyfuiop
 `;
 
-export const LicescePage: React.FC = () =>  {
-
-    
-    
+export const LicescePage: React.FC = () => {
     return (
-        <div className='Terms'>
+        <div className="Terms">
             <ArticleNavigator />
-            <Article title={title} description={description} content={content} />
+            <Article
+                title={title}
+                description={description}
+                content={content}
+            />
         </div>
     );
-}
+};

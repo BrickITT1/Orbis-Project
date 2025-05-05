@@ -28,7 +28,7 @@ export const userApi = createApi({
             }),
         }),
         refreshTokenQuery: builder.query({
-            query: () => '/refresh',
+            query: () => "/refresh",
         }),
         confirmUser: builder.mutation({
             query: (data) => ({
@@ -41,7 +41,7 @@ export const userApi = createApi({
             query: () => ({
                 url: `/logout`,
                 method: "POST",
-                body: {}
+                body: {},
             }),
         }),
         registerUser: builder.mutation({
@@ -53,18 +53,18 @@ export const userApi = createApi({
         }),
         sendVerificationCode: builder.mutation<void, string>({
             query: (email) => ({
-              url: '/send_code',
-              method: 'POST',
-              body: { email },
+                url: "/send_code",
+                method: "POST",
+                body: { email },
             }),
-          }),
-          verifyCode: builder.mutation<void, { email: string; code: string }>({
+        }),
+        verifyCode: builder.mutation<void, { email: string; code: string }>({
             query: (body) => ({
-              url: '/verify',
-              method: 'POST',
-              body,
+                url: "/verify",
+                method: "POST",
+                body,
             }),
-          }),
+        }),
         checkAuth: builder.query({
             query: () => ({
                 url: `/protected/check`,
@@ -84,5 +84,5 @@ export const {
     useConfirmUserMutation,
     useSendVerificationCodeMutation,
     useVerifyCodeMutation,
-    useRefreshTokenQueryQuery
+    useRefreshTokenQueryQuery,
 } = userApi;

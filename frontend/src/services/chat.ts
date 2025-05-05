@@ -1,5 +1,4 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { useAppSelector } from "../app/hooks";
 import { config } from "../config";
 
 export const messageApi = createApi({
@@ -8,14 +7,16 @@ export const messageApi = createApi({
         baseUrl: `${config.chatServiceUrl}/api`,
         credentials: "include",
         prepareHeaders: (headers, { getState }) => {
-            const state = getState() as { auth: { user: { access_token?: string } } }; // Type assertion for state
+            const state = getState() as {
+                auth: { user: { access_token?: string } };
+            }; // Type assertion for state
             const token = state.auth.user?.access_token;
 
             if (token) {
-                headers.set('authorization', `Bearer ${token}`);
+                headers.set("authorization", `Bearer ${token}`);
             }
             return headers;
-        }
+        },
     }),
     endpoints: (builder) => ({
         GetChats: builder.query({
@@ -50,5 +51,5 @@ export const {
     useGetChatsQuery,
     useCreateChatMutation,
     useCreateMessagesMutation,
-    useGetMessagesMutation
+    useGetMessagesMutation,
 } = messageApi;

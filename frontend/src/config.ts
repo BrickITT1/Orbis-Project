@@ -5,5 +5,6 @@ export const config = {
     mediaServiceUrl: import.meta.env.VITE_MEDIA_SERVICE_SERVER_URL,
     cdnServiceUrl: import.meta.env.VITE_CDN_SERVICE_SERVER_URL,
     userServiceUrl: import.meta.env.VITE_USER_SERVICE_SERVER_URL,
-    notificationServiceUrl: import.meta.env.VITE_NOTIFICATION_SERVICE_SERVER_URL,
+    notificationServiceUrl: import.meta.env
+        .VITE_NOTIFICATION_SERVICE_SERVER_URL,
 };

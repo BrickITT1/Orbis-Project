@@ -1,19 +1,18 @@
-import React, { useState } from 'react';
-import { useLogoutUserMutation } from '../services/auth';
-import { useNavigate } from 'react-router-dom';
-import { useGetServersQuery } from '../services/server';
-import { useAppDispatch, useAppSelector } from '../app/hooks';
-import { setActiveServer } from '../features/server/serverSlices';
-import { setActiveChat } from '../features/chat/chatSlices';
+import React, { useState } from "react";
+import { useLogoutUserMutation } from "../services/auth";
+import { useNavigate } from "react-router-dom";
+import { useGetServersQuery } from "../services/server";
+import { useAppDispatch, useAppSelector } from "../app/hooks";
+import { setActiveServer } from "../features/server/serverSlices";
 
-export const AppMenu: React.FC = () =>  {
+export const AppMenu: React.FC = () => {
     const [avatarUrl, setAvatarUrl] = useState<string>();
     const [logout] = useLogoutUserMutation();
     const {} = useGetServersQuery({});
     const dispatch = useAppDispatch();
     const navigator = useNavigate();
     const server = useAppSelector((state) => state.server);
-    return ( 
+    return (
         <>
             <div className="app-menu">
                 <div className="avatar avatar-null">
@@ -25,9 +24,13 @@ export const AppMenu: React.FC = () =>  {
                 </div>
                 <div className="button-items">
                     <div className="button-item">
-                        <button onClick={()=> {
-                            dispatch(setActiveServer(undefined));
-                        }}>LS</button>
+                        <button
+                            onClick={() => {
+                                dispatch(setActiveServer(undefined));
+                            }}
+                        >
+                            LS
+                        </button>
                     </div>
                     {/* <div className="button-item">
                         <button>
@@ -36,28 +39,50 @@ export const AppMenu: React.FC = () =>  {
                             </svg>
                         </button>
                     </div> */}
-                    {server.servers && server.servers.map((val, index) => (
-                        <div className="button-item" key={`server-${val.id}`}>
-                            <button onClick={()=> {
-                                dispatch(setActiveServer(val));
-                            }}>{val.id}</button>
-                        </div>
-                    ))}
+                    {server.servers &&
+                        server.servers.map((val, index) => (
+                            <div
+                                className="button-item"
+                                key={`server-${val.id}`}
+                            >
+                                <button
+                                    onClick={() => {
+                                        dispatch(setActiveServer(val));
+                                    }}
+                                >
+                                    {val.id}
+                                </button>
+                            </div>
+                        ))}
                 </div>
                 <div className="exit">
-                    <button onClick={async()=>{
-                        try {
-                            await logout({}).unwrap();
-                        } catch(err) {
-                            console.log(err)
-                        }
-                    }}>
-                        <svg width="37" height="37" viewBox="0 0 37 37" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M18.5 12.3125L12.3125 18.5M12.3125 18.5L18.5 24.6875M12.3125 18.5H35M35 28.301V28.3996C35 30.7098 35 31.8658 34.5504 32.7482C34.1549 33.5243 33.5243 34.1549 32.7482 34.5504C31.8658 35 30.7098 35 28.3996 35H8.59959C6.28938 35 5.13582 35 4.25349 34.5504C3.47737 34.1549 2.84459 33.5243 2.44921 32.7482C2 31.8666 2 30.7121 2 28.4064V8.59257C2 6.28691 2 5.13397 2.44921 4.25246C2.84459 3.47634 3.47737 2.84459 4.25349 2.44921C5.135 2 6.28794 2 8.59361 2H28.4064C30.7121 2 31.8666 2 32.7482 2.44921C33.5243 2.84459 34.1549 3.47696 34.5504 4.25307C35 5.13541 35 6.2898 35 8.6V8.70312" stroke="#5788EB" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+                    <button
+                        onClick={async () => {
+                            try {
+                                await logout({}).unwrap();
+                            } catch (err) {
+                                console.log(err);
+                            }
+                        }}
+                    >
+                        <svg
+                            width="37"
+                            height="37"
+                            viewBox="0 0 37 37"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                        >
+                            <path
+                                d="M18.5 12.3125L12.3125 18.5M12.3125 18.5L18.5 24.6875M12.3125 18.5H35M35 28.301V28.3996C35 30.7098 35 31.8658 34.5504 32.7482C34.1549 33.5243 33.5243 34.1549 32.7482 34.5504C31.8658 35 30.7098 35 28.3996 35H8.59959C6.28938 35 5.13582 35 4.25349 34.5504C3.47737 34.1549 2.84459 33.5243 2.44921 32.7482C2 31.8666 2 30.7121 2 28.4064V8.59257C2 6.28691 2 5.13397 2.44921 4.25246C2.84459 3.47634 3.47737 2.84459 4.25349 2.44921C5.135 2 6.28794 2 8.59361 2H28.4064C30.7121 2 31.8666 2 32.7482 2.44921C33.5243 2.84459 34.1549 3.47696 34.5504 4.25307C35 5.13541 35 6.2898 35 8.6V8.70312"
+                                stroke="#5788EB"
+                                strokeWidth="4"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                            />
                         </svg>
                     </button>
                 </div>
             </div>
-        </> 
+        </>
     );
-}
+};
