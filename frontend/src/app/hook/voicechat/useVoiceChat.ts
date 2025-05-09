@@ -10,10 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../hooks";
 import { useSafeLeaveRoom } from "./useSafeLeaveRoom";
 import {
-    setChat,
-    setJoin,
     setPeers,
-    setMuted,
     resetVoiceState,
     setMyPeer,
 } from "../../../features/voice/voiceSlices";
@@ -41,13 +38,15 @@ export const useVoiceChat = () => {
 
     const username = useAppSelector((s) => s.auth.user?.username);
     const roomPeers = useAppSelector((s) => s.voice.roomPeers);
-    const mutedPeers = useAppSelector((s) => s.voice.mutedPeers);
     const [streams, setStreams] = useState<{ 
     audioStreams?: Record<string, MediaStream>;
         videoStreams?: Record<string, MediaStream>;
     }>({ audioStreams: {}, videoStreams: {} });
 
     const audioOnly = useAppSelector(s => s.voice.myPeer.audioOnly);
+    const muted = useAppSelector(s => s.voice.myPeer.muted);
+    const isConnected = useAppSelector(s => s.voice.isConnected);
+    const myRoom = useAppSelector(s => s.voice.roomId)
 
     const deviceRef = useRef<Device | null>(null);
     const sendTransportRef = useRef<Transport | null>(null);
@@ -232,8 +231,6 @@ export const useVoiceChat = () => {
 
             dispatch(setPeers(peers));
             dispatch(setMyPeer(peer))
-            dispatch(setJoin(true));
-            dispatch(setChat(roomId));
             return true;
         } catch (e: any) {
             console.error('connectToVoiceRoom error:', e);
@@ -243,7 +240,7 @@ export const useVoiceChat = () => {
             }
             return false;
         }
-    }, [socket, username, audioOnly, dispatch, leaveRoom]);
+    }, [socket, username, audioOnly, dispatch]);
 
     const joinRoom = useCallback(async (roomId: number, attempt = 1): Promise<boolean> => {
         if (attempt > 5) return false;
@@ -255,26 +252,27 @@ export const useVoiceChat = () => {
         return true;
     }, [connectToVoiceRoom]);
 
-    const mute = useCallback(async (shouldMute: boolean) => {
-        if (!sendTransportRef.current?.connectionState || !audioProducerRef.current || !socket?.id) {
-            return;
-        }
-        if (!sendTransportRef.current?.connectionState) {
-            console.error('Transport not connected');
-            return;
-        }
+    useEffect(() => {
+        if (!socket) return;
+        console.log("isConnected:", isConnected, "myRoom:", myRoom, "isLeaving:", isLeavingRef);
+        
+        const handleRoomChange = async () => {
+            
             try {
-            const producer = audioProducerRef.current;
-            shouldMute ? await producer.pause() : await producer.resume();
-            dispatch(setMuted({ peerId: socket.id, muted: shouldMute }));
-
-            socket.emit('setMute', { muted: shouldMute }, (res: any) => {
-                if (!res?.success) console.error('Mute update failed:', res?.error);
-            });
-        } catch (err) {
-            console.error('Mute error:', err);
-        }
-    }, [socket, dispatch]);
+                if (!myRoom) {
+                    if (!isLeavingRef.current) await leaveRoom();
+                } else {
+                    if (!isConnected) return;
+                    await joinRoom(myRoom);
+                }
+            } catch (err) {
+                console.error("Room change error:", err);
+            }
+        };
+    
+        handleRoomChange();
+    }, [isConnected, myRoom]);
+    
 
     const updatePeers = useCallback(async () => {
         if (!socket) return;
@@ -297,7 +295,6 @@ export const useVoiceChat = () => {
         const onPeerDisconnected = () => {
             debouncedUpdatePeers()};
         const onPeerMuteStatusChanged = ({ peerId, muted }: any) => {
-            dispatch(setMuted({ peerId, muted }));
             debouncedUpdatePeers();
         };
         const onPeerAudioOnlyStatusChanged = () => debouncedUpdatePeers();
@@ -323,7 +320,7 @@ export const useVoiceChat = () => {
             socket.off('disconnect', onDisconnect);
             debouncedUpdatePeers.cancel();
         };
-    }, [socket, consumeMedia, dispatch, leaveRoom, debouncedUpdatePeers]);
+    }, [socket, consumeMedia, dispatch, debouncedUpdatePeers]);
 
     useEffect(() => {
         if (!socket || !roomPeers.length) return;
@@ -340,7 +337,7 @@ export const useVoiceChat = () => {
                     p.muted !== prevRoomPeersRef.current[i]?.muted
     });
             
-        console.log('chage:  ' + changed)
+        console.log('change:  ' + changed)
         if (changed) {
             prevRoomPeersRef.current = roomPeers;  // Обновляем ссылку на пиров
             console.log(roomPeers)
@@ -359,7 +356,36 @@ export const useVoiceChat = () => {
 
         return () => clearTimeout(timer);
     }, [audioOnly, socket]);
+
     useEffect(() => {
+        if (!socket || audioOnly === undefined && !muted) return;
+        const timer = setTimeout(() => {
+            console.log(muted)
+            if (!sendTransportRef.current?.connectionState || !audioProducerRef.current || !socket?.id) {
+                return;
+            }
+            
+            if (!sendTransportRef.current?.connectionState) {
+                console.error('Transport not connected');
+                return;
+            }
+                try {
+                const producer = audioProducerRef.current;
+                muted ? producer.pause() : producer.resume();
+
+                socket.emit('setMute', { muted: muted }, (res: any) => {
+                    if (!res?.success) console.error('Mute update failed:', res?.error);
+                });
+            } catch (err) {
+                console.error('Mute error:', err);
+            }
+        }, 500);
+
+        return () => clearTimeout(timer);
+    }, [muted, socket]);
+
+    useEffect(() => {
+        if (!socket) return
         let isMounted = true;
         const cleanup = async () => {
             if (!isMounted) return;
@@ -375,7 +401,6 @@ export const useVoiceChat = () => {
                 setTimeout(() => {
                     dispatch(resetVoiceState());
                 }, 1000);
-                await leaveRoom();
             } catch (err) {
                 console.error('Cleanup error:', err);
             }
@@ -384,25 +409,17 @@ export const useVoiceChat = () => {
             isMounted = false;
             cleanup();
         };
-    }, [dispatch, leaveRoom]);
+    }, [socket, dispatch]);
 
     const api = useMemo(() => ({
-        joinRoom,
-        leaveRoom,
-        mute,
         localStreamRef,
         streams,
         roomPeers,
-        mutedPeers,
         audioOnly,
         localPeerId: socket?.id,
     }), [
-        joinRoom,
-        leaveRoom,
-        mute,
         streams,
         roomPeers,
-        mutedPeers,
         audioOnly,
         socket?.id,
     ]);

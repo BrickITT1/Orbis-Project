@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import "../styles/pages/app.scss";
+import "../styles/pages/appserver.scss";
 import { AppMenu } from "../components/AppMenu";
 import { MessageMenu } from "../components/MessagesMenu";
 import { Action } from "../components/Action";
@@ -35,12 +36,7 @@ export const AppPage: React.FC = () => {
     } = useChatMessages(String(activeChat?.id), token, myUsername);
 
     const {
-        joinRoom,
-        leaveRoom,
         streams,
-        localStreamRef,
-        mutedPeers,
-        mute,
         audioOnly,
         localPeerId,
     } = useDelayedVoiceChat();
@@ -60,7 +56,6 @@ export const AppPage: React.FC = () => {
                 {server.activeserver ? <MessageMenuServer /> : <MessageMenu />}
 
                 <Action
-                    joinRoomApi={joinRoom}
                     handleSendMessage={sendMessage}
                     Messages={groupedMessages as MessageGroupp[]}
                     videoStreams={streams.videoStreams!}
@@ -68,7 +63,6 @@ export const AppPage: React.FC = () => {
                 {streams.audioStreams ? (
                     <AudioManager
                         audioStreams={streams.audioStreams}
-                        mutedPeers={mutedPeers}
                         localPeerId={localPeerId!}
                         onPlaybackError={(id, err) =>
                             console.error(`Playback error for ${id}:`, err)
@@ -77,11 +71,7 @@ export const AppPage: React.FC = () => {
                 /> 
                 ): null}
                 
-                <VoiceManager
-                    leaveRoom={leaveRoom}
-                    mute={mute}
-                    audioOnly={audioOnly}
-                />
+                <VoiceManager />
             </div>
         </>
     );

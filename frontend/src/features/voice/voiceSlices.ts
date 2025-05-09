@@ -3,15 +3,18 @@ import { PeerInfo } from "../../types/Channel";
 
 interface VoiceState {
     roomPeers: PeerInfo[];
-    mutedPeers: Record<string, boolean>;
     isConnected: boolean;
     roomId: number | null;
     myPeer: PeerInfo;
 }
 
+interface Info {
+    isConnected: boolean;
+    roomId: number | null;
+}
+
 const initialState: VoiceState = {
     roomPeers: [],
-    mutedPeers: {},
     isConnected: false,
     roomId: null,
     myPeer: {
@@ -28,14 +31,10 @@ export const voiceSlice = createSlice({
         setPeers: (state, action: PayloadAction<PeerInfo[]>) => {
             state.roomPeers = action.payload;
         },
-        setMuted: (
-            state,
-            action: PayloadAction<{ peerId: string; muted: boolean }>,
-        ) => {
-            state.mutedPeers[action.payload.peerId] = action.payload.muted;
-        },
-        setJoin: (state, action: PayloadAction<boolean>) => {
-            state.isConnected = action.payload;
+        setToggleJoin: (state, action: PayloadAction<Info>) => {
+            console.log(action)
+            state.isConnected = action.payload.isConnected;
+            state.roomId = action.payload.roomId;
         },
         setChat: (state, action: PayloadAction<number | null>) => {
             state.roomId = action.payload;
@@ -45,7 +44,6 @@ export const voiceSlice = createSlice({
         },
         resetVoiceState: (state) => {
             state.roomPeers = [];
-            state.mutedPeers = {};
             state.isConnected = false;
             state.roomId = null;
         },
@@ -54,8 +52,7 @@ export const voiceSlice = createSlice({
 
 export const {
     setPeers,
-    setMuted,
-    setJoin,
+    setToggleJoin,
     setChat,
     resetVoiceState,
     setMyPeer,

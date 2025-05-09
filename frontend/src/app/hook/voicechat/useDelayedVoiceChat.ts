@@ -15,8 +15,5 @@ export const useDelayedVoiceChat = (delay = 2000) => {
     return {
         ...voiceChat,
         isReady,
-        // Переопределяем методы, пока не готово
-        joinRoom: isReady ? voiceChat.joinRoom : () => Promise.resolve(false),
-        mute: isReady ? voiceChat.mute : () => {},
     };
 };

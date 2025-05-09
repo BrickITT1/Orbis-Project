@@ -1,19 +1,25 @@
 import React, { useRef, useCallback, useEffect, useMemo } from "react";
+import { useAppSelector } from "../../app/hooks";
 
 interface AudioManagerProps {
     audioStreams: Record<string, MediaStream>;
-    mutedPeers: Record<string, boolean>;
     localPeerId: string;
     onPlaybackError?: (streamId: string, error: Error) => void;
 }
 
+const extractPeerId = (streamId: string) => {
+    const match = streamId.match(/^(.*)-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+    return match ? match[1] : streamId; // если нет UUID, возвращает всё
+};
+
 const AudioManager: React.FC<AudioManagerProps> = ({
     audioStreams,
-    mutedPeers,
     localPeerId,
     onPlaybackError,
 }) => {
     const audioRefs = useRef<Record<string, HTMLAudioElement | null>>({});
+    const peers = useAppSelector(s => s.voice.roomPeers)
+    
     // Отфильтровываем локальный поток
     const filteredAudioStreams = useMemo(() => {
         return Object.fromEntries(
@@ -47,12 +53,13 @@ const AudioManager: React.FC<AudioManagerProps> = ({
             audioRefs.current = {};
         };
     }, []);
-
     return (
         <>
+        {peers && <>
             {Object.entries(filteredAudioStreams).map(([streamId, stream]) => {
-                const peerId = streamId.split("-")[0];
-                const isMuted = mutedPeers[peerId] ?? false;
+                if (!peers || peers.length === 0) return;
+                const matchedPeer = peers.find(val => extractPeerId(streamId) === val.id);
+                const isMuted = matchedPeer?.muted ?? false;
 
                 return (
                     <audio
@@ -82,7 +89,8 @@ const AudioManager: React.FC<AudioManagerProps> = ({
                         }
                     />
                 );
-            })}
+            })}</>}
+            
         </>
     );
 };

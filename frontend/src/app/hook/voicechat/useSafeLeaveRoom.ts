@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAppDispatch } from "../../hooks";
 import {
     setChat,
-    setJoin,
+    setToggleJoin,
     setPeers,
 } from "../../../features/voice/voiceSlices";
 import type { Socket } from "socket.io-client";
@@ -127,17 +127,21 @@ export const useSafeLeaveRoom = ({
 
     const notifyServer = useCallback(async () => {
         if (!socket) return;
-
+        
         try {
             const ready = await waitForSocketReady();
+            isLeavingRef.current = false;
             if (ready) {
                 await socket.emitWithAck("leaveRoom");
             }
+            
+            
         } catch (error) {
             console.warn("Failed to notify server about leaving:", error);
+            isLeavingRef.current = false;
         }
     }, [socket, waitForSocketReady]);
-
+    
     const leaveRoom = useCallback(async () => {
         if (isLeavingRef.current) {
             console.warn("Already in the process of leaving the room");
@@ -147,29 +151,30 @@ export const useSafeLeaveRoom = ({
             console.warn("Socket instance not available");
             return;
         }
-
+        
         isLeavingRef.current = true;
 
         try {
             // Order of cleanup matters
             await cleanupProducers();
+            
             cleanupConsumers();
             cleanupTransports();
+            
             cleanupMediaElements();
             cleanupStreams();
-
+            
             // Reset device
             deviceRef.current = null;
 
             // Notify server
             await notifyServer();
+            
         } catch (error) {
             console.error("Error during room cleanup:", error);
             isLeavingRef.current = false;
         } finally {
             // Reset state
-            dispatch(setJoin(false));
-            dispatch(setChat(null));
             dispatch(setPeers([]));
             isLeavingRef.current = false;
         }
@@ -185,6 +190,5 @@ export const useSafeLeaveRoom = ({
         notifyServer,
         dispatch,
     ]);
-
     return leaveRoom;
 };

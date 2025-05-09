@@ -1,6 +1,6 @@
 @use '../variables' as *;
 
-.server-list {
+ul.server-list {
     display: flex;
     flex-direction: column;
     gap: 1em;

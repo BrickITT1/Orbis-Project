@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { PeerInfo } from "../../types/Channel";
 import { useAppSelector } from "../../app/hooks";
 
@@ -20,57 +20,60 @@ export const VoiceMember: React.FC<VoiceMemberProps> = ({
     const videoRefs = useRef<Record<string, HTMLVideoElement | null>>({});
     const localStreamRef = useRef<MediaStream | null>(null);
 
+    const [isStreamInitialized, setIsStreamInitialized] = useState(false);
+
+    // Функция для остановки потока
+    const stopStream = (stream: MediaStream | null) => {
+        stream?.getTracks().forEach((track) => track.stop());
+    };
+
     // Очистка потоков при размонтировании
     useEffect(() => {
         return () => {
             Object.values(videoRefs.current).forEach((videoEl) => {
                 if (videoEl?.srcObject) {
-                    (videoEl.srcObject as MediaStream)
-                        .getTracks()
-                        .forEach((t) => t.stop());
+                    stopStream(videoEl.srcObject as MediaStream);
                 }
             });
-            localStreamRef.current?.getTracks().forEach((t) => t.stop());
+            stopStream(localStreamRef.current);
         };
     }, []);
 
-    // Управление локальным потоком для текущего пользователя
-    useEffect(() => {
+    // Функция для создания локального потока
+    const createLocalStream = async () => {
         if (typeMember !== "chat" || !myPeer.id) return;
 
-        const initLocalStream = async () => {
-            if (isConnected && !audioOnly) {
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({
-                        video: true,
-                        audio: false,
-                    });
-                    localStreamRef.current = stream;
-                    const videoEl = videoRefs.current[myPeer.id];
-                    if (videoEl) {
-                        videoEl.srcObject = stream;
-                    }
-                } catch (err) {
-                    console.error("Ошибка доступа к камере:", err);
-                }
-            } else {
+        if (!localStreamRef.current) {
+            try {
+                console.log("Запрос на доступ к камере...");
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: true,
+                    audio: false,
+                });
+                localStreamRef.current = stream;
                 const videoEl = videoRefs.current[myPeer.id];
-                if (videoEl?.srcObject) {
-                    (videoEl.srcObject as MediaStream)
-                        .getTracks()
-                        .forEach((t) => t.stop());
-                    videoEl.srcObject = null;
+                if (videoEl) {
+                    videoEl.srcObject = stream;
                 }
+                setIsStreamInitialized(true);
+            } catch (err) {
+                console.error("Ошибка доступа к камере:", err);
+                alert("Не удалось получить доступ к камере. Пожалуйста, проверьте разрешения.");
             }
-        };
+        }
+    };
 
-        initLocalStream();
-        console.log("Init");
+    // Эффект для создания локального потока при изменении состояния
+    useEffect(() => {
+        if (myPeer.id && isConnected && !isStreamInitialized) {
+            createLocalStream();
+        }
+        
         return () => {
-            localStreamRef.current?.getTracks().forEach((t) => t.stop());
+            stopStream(localStreamRef.current);
             localStreamRef.current = null;
         };
-    }, [isConnected, audioOnly, myPeer.id, typeMember]);
+    }, [myPeer.id, isConnected, isStreamInitialized, typeMember]); // Убедимся, что поток создается только после того, как все данные готовы
 
     // Обновление видеопотоков для других участников
     useEffect(() => {
@@ -88,9 +91,7 @@ export const VoiceMember: React.FC<VoiceMemberProps> = ({
             if (videoEl && stream) {
                 videoEl.srcObject = stream;
             } else if (videoEl?.srcObject) {
-                (videoEl.srcObject as MediaStream)
-                    .getTracks()
-                    .forEach((t) => t.stop());
+                stopStream(videoEl.srcObject as MediaStream);
                 videoEl.srcObject = null;
             }
         });
@@ -129,7 +130,7 @@ export const VoiceMember: React.FC<VoiceMemberProps> = ({
                     (isMe
                         ? audioOnly
                         : !Object.keys(videoStreams).some(
-                              (key) => (key: any) => key.startsWith(`${peer.id}-`),
+                              (key) => key.startsWith(`${peer.id}-`),
                         ));
 
                 return (

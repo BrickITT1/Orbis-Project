@@ -403,3 +403,17 @@
     }
 }
 
+.voice-manager {
+    display: flex;
+    flex-direction: column;
+    padding: 1em;
+    gap: 1em;
+    button {
+        background-color: transparent;
+        transition: all 0.3s ease;
+    }
+
+    button:hover svg {
+        filter: invert(0.5);
+    }
+}

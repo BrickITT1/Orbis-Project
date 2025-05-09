@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { useAppSelector, useAppDispatch } from "../app/hooks";
-import { setJoin } from "../features/voice/voiceSlices"; // Например, для управления состоянием чата
+import { setToggleJoin } from "../features/voice/voiceSlices"; // Например, для управления состоянием чата
 import { VoiceRoomChat } from "./Voice/VoiceRoomChat";
 import { Message } from "../types/Message";
 import { HistoryChat } from "./Chat/HistoryChat";
@@ -38,7 +38,7 @@ class ErrorBoundary extends React.Component<
 
 interface ActionProps {
     handleSendMessage: (newMessage: string) => void;
-    joinRoomApi: (roomId: number, attempt?: number) => Promise<boolean>;
+    
     Messages:
         | {
               messages: Message[];
@@ -51,11 +51,12 @@ interface ActionProps {
 }
 
 export const Action: React.FC<ActionProps> = ({
-    joinRoomApi,
+    
     handleSendMessage,
     Messages,
     videoStreams
 }) => {
+    const dispatch = useAppDispatch();
     const activeChat = useAppSelector(state => state.chat.activeChat);
     const activeServer = useAppSelector(state => state.server.activeserver);
     const token = useAppSelector(state => state.auth.user?.access_token);
@@ -64,17 +65,10 @@ export const Action: React.FC<ActionProps> = ({
 
     const messagesDivRef = useRef<HTMLDivElement>(null);
 
-    const joinRoom = async (roomId: number, attempt = 1) => {
-        try {
-            // Логика подключения к комнате, например, через сокет
-            const success = await joinRoomApi(roomId); // Здесь joinRoomApi - это твоя функция подключения
-        } catch (error) {
-            console.error("Error while joining room:", error);
-            if (attempt < 3) {
-                setTimeout(() => joinRoom(roomId, attempt + 1), 2000); // Повторить попытку подключения
-            }
-        }
-    };
+    const joinVoiceRoom = () => {
+        if (!activeChat) return
+        dispatch(setToggleJoin({isConnected: true, roomId: activeChat?.id}))
+    }
 
     return (
         <ErrorBoundary>
@@ -90,7 +84,7 @@ export const Action: React.FC<ActionProps> = ({
                                         className="voice"
                                         onClick={() => {
                                             try {
-                                                joinRoom(activeChat.id);
+                                                joinVoiceRoom();
                                             } catch (err) {
                                                 console.error('Join room error:', err);
                                             }
@@ -105,7 +99,7 @@ export const Action: React.FC<ActionProps> = ({
                         </div>
 
                         {/* Компонент голосового чата, если пользователь подключен */}
-                        {voiceState.isConnected && (<VoiceRoomChat videoStreams={videoStreams}/>)} 
+                        {voiceState.isConnected && voiceState.roomId == activeChat.id && (<VoiceRoomChat videoStreams={videoStreams}/>)} 
                         
                         {/* История чатов */}
                         <HistoryChat groupMessage={Messages} />
