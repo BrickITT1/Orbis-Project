@@ -14,6 +14,7 @@ export interface server {
     name: string;
     voices: voice[];
     chats: chat[];
+    users: string[];
 }
 
 interface serverState {

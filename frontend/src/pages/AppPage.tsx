@@ -14,6 +14,8 @@ import RemoteVideo from "../components/RemoteVideo";
 import { VoiceManager } from "../components/Voice/VoiceManager";
 import { useDelayedVoiceChat } from "../app/hook/voicechat/useDelayedVoiceChat";
 import { MessageGroupp } from "../types/Message";
+import { MemberChatServer } from "../components/MemberChatServer";
+import { Profile } from "../components/UserInfo/UserProfile";
 
 export const AppPage: React.FC = () => {
     const dispatch = useAppDispatch();
@@ -52,7 +54,7 @@ export const AppPage: React.FC = () => {
         <>
             <div className="main-app">
                 <AppMenu />
-
+                <Profile />
                 {server.activeserver ? <MessageMenuServer /> : <MessageMenu />}
 
                 <Action
@@ -71,7 +73,8 @@ export const AppPage: React.FC = () => {
                 /> 
                 ): null}
                 
-                <VoiceManager />
+                
+                <MemberChatServer />
             </div>
         </>
     );

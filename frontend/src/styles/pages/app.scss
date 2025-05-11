@@ -1,8 +1,8 @@
 @use '../variables' as *;
 
 %base-app-menu-button {
-    width: 60px;
-    height: 60px;
+    width: 45px;
+    height: 45px;
 }
 
 %absolute-center {
@@ -33,11 +33,13 @@
     .app-menu {
         gap: 1em;
         background-color: $app-menu-color;
-        min-width: 80px;
+        padding: 1em;
     }
 
     .messages-menu {
-        min-width: 300px;
+        padding-top: 1em;
+        padding-bottom: 1em;
+        min-width: 250px;
     }
 
     .actions {
@@ -119,10 +121,30 @@
         display: flex;
         flex-direction: column;
         height: 100%;
-        overflow-y:scroll;
+        overflow-y: auto;
         word-break: break-all;
         padding: 1em;
 
+        overflow: auto;
+        scrollbar-color: #555 transparent;
+        scrollbar-width: thin;
+        .messages::-webkit-scrollbar {
+                width: 1px;
+            }
+
+        .messages::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .messages::-webkit-scrollbar-thumb {
+            background-color: transparent;
+            border-radius: 0px;
+        }
+
+        /* При наведении */
+        .messages::-webkit-scrollbar-thumb:hover {
+            background: transparent;
+        }
         &>div {
             display: flex;
             align-items: end;
@@ -271,14 +293,23 @@
     align-items: center;
     padding: 1em 0;
     
+    
     .avatar, .avatar img, .button-items > div:not(button-items), .exit, .avatar-null {
         @extend %base-app-menu-button;
         border-radius: 100%;
     }
 
+    .server-button button{
+        overflow: hidden;
+        text-overflow:ellipsis;
+        white-space: nowrap;
+        font-size: 12px;
+    }
+
     .button-items {
+        height: 100%;
         @extend %flex-col;
-        gap: 4em;
+        gap: 1em;
     }
 
     .button-items > div:not(button-items), .exit, .avatar-null {
@@ -299,9 +330,18 @@
         background-color: transparent;
     }
 
-    .exit {
+    .manage-app {
+        @extend %flex-col;
+        gap: 1em;
+
+        .exit {
         @extend %grid-center;
-    }
+        background-color: transparent;
+        flex-shrink: 0;
+        }
+    }   
+
+    
 }
 
 .messages-menu {
@@ -323,9 +363,12 @@
     }
 
     .messages-menu_list-group, .messages-menu_list-friends {
+        display: grid;
+        grid-template-rows: 1fr 2fr 15fr 1fr;
         height: 100%;
-        overflow-x: scroll;
     }
+
+    
 
     .messages-menu_list-search {
         background-color: #30343b;
@@ -336,7 +379,7 @@
     .messages-menu_list-search input{
         padding: 0.5em;
         padding-left: 2em;
-        font-size: 20px;
+        font-size: 14px;
         background-color: #3F495A;
         box-sizing: border-box;
     }
@@ -355,19 +398,45 @@
    
 } 
 
+ul.group-list.ls .messages-menu_list-group {
+        grid-template-rows: 1fr;
+    }
+
 .group-list {
     @extend %flex-col;
     gap: 1em;
     padding-left: 0.5em;
+    overflow: auto;
+    scrollbar-color: #555 transparent;
+    scrollbar-width: thin;
     
+
     .group-item {
         @extend %flex-base;
         justify-content: flex-end;
-        font-size: 18px;
+        font-size: 16px;
+    }
+
+    &::-webkit-scrollbar {
+        width: 1px;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background-color: transparent;
+        border-radius: 0px;
+    }
+
+    /* При наведении */
+    &::-webkit-scrollbar-thumb:hover {
+        background: transparent;
     }
 
     .group-item > div {
-        padding: 10px 0;
+        padding: 7px 0;
         width: 90%;
         position: relative;
         background-color: #3F495A;
@@ -386,12 +455,12 @@
         justify-content: center;
         left: -25px;
         top: 0px;
-        width: 50px;
-        height: 50px;
+        width: 40px;
+        height: 40px;
     }
     .group-item__avatar img {
-        width: 50px;
-        height: 50px;
+        width: 40px;
+        height: 40px;
     }
 
     .group-item__name {
@@ -403,7 +472,8 @@
     }
 }
 
-.voice-manager {
+
+.voice-manager, .user-view {
     display: flex;
     flex-direction: column;
     padding: 1em;
@@ -415,5 +485,92 @@
 
     button:hover svg {
         filter: invert(0.5);
+    }
+}
+
+
+.voice-manager {
+    flex-direction: row;
+}
+
+.user-view {
+    padding: 0.5em;
+    width: 200px;
+    flex-shrink: 0;
+    h2 {
+        font-size: 16px;
+    }
+
+    button {
+        display: flex;
+        gap: 0.5em;
+        align-items: end;
+        overflow: hidden;
+        white-space: none;
+        text-overflow: ellipsis;
+        text-align: left;
+        border: 1px solid #ffffff1f;
+        background-color: #ffffff1f;
+        border-radius: 5px;
+        margin: -1px;
+
+        img {
+            width: 40px;
+            height: 40px;
+        }
+    }
+
+}
+
+.profile {
+    width: 500px;
+    height: 600px;
+    .info {
+        display: flex;
+        flex-direction: column;
+        padding-bottom: 2em;
+
+        .name {
+            font-size: 24px;
+            line-height: 24px;
+        }
+        .avatar {
+            position: relative;
+
+            span {
+                position: absolute;
+                border-radius: 50%;
+                background-color: rgb(7, 216, 119);
+                width: 10px;
+                height: 10px;
+                bottom: 10px;
+                right: 10px;
+            }
+
+            span.not-online {
+                background-color: rgb(216, 49, 7);
+            }
+        }
+    }
+
+    & >div:first-child {
+        border-bottom: 1px solid #ffffff62;
+    }
+
+    .manage-info {
+        display: flex;
+        button {
+            background-color: transparent;
+            
+        }
+        button.active {
+            border-bottom: 2px solid #fff;
+        }
+    }
+
+    .about-user, .about-user div{
+        height: 100%;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
     }
 }

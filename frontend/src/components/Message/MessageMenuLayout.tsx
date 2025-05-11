@@ -7,9 +7,7 @@ export const MessageMenuLayout: React.FC<{ children: React.ReactNode }> = ({
     return (
         <>
             <div className="messages-menu">
-                <h1>
-                    ORBIS<span>chat</span>
-                </h1>
+                
                 <div className="messages-menu_list">
                     <div className="messages-menu_list-group">{children}</div>
                 </div>

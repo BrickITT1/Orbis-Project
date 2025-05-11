@@ -10,9 +10,9 @@ const chats = [
         lastmessage: "hi",
         created_at: '',
         updated_at: '',
+        owner: 0,
         avatar_url: '/img/icons.png',
-        creator: 0,
-        owner: 5,
+        users: [0, 5],
         voice: 1,
     },
     {
@@ -22,9 +22,9 @@ const chats = [
         lastmessage: "hi",
         created_at: '',
         updated_at: '',
+        owner: 1,
         avatar_url: '/img/icon.png',
-        creator: 1,
-        owner: 2,
+        users: [1, 2],
         voice: 2,
     },
     {
@@ -35,8 +35,8 @@ const chats = [
         created_at: '',
         updated_at: '',
         avatar_url: '/img/icon.png',
-        creator: 0,
-        owner: 1,
+        owner: 0,
+        users: [0, 1],
         voice: 2,
     },
 ] // Все чаты
@@ -50,7 +50,7 @@ const getChats = async (req, res) => {
     if (!token) return res.sendStatus(401);
     const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
 
-    res.json(chats.filter(val => val.owner == decoded?.id || val.creator == decoded?.id))
+    res.json(chats.filter(val => val.owner == decoded?.id || val.users.includes(decoded.id)))
     //res.json(chats.filter(val => val))  ;
 }
   
@@ -65,7 +65,15 @@ const postChats = async(req, res) => {
     res.status(201).json(newChat);
 };
 
-export { chats, getChats, postChats };
+const getInfoChat = async (req, res) => {
+    
+    const chatId = req.params.id;
+    
+    res.json(chats.filter(val => val.id == chatId))
+    //res.json(chats.filter(val => val))  ;
+}
+
+export { chats, getChats, postChats, getInfoChat };
   
 // // API для сообщений
 // app.get("/api/chats/:id/messages", (req, res) => {

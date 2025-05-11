@@ -4,6 +4,7 @@ import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import fs from 'fs';
 import { serverRouter } from './routes/serverRoutes.js';
+import { userRouter } from './routes/userRoutes.js'
 import { Server } from 'socket.io';
 import https from 'https';
 
@@ -30,7 +31,8 @@ app.use(cookieParser());
 
 
 app.use(express.json());
-app.use("/api", serverRouter)
+app.use("/api", serverRouter);
+app.use("/api", userRouter);
 
 const PORT = process.env.USERPORT || 3003;
 server.listen(PORT, () => { // Запускаем сервер

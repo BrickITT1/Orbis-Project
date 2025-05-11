@@ -11,13 +11,13 @@ export interface chat {
     created_at: string;
     updated_at: string;
     avatar_url: string;
-    creator: number;
-    own: number;
+    users: string[];
+    owner: number;
 }
 
 interface chatState {
     chat?: chat[];
-    activeChat?: chat;
+    activeChat?: chat | undefined;
 }
 
 const initialState: chatState = {};
@@ -34,7 +34,7 @@ const chatSlice = createSlice({
         //   state.loading = false;
         //   console.log(action.payload)
         // },
-        setActiveChat(state, action: PayloadAction<chat>) {
+        setActiveChat(state, action: PayloadAction<chat | undefined>) {
             state.activeChat = action.payload;
         },
     },

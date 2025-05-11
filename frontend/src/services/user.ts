@@ -1,10 +1,10 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { config } from "../config";
 
-export const messageApi = createApi({
-    reducerPath: "messageApi",
+export const userApi = createApi({
+    reducerPath: "userApi",
     baseQuery: fetchBaseQuery({
-        baseUrl: `${config.chatServiceUrl}/api`,
+        baseUrl: `${config.userServiceUrl}/api`,
         credentials: "include",
         prepareHeaders: (headers, { getState }) => {
             const state = getState() as {
@@ -19,34 +19,28 @@ export const messageApi = createApi({
         },
     }),
     endpoints: (builder) => ({
-        GetChats: builder.query({
+        getFriend: builder.query({
             query: () => ({
-                url: `/chats`,
+                url: `/user`,
                 method: "GET",
             }),
         }),
-        CreateChat: builder.mutation({
+        addFriend: builder.mutation({
             query: (data) => ({
-                url: `/chats`,
+                url: `/user`,
                 method: "POST",
                 body: data,
             }),
         }),
-        getChatInfo: builder.query({
+        getFastInfoUserFromServer: builder.query({
             query: (id) => ({
-                url: `/chat/${id}`,
+                url: `/userserver/${id}/`,
                 method: "GET",
             }),
         }),
-        GetMessages: builder.mutation({
+        getInfoUser: builder.query({
             query: (id) => ({
-                url: `/chats/${id}/messages`,
-                method: "GET",
-            }),
-        }),
-        CreateMessages: builder.mutation({
-            query: (id) => ({
-                url: `/chats/${id}/messages`,
+                url: `/user/${id}/`,
                 method: "GET",
             }),
         }),
@@ -54,9 +48,9 @@ export const messageApi = createApi({
 });
 
 export const {
-    useGetChatsQuery,
-    useCreateChatMutation,
-    useCreateMessagesMutation,
-    useLazyGetChatInfoQuery,
-    useGetMessagesMutation,
-} = messageApi;
+    useAddFriendMutation,
+    useGetFriendQuery,
+    useGetFastInfoUserFromServerQuery,
+    useGetInfoUserQuery,
+    useLazyGetInfoUserQuery
+} = userApi;

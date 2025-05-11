@@ -9,6 +9,7 @@ import { voice } from "../features/server/serverSlices";
 import { useVoiceChat } from "../app/hook/voicechat/useVoiceChat";
 import AudioManager from "./Voice/AudioManager";
 import { setToggleJoin } from "../features/voice/voiceSlices";
+import { VoiceManager } from "./Voice/VoiceManager";
 
 export const MessageMenuServer: React.FC = () => {
     const dispatch = useAppDispatch();
@@ -48,6 +49,7 @@ export const MessageMenuServer: React.FC = () => {
     return (
         <>
             <MessageMenuLayout>
+                
                 <h2>{data?.name}</h2>
                 <div className="bg-server"></div>
                 <ul className="server-list">
@@ -88,6 +90,7 @@ export const MessageMenuServer: React.FC = () => {
                     />: null} 
                     
                 </ul>
+                <VoiceManager />
             </MessageMenuLayout>
         </>
     );

@@ -1,11 +1,13 @@
 import { configureStore } from "@reduxjs/toolkit";
-import { userApi } from "../services/auth";
+import { authApi } from "../services/auth";
 import { messageApi } from "../services/chat";
 import authReducer from "../features/auth/authSlices";
 import messageReducer from "../features/chat/chatSlices";
 import voiceReducer from "../features/voice/voiceSlices";
 import serverReducer from "../features/server/serverSlices";
+import userReducer from "../features/user/userSlices";
 import { serverApi } from "../services/server";
+import { userApi } from "../services/user";
 
 export const store = configureStore({
     reducer: {
@@ -13,9 +15,11 @@ export const store = configureStore({
         chat: messageReducer,
         voice: voiceReducer,
         server: serverReducer,
-        [userApi.reducerPath]: userApi.reducer,
+        user: userReducer,
+        [authApi.reducerPath]: authApi.reducer,
         [messageApi.reducerPath]: messageApi.reducer,
         [serverApi.reducerPath]: serverApi.reducer,
+        [userApi.reducerPath]: userApi.reducer,
     },
     middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware({
@@ -24,9 +28,10 @@ export const store = configureStore({
                 ignoredPaths: ["voice.audioStreams", "voice.videoStreams"], // Игнорируем конкретные пути состояния
             },
         }).concat(
-            userApi.middleware,
+            authApi.middleware,
             messageApi.middleware,
             serverApi.middleware,
+            userApi.middleware
         ),
 });
 

@@ -1,8 +1,8 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { config } from "../config";
 
-export const userApi = createApi({
-    reducerPath: "postsApi",
+export const authApi = createApi({
+    reducerPath: "authApi",
     baseQuery: fetchBaseQuery({
         baseUrl: config.authServiceUrl,
         credentials: "include",
@@ -85,4 +85,4 @@ export const {
     useSendVerificationCodeMutation,
     useVerifyCodeMutation,
     useRefreshTokenQueryQuery,
-} = userApi;
+} = authApi;
