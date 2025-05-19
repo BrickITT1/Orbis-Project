@@ -21,7 +21,7 @@ export const userApi = createApi({
     endpoints: (builder) => ({
         getFriend: builder.query({
             query: () => ({
-                url: `/user`,
+                url: `/user/friends`,
                 method: "GET",
             }),
         }),

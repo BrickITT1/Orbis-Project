@@ -1,171 +1,242 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { PeerInfo } from "../../types/Channel";
 import { useAppSelector } from "../../app/hooks";
 
 type TypeMember = "chat" | "server";
 
 interface VoiceMemberProps {
-    typeMember: TypeMember;
-    videoStreams: Record<string, MediaStream>;
+  typeMember: TypeMember;
+  videoStreams: Record<string, MediaStream>;
 }
 
 export const VoiceMember: React.FC<VoiceMemberProps> = ({
-    typeMember,
-    videoStreams,
+  typeMember,
+  videoStreams = {},
 }) => {
-    const isConnected = useAppSelector((s) => s.voice.isConnected);
-    const myPeer = useAppSelector((s) => s.voice.myPeer);
-    const roomPeers = useAppSelector((s) => s.voice.roomPeers);
-    const audioOnly = myPeer?.audioOnly ?? false;
-    const videoRefs = useRef<Record<string, HTMLVideoElement | null>>({});
-    const localStreamRef = useRef<MediaStream | null>(null);
+  const isConnected = useAppSelector((s) => s.voice.isConnected);
+  const myPeer = useAppSelector((s) => s.voice.myPeer);
+  const roomPeers = useAppSelector((s) => s.voice.roomPeers);
+  const audioOnly = myPeer?.audioOnly ?? false;
 
-    const [isStreamInitialized, setIsStreamInitialized] = useState(false);
+  const videoRefs = useRef<Record<string, HTMLVideoElement | null>>({});
+  const localStreamRef = useRef<MediaStream | null>(null);
+  const [userMediaError, setUserMediaError] = useState<Error | null>(null);
 
-    // Функция для остановки потока
-    const stopStream = (stream: MediaStream | null) => {
-        stream?.getTracks().forEach((track) => track.stop());
+  const stopLocalStream = useCallback(() => {
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach((track) => {
+        track.stop();
+      });
+      localStreamRef.current = null;
+    }
+  }, []);
+
+  const initLocalStream = useCallback(async () => {
+    if (!myPeer?.id || typeMember !== "chat") return;
+
+    stopLocalStream();
+    setUserMediaError(null);
+
+    const constraints = {
+      video: !audioOnly,
+      audio: false,
     };
 
-    // Очистка потоков при размонтировании
-    useEffect(() => {
-        return () => {
-            Object.values(videoRefs.current).forEach((videoEl) => {
-                if (videoEl?.srcObject) {
-                    stopStream(videoEl.srcObject as MediaStream);
-                }
-            });
-            stopStream(localStreamRef.current);
-        };
-    }, []);
+    if (!constraints.audio && !constraints.video) {
+      console.warn("Skipped getUserMedia: both audio and video are false");
+      return;
+    }
 
-    // Функция для создания локального потока
-    const createLocalStream = async () => {
-        if (typeMember !== "chat" || !myPeer.id) return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
 
-        if (!localStreamRef.current) {
-            try {
-                console.log("Запрос на доступ к камере...");
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: true,
-                    audio: false,
-                });
-                localStreamRef.current = stream;
-                const videoEl = videoRefs.current[myPeer.id];
-                if (videoEl) {
-                    videoEl.srcObject = stream;
-                }
-                setIsStreamInitialized(true);
-            } catch (err) {
-                console.error("Ошибка доступа к камере:", err);
-                alert("Не удалось получить доступ к камере. Пожалуйста, проверьте разрешения.");
-            }
-        }
+      if (!audioOnly && stream.getVideoTracks().length === 0) {
+        throw new Error("No video track available");
+      }
+
+      localStreamRef.current = stream;
+
+      const videoEl = videoRefs.current[myPeer.id];
+      if (videoEl) {
+        videoEl.muted = true;
+        videoEl.srcObject = null;
+        videoEl.srcObject = stream;
+
+        setTimeout(() => {
+          videoEl.play().catch((e) => {
+            console.warn("Auto-play prevented (local):", e);
+          });
+        }, 0);
+      }
+    } catch (err) {
+      console.error("Media error:", err);
+      setUserMediaError(err as Error);
+      stopLocalStream();
+    }
+  }, [myPeer?.id, audioOnly, typeMember, stopLocalStream]);
+
+  useEffect(() => {
+    if (isConnected && typeMember === "chat") {
+      initLocalStream();
+    }
+
+    return () => {
+      stopLocalStream();
     };
+  }, [isConnected, typeMember, initLocalStream, stopLocalStream]);
 
-    // Эффект для создания локального потока при изменении состояния
-    useEffect(() => {
-        if (myPeer.id && isConnected && !isStreamInitialized) {
-            createLocalStream();
+  useEffect(() => {
+    if (!myPeer?.id || typeMember !== "chat") return;
+
+    const videoEl = videoRefs.current[myPeer.id];
+    const stream = localStreamRef.current;
+
+    if (videoEl && stream) {
+      if (videoEl.srcObject !== stream) {
+        videoEl.muted = true;
+        videoEl.srcObject = null;
+        videoEl.srcObject = stream;
+
+        setTimeout(() => {
+          videoEl.play().catch((e) => {
+            console.warn("Auto-play prevented:", e);
+          });
+        }, 0);
+      }
+    }
+  }, [myPeer?.id, typeMember, localStreamRef.current]);
+
+  const attachRemoteStream = async (stream: MediaStream, peerId: string) => {
+    const videoEl = videoRefs.current[peerId];
+    if (!videoEl) {
+      console.warn("No video element for peer", peerId);
+      return;
+    }
+
+    videoEl.muted = true;
+    videoEl.srcObject = null;
+    videoEl.srcObject = stream;
+
+    try {
+      await videoEl.play();
+    } catch (err) {
+      console.warn("Remote video play failed (1), retrying with muted:", err);
+      try {
+        await videoEl.play();
+      } catch (err2) {
+        console.error("Remote video still failed to play (2):", err2);
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (typeMember !== "chat") return;
+
+    roomPeers.forEach((peer) => {
+      if (peer.id === myPeer?.id) return;
+
+      const streamKey = Object.keys(videoStreams).find((key) =>
+        key.includes(peer.id)
+      );
+      const stream = streamKey ? videoStreams[streamKey] : null;
+      const videoEl = videoRefs.current[peer.id];
+
+      if (videoEl) {
+        if (stream && !peer.audioOnly) {
+          if (videoEl.srcObject !== stream) {
+            console.log("Attaching stream for peer", peer.id);
+            attachRemoteStream(stream, peer.id);
+          }
+        } else {
+          videoEl.srcObject = null;
         }
-        
-        return () => {
-            stopStream(localStreamRef.current);
-            localStreamRef.current = null;
-        };
-    }, [myPeer.id, isConnected, isStreamInitialized, typeMember]); // Убедимся, что поток создается только после того, как все данные готовы
+      }
+    });
+  }, [videoStreams, roomPeers, myPeer?.id, typeMember]);
 
-    // Обновление видеопотоков для других участников
-    useEffect(() => {
-        if (typeMember !== "chat") return;
+  if (!roomPeers.length) {
+    return <div>Loading...</div>;
+  }
 
-        roomPeers.forEach((peer) => {
-            if (peer.id === myPeer.id) return; // Пропускаем себя
-
-            const streamKey = Object.keys(videoStreams).find((key) =>
-                key.startsWith(`${peer.id}-`),
-            );
-            const stream = streamKey ? videoStreams[streamKey] : null;
-            const videoEl = videoRefs.current[peer.id];
-
-            if (videoEl && stream) {
-                videoEl.srcObject = stream;
-            } else if (videoEl?.srcObject) {
-                stopStream(videoEl.srcObject as MediaStream);
-                videoEl.srcObject = null;
-            }
-        });
-    }, [videoStreams, roomPeers, myPeer.id, typeMember]);
-
-    if (!roomPeers.length) {
-        return <div>Loading...</div>;
-    }
-
-    if (typeMember === "server") {
-        return (
-            <ul>
-                {roomPeers.map((peer) => (
-                    <li key={peer.id}>
-                        <span>
-                            <img
-                                src="/img/icon.png"
-                                alt=""
-                                width={30}
-                                height={30}
-                            />
-                        </span>
-                        {peer.username}
-                    </li>
-                ))}
-            </ul>
-        );
-    }
-
+  if (typeMember === "server") {
     return (
-        <ul>
-            {roomPeers.map((peer) => {
-                const isMe = peer.id === myPeer.id;
-                const showAvatar =
-                    peer.audioOnly ||
-                    (isMe
-                        ? audioOnly
-                        : !Object.keys(videoStreams).some(
-                              (key) => key.startsWith(`${peer.id}-`),
-                        ));
-
-                return (
-                    <li key={peer.id}>
-                        <div className="voice-avatar">
-                            {showAvatar ? (
-                                <img
-                                    src="/img/icon.png"
-                                    alt={`Аватар ${peer.username}`}
-                                    width={150}
-                                    height={150}
-                                />
-                            ) : (
-                                <video
-                                    ref={(el) =>
-                                        (videoRefs.current[peer.id] = el)
-                                    }
-                                    autoPlay
-                                    muted={isMe}
-                                    playsInline
-                                    style={{
-                                        width: 200,
-                                        height: "auto",
-                                        borderRadius: 8,
-                                        margin: "10px 0",
-                                    }}
-                                />
-                            )}
-                        </div>
-                        <div className="voice-name">
-                            {peer.username} {peer.muted && "(muted)"}
-                        </div>
-                    </li>
-                );
-            })}
-        </ul>
+      <ul>
+        {roomPeers.map((peer) => (
+          <li key={peer.id}>
+            <span>
+              <img src="/img/icon.png" alt="" width={30} height={30} />
+            </span>
+            {peer.username}
+          </li>
+        ))}
+      </ul>
     );
+  }
+
+  return (
+    <ul>
+      {roomPeers.map((peer) => {
+        const isMe = peer.id === myPeer?.id;
+        const shouldShowVideo =
+          !peer.audioOnly &&
+          (isMe
+            ? !audioOnly && localStreamRef.current
+            : Object.keys(videoStreams).some((key) => key.includes(peer.id)));
+
+        return (
+          <li key={peer.id}>
+            <div className="voice-avatar">
+              {!shouldShowVideo ? (
+                <img
+                  src="/img/icon.png"
+                  alt={`${peer.username} avatar`}
+                  width={150}
+                  height={150}
+                />
+              ) : (
+                <video
+                  ref={(el) => {
+                    videoRefs.current[peer.id] = el;
+                    if (el && isMe && localStreamRef.current) {
+                      el.muted = true;
+                      el.srcObject = null;
+                      el.srcObject = localStreamRef.current;
+                      setTimeout(() => {
+                        el.play().catch((e) => {
+                          console.warn("Auto-play error on ref (me):", e);
+                        });
+                      }, 0);
+                    }
+                  }}
+                  autoPlay
+                  muted={isMe}
+                  playsInline
+                  style={{
+                    width: 200,
+                    height: "auto",
+                    borderRadius: 8,
+                    margin: "10px 0",
+                    backgroundColor: "black",
+                  }}
+                />
+              )}
+            </div>
+            <div className="voice-name">
+              {peer.username}
+              {peer.muted && " (muted)"}
+              {isMe && " (You)"}
+              {isMe && userMediaError && (
+                <span className="error-text"> (Camera error)</span>
+              )}
+            </div>
+          </li>
+        );
+      })}
+    </ul>
+  );
 };

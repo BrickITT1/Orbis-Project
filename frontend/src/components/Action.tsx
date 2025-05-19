@@ -67,6 +67,7 @@ export const Action: React.FC<ActionProps> = ({
 
     const messagesDivRef = useRef<HTMLDivElement>(null);
 
+
     const joinVoiceRoom = () => {
         if (!activeChat) return
         dispatch(setToggleJoin({isConnected: true, roomId: activeChat?.id}))
@@ -75,6 +76,7 @@ export const Action: React.FC<ActionProps> = ({
     const [trigger, { data, isFetching, error }] = useLazyGetChatInfoQuery();
 
     useEffect(() => {
+        if (!activeServer) return;
         if (activeServer && activeServer.chats[0]) {
             trigger(activeServer.chats[0]);
         }
@@ -89,10 +91,11 @@ export const Action: React.FC<ActionProps> = ({
         }
     }, [data])
 
+    
+
     return (
         <ErrorBoundary>
-            {activeChat ? (
-                <div className="actions">
+            {activeChat && <div className="actions">
                     <div className="actions-main">
                         {/* Заголовок чата */}
                         <div className="chat-title">
@@ -129,10 +132,9 @@ export const Action: React.FC<ActionProps> = ({
                         {/* Ввод нового сообщения */}
                         <InputChat handleSendMessage={handleSendMessage} />
                     </div>
-                </div>
-            ) : (
-                <div className="actions" />
-            )}
+                </div>}
+                      
+            
         </ErrorBoundary>
     );
 };

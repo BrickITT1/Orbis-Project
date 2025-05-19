@@ -37,7 +37,6 @@
     }
 
     .messages-menu {
-        padding-top: 1em;
         padding-bottom: 1em;
         min-width: 250px;
     }
@@ -61,6 +60,7 @@
 
     .chat-title {
         background-color: $app-bg;
+        max-height: 57px;
         padding: 1em;
         display: flex;
         justify-content: space-between;
@@ -88,6 +88,10 @@
 
         .voice:hover svg path{
             stroke: #848891;
+        }
+
+        .buttons {
+            @extend %flex-base;
         }
     }
 
@@ -292,6 +296,31 @@
     justify-content: space-between;
     align-items: center;
     padding: 1em 0;
+    flex-shrink: 0;
+
+    overflow-y: auto;
+    overflow-x:hidden;
+
+    scrollbar-color: #555 transparent;
+    scrollbar-width: thin;
+    
+    &::-webkit-scrollbar {
+        width: 1px;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background-color: transparent;
+        border-radius: 0px;
+    }
+
+    /* При наведении */
+    &::-webkit-scrollbar-thumb:hover {
+        background: transparent;
+    }
     
     
     .avatar, .avatar img, .button-items > div:not(button-items), .exit, .avatar-null {
@@ -366,33 +395,33 @@
         display: grid;
         grid-template-rows: 1fr 2fr 15fr 1fr;
         height: 100%;
-    }
 
-    
+        .personal-menu {
+            grid-row-start: 1;
+            grid-row-end: 3;
+            @extend %flex-col;
+            justify-content: space-evenly;
+            background-color: rgba(42, 61, 95, 0.5215686275);
+        }
 
-    .messages-menu_list-search {
-        background-color: #30343b;
-        position: relative;
-        padding: 0.1em;
-    }
+        .group-list {
+            padding-top: 1em;
+            grid-row: 3;
+        }
 
-    .messages-menu_list-search input{
-        padding: 0.5em;
-        padding-left: 2em;
-        font-size: 14px;
-        background-color: #3F495A;
-        box-sizing: border-box;
-    }
+        .voice-manager {
+            grid-row: 4;
+        }
 
-    .messages-menu_list-search::before {
-        content: '';
-        position: absolute;
-        width: 30px;
-        height: 30px;
-        top: 0.5em;
-        left: 0.5em;
-        background-image: url('/img/button/Find.svg');
-        z-index: 2;
+        .friend, .Input {
+            button {
+                background-color: transparent;
+                text-align: left;
+                padding: 0.5em;
+                background-color: #04122f88;
+            }
+            
+        }
     }
 
    
@@ -415,6 +444,7 @@ ul.group-list.ls .messages-menu_list-group {
         @extend %flex-base;
         justify-content: flex-end;
         font-size: 16px;
+        
     }
 
     &::-webkit-scrollbar {
@@ -446,6 +476,7 @@ ul.group-list.ls .messages-menu_list-group {
 
     .active {
         filter: brightness(1.2);
+        
     }
 
     .group-item__avatar {
@@ -477,7 +508,7 @@ ul.group-list.ls .messages-menu_list-group {
     display: flex;
     flex-direction: column;
     padding: 1em;
-    gap: 1em;
+    gap: 0.5em;
     button {
         background-color: transparent;
         transition: all 0.3s ease;
@@ -520,6 +551,28 @@ ul.group-list.ls .messages-menu_list-group {
         }
     }
 
+}
+
+.connect-server {
+    width: 500px;
+    height: 350px;
+    @extend %flex-col;
+    gap: 1em;
+
+    h2, p {
+        text-align: center;
+    }
+
+    button, input {
+        background-color: transparent;
+        border-bottom: 1px solid #fff;
+        padding: 0.5em;
+    }
+
+    button {
+        border: 1px solid #fff;
+        border-radius: 5px;
+    }
 }
 
 .profile {
@@ -572,5 +625,83 @@ ul.group-list.ls .messages-menu_list-group {
         height: 100%;
         word-wrap: break-word;
         overflow-wrap: break-word;
+    }
+}
+
+div.friend-list {
+    background-color: transparent;
+    width: 100%;
+    padding: 2em;
+    .friend-container {
+        background-color: rgba(51, 57, 68, 0.5215686275);
+        height: 100%;
+    }
+    .friend-menu {
+
+        h1 {
+            font-size: 20px;
+            line-height: 20px;
+            padding: 0.5em;
+            padding-left: 0;
+            border-right: 1px dashed   #ffffff62;
+        }
+        @extend %flex-base;
+        align-items: center;
+        gap: 0.5em;
+        background-color: rgba(42, 61, 95, 0.5215686275);
+        padding: 0.3em;
+        padding-left: 1em;
+        button {
+            padding: 0.5em;
+            background-color: transparent;
+            width: fit-content;
+
+            
+        }
+        button.isActive {
+                filter: brightness(2);
+                border-bottom: 2px solid #fff;
+            }
+        
+            .add-friend {
+                background-color: #2c77e9;
+            }
+    }
+
+    ul.friend {
+        padding: 1em;
+        @extend %flex-col;
+        gap: 1em;
+        li {
+            user-select: none;
+            
+            @extend %flex-base;
+            gap: 1em;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #3F495A;
+            
+            .name {
+                @extend %flex-base;
+                align-items: center;
+                gap: 0.5em;
+                cursor: pointer;
+                width: 100%;
+                padding: 0.5em;
+            }
+            
+            .manage {
+                @extend %flex-base;
+                button {
+                    background-color: transparent;
+                }
+                .start-message {
+                    height: 25px;
+                }
+            }
+        }
+        .name:hover  {
+            filter: brightness(1.2);
+        }
     }
 }

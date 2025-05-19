@@ -16,6 +16,10 @@ import { useDelayedVoiceChat } from "../app/hook/voicechat/useDelayedVoiceChat";
 import { MessageGroupp } from "../types/Message";
 import { MemberChatServer } from "../components/MemberChatServer";
 import { Profile } from "../components/UserInfo/UserProfile";
+import { AddServerForm } from "../components/Server/Add/AddServerForm";
+import { FriendList } from "../components/FriendList/FriendList";
+import { setActiveChat } from "../features/chat/chatSlices";
+import { useLazyGetServersMembersQuery } from "../services/server";
 
 export const AppPage: React.FC = () => {
     const dispatch = useAppDispatch();
@@ -23,11 +27,22 @@ export const AppPage: React.FC = () => {
     const token = useAppSelector((state) => state.auth.user?.access_token);
     const myUsername =
         useAppSelector((state) => state.auth.user?.username) ?? "";
+    const activeChat = useAppSelector((state) => state.chat.activeChat);
+    const [trigger, {data: userss}] = useLazyGetServersMembersQuery();
+
+
+    useEffect(()=> {
+        if (!server.activeserver) return
+        trigger(server.activeserver?.id)
+    }, [server.activeserver])
+
 
     useEffect(() => {
         dispatch(setActiveServer(undefined));
     }, []);
-    const activeChat = useAppSelector((state) => state.chat.activeChat);
+    useEffect(() => {
+        dispatch(setActiveChat(undefined));
+    }, []);
 
     const {
         groupedMessages,
@@ -49,19 +64,30 @@ export const AppPage: React.FC = () => {
             if (isSocketConnected) setDisable();
         };
     }, [activeChat, isSocketConnected, setEnable, setDisable]);
-
+    
     return (
         <>
             <div className="main-app">
                 <AppMenu />
                 <Profile />
+                <AddServerForm />
                 {server.activeserver ? <MessageMenuServer /> : <MessageMenu />}
 
-                <Action
+                
+                    
+                {!activeChat ? null :
+                    <Action
                     handleSendMessage={sendMessage}
                     Messages={groupedMessages as MessageGroupp[]}
                     videoStreams={streams.videoStreams!}
                 />
+                }
+
+                {(!activeChat && !server.activeserver) && <FriendList />}
+
+                {(server.activeserver && !activeChat) && <div className="actions"></div>}
+                
+                
                 {streams.audioStreams ? (
                     <AudioManager
                         audioStreams={streams.audioStreams}
@@ -74,7 +100,7 @@ export const AppPage: React.FC = () => {
                 ): null}
                 
                 
-                <MemberChatServer />
+                {server.activeserver && <MemberChatServer /> }
             </div>
         </>
     );

@@ -3,7 +3,7 @@ import { useLogoutUserMutation } from "../services/auth";
 import { useNavigate } from "react-router-dom";
 import { useGetServersQuery } from "../services/server";
 import { useAppDispatch, useAppSelector } from "../app/hooks";
-import { setActiveServer } from "../features/server/serverSlices";
+import { initCreateServer, setActiveServer } from "../features/server/serverSlices";
 import { setActiveChat } from "../features/chat/chatSlices";
 import { ModalLayout } from "./Layouts/Modal/Modal";
 
@@ -14,6 +14,7 @@ export const AppMenu: React.FC = () => {
     const dispatch = useAppDispatch();
     const navigator = useNavigate();
     const server = useAppSelector((state) => state.server);
+    
     return (
         <>
        
@@ -61,7 +62,9 @@ export const AppMenu: React.FC = () => {
                 <div className="manage-app">
 
                     <div className="exit add-server">
-                        <button>
+                        <button onClick={() => {
+                            dispatch(initCreateServer());
+                        }}>
                             <svg width="45" height="45" viewBox="0 0 45 45" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M28.125 22.5H22.5M22.5 22.5H16.875M22.5 22.5V16.875M22.5 22.5V28.125" stroke="#FFF" strokeWidth="1.25" strokeLinecap="round"/>
                                 <path d="M13.125 6.25841C15.8829 4.66307 19.0849 3.75 22.5 3.75C32.8552 3.75 41.25 12.1447 41.25 22.5C41.25 32.8552 32.8552 41.25 22.5 41.25C12.1447 41.25 3.75 32.8552 3.75 22.5C3.75 19.0849 4.66307 15.8829 6.25841 13.125" stroke="#FFF" strokeWidth="1.25" strokeLinecap="round"/>

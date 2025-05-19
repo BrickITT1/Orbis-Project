@@ -5,7 +5,7 @@ import { chat, setActiveChat } from "../../features/chat/chatSlices";
 export const ChatItem: React.FC<{ chat: chat }> = ({ chat }) => {
     const active = useAppSelector((state) => state.chat.activeChat);
     const dispatch = useAppDispatch();
-
+    
     return (
         <>
             <li

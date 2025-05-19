@@ -9,6 +9,7 @@ interface userState {
     loadedProfiles?: UserInfo[];
     openProfile?: UserInfo;
     isOpenProfile?: boolean;
+    friends?: UserInfo[];
 }
 
 const initialState: userState = {
@@ -28,7 +29,7 @@ const initialState: userState = {
         `,
         gender: "male",
     },
-    isOpenProfile: false
+    isOpenProfile: false,
 };
 
 const userSlice = createSlice({
@@ -53,6 +54,12 @@ const userSlice = createSlice({
                     state.openProfile = action.payload[0];
                     state.loadedProfiles?.push(action.payload[0]);
                 },
+            )
+            .addMatcher(
+                userApi.endpoints.getFriend.matchFulfilled,
+                (state, action) => {
+                    state.friends = action.payload.Friends;
+                }
             )
     },
 });

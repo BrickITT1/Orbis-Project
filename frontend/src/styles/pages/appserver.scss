@@ -3,7 +3,6 @@
 ul.server-list {
     display: flex;
     flex-direction: column;
-    gap: 1em;
     padding: 1em;
 
     .voice {
@@ -16,6 +15,9 @@ ul.server-list {
         
     }
 
+    .voice > div {
+        padding: 0.5em;
+    }
 
     .in-voice {
         position: relative;
@@ -38,11 +40,36 @@ ul.server-list {
     }
     .group-item {
         cursor: pointer;
+            
+
+        .active {
+            background-color: #2c78e93d;
+            border-radius: 5px;
+        }
+
         .group-item__avatar {
             display: none;
         }
         .group-item__name::before  {
             content: '# ';
         }
+    }
+    .group-item > div {
+        padding: 0.5em;
+    }
+}
+
+ul.manage-server-menu {
+    position: absolute;
+    background-color: rgba(42, 61, 95, 0.5215686275);;
+    z-index: 1000;
+
+    li { 
+        padding: 0.5em; 
+        cursor: pointer;
+        background-color: rgba(42, 61, 95, 0.2215686275);
+    }
+    li:hover {
+        filter: brightness(1.2);
     }
 }

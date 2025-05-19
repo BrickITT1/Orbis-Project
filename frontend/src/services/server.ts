@@ -52,13 +52,29 @@ export const serverApi = createApi({
                 body: data,
             }),
         }),
+        JoinServer: builder.mutation({
+            query: (id) => ({
+                url: `/server/${id}/join`,
+                method: "POST",
+            }),
+        }),
+        GetServersMembers: builder.query({
+            query: (id) => ({
+                url: `/server/${id}/members`,
+                method: "GET",
+            }),
+        }),
     }),
 });
 
 export const {
     useGetServersQuery,
+    useLazyGetServersQuery,
     useCreateSeverMutation,
     useGetServersInsideQuery,
+    useLazyGetServersInsideQuery,
     useCreateChatMutation,
     useCreateVoiceMutation,
+    useJoinServerMutation,
+    useLazyGetServersMembersQuery,
 } = serverApi;

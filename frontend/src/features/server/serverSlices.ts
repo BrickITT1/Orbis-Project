@@ -3,6 +3,7 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 import { serverApi } from "../../services/server";
 import { chat } from "../chat/chatSlices";
+import { fastUserInfo } from "../../types/User";
 
 export interface voice {
     id: number;
@@ -14,16 +15,19 @@ export interface server {
     name: string;
     voices: voice[];
     chats: chat[];
-    users: string[];
+    users: fastUserInfo[];
 }
 
 interface serverState {
     servers?: server[];
     activeserver?: server | undefined;
     isActive?: boolean;
+    isCreatingServer?: boolean;
 }
 
-const initialState: serverState = {};
+const initialState: serverState = {
+    isCreatingServer: false,
+};
 
 const serverSlice = createSlice({
     name: "server",
@@ -43,6 +47,13 @@ const serverSlice = createSlice({
         setServers(state, action: PayloadAction<server[]>) {
             state.servers = action.payload;
         },
+        initCreateServer(state) {
+            state.isCreatingServer = true; 
+        },
+        finallyCreateServer(state) {
+            state.isCreatingServer = false; 
+        }
+
     },
     extraReducers: (builder) => {
         // Обработка состояний для регистрации и авторизации
@@ -51,7 +62,17 @@ const serverSlice = createSlice({
             (state, action) => {
                 state.servers = action.payload;
             },
-        );
+        )
+        .addMatcher(
+                serverApi.endpoints.GetServersMembers.matchFulfilled,
+                (state, action) => {
+                    if (!state.activeserver) return;
+                    state.activeserver = {
+                        ...state.activeserver,
+                        users: action.payload,
+                    };
+                }
+            );
         //   .addMatcher(
         //     messageApi.endpoints.GetMessages.matchPending,
         //     (state) => {
@@ -70,6 +91,6 @@ const serverSlice = createSlice({
     },
 });
 
-export const { setActiveServer, setServers } = serverSlice.actions;
+export const { setActiveServer, setServers, initCreateServer, finallyCreateServer } = serverSlice.actions;
 
 export default serverSlice.reducer;

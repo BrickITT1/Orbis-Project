@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "../app/hooks";
 import { useLazyGetInfoUserQuery } from "../services/user";
+import { useLazyGetServersMembersQuery } from "../services/server";
 
 export const MemberChatServer: React.FC = () => {
 
@@ -23,8 +24,8 @@ export const MemberChatServer: React.FC = () => {
             <div className="user-view">
                 <h2>Участники: {users?.length}</h2>
                 {users?.map((val: any, idx: number) => (
-                    <button key={`${idx}-member-server`} onClick={() => handleClick(val)}>
-                        <img src="/img/icon.png" alt="" />{val}
+                    <button key={`${idx}-member-server`} onClick={() => handleClick(val.id)}>
+                        <img src="/img/icon.png" alt="" />{val.name}
                     </button>
                 ))}
             </div>
