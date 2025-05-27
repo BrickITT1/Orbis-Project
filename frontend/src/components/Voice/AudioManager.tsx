@@ -1,50 +1,24 @@
-import React, { useRef, useCallback, useEffect, useMemo } from "react";
+import React, { useRef, useCallback, useEffect } from "react";
 import { useAppSelector } from "../../app/hooks";
-
-interface AudioManagerProps {
-    audioStreams: Record<string, MediaStream>;
-    localPeerId: string;
-    onPlaybackError?: (streamId: string, error: Error) => void;
-}
+import { useMediaStreamContext } from "../../contexts/MediaStreamContext";
 
 const extractPeerId = (streamId: string) => {
-    const match = streamId.match(/^(.*)-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
-    return match ? match[1] : streamId; // если нет UUID, возвращает всё
+    const match = streamId.match(/^(.*?)-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+    return match ? match[1] : streamId;
 };
 
-const AudioManager: React.FC<AudioManagerProps> = ({
-    audioStreams,
-    localPeerId,
-    onPlaybackError,
-}) => {
-    const audioRefs = useRef<Record<string, HTMLAudioElement | null>>({});
-    const peers = useAppSelector(s => s.voice.roomPeers)
-    
-    // Отфильтровываем локальный поток
-    const filteredAudioStreams = useMemo(() => {
-        return Object.fromEntries(
-            Object.entries(audioStreams).filter(
-                ([streamId]) => streamId.split("-")[0] !== localPeerId,
-            ),
-        );
-    }, [audioStreams, localPeerId]);
+const AudioManager: React.FC = () => {
+    const { remoteStreams } = useMediaStreamContext();
+    const audioRefs = useRef<Record<string, HTMLAudioElement>>({});
+    const peers = useAppSelector(state => state.voice.roomPeers);
 
-    const handleError = useCallback(
-        (streamId: string, error: Error) => {
-            console.warn(
-                `Audio playback failed for stream ${streamId}:`,
-                error,
-            );
+    const handleError = useCallback((streamId: string, error: Error) => {
+        console.warn(`Audio playback failed for stream ${streamId}:`, error);
+    }, []);
 
-            onPlaybackError?.(streamId, error);
-        },
-        [onPlaybackError],
-    );
-
-    // Очистка при размонтировании
     useEffect(() => {
         return () => {
-            Object.values(audioRefs.current).forEach((el) => {
+            Object.values(audioRefs.current).forEach(el => {
                 if (el) {
                     el.pause();
                     el.srcObject = null;
@@ -53,44 +27,35 @@ const AudioManager: React.FC<AudioManagerProps> = ({
             audioRefs.current = {};
         };
     }, []);
+
     return (
         <>
-        {peers && <>
-            {Object.entries(filteredAudioStreams).map(([streamId, stream]) => {
-                if (!peers || peers.length === 0) return;
-                const matchedPeer = peers.find(val => extractPeerId(streamId) === val.id);
+            {Object.entries(remoteStreams).map(([peerId, stream]) => {
+                const matchedPeer = peers.find(peer => peer.id === peerId);
                 const isMuted = matchedPeer?.muted ?? false;
 
                 return (
                     <audio
-                        key={streamId}
+                        key={peerId}
                         autoPlay
                         playsInline
-                        ref={(el) => {
+                        ref={el => {
                             if (el) {
-                                audioRefs.current[streamId] = el;
+                                audioRefs.current[peerId] = el;
                                 el.srcObject = stream;
                                 el.muted = isMuted;
-                                stream.getAudioTracks().forEach((track) => {
+                                stream.getAudioTracks().forEach(track => {
                                     track.enabled = !isMuted;
                                 });
-                                el.play().catch((err) =>
-                                    handleError(streamId, err),
-                                );
+                                el.play().catch(err => handleError(peerId, err));
                             } else {
-                                delete audioRefs.current[streamId];
+                                delete audioRefs.current[peerId];
                             }
                         }}
-                        onError={() =>
-                            handleError(
-                                streamId,
-                                new Error("Audio element error"),
-                            )
-                        }
+                        onError={() => handleError(peerId, new Error("Audio element error"))}
                     />
                 );
-            })}</>}
-            
+            })}
         </>
     );
 };

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useLogoutUserMutation } from "../services/auth";
 import { useNavigate } from "react-router-dom";
 import { useGetServersQuery } from "../services/server";
@@ -6,6 +6,7 @@ import { useAppDispatch, useAppSelector } from "../app/hooks";
 import { initCreateServer, setActiveServer } from "../features/server/serverSlices";
 import { setActiveChat } from "../features/chat/chatSlices";
 import { ModalLayout } from "./Layouts/Modal/Modal";
+import { useServerJournalContext } from "../contexts/ServerJournalSocketContext";
 
 export const AppMenu: React.FC = () => {
     const [avatarUrl, setAvatarUrl] = useState<string>();
@@ -14,10 +15,14 @@ export const AppMenu: React.FC = () => {
     const dispatch = useAppDispatch();
     const navigator = useNavigate();
     const server = useAppSelector((state) => state.server);
+    const {socket} = useServerJournalContext();
+
+    useEffect(()=> {
+        dispatch(setActiveChat(undefined))
+    }, [server.activeserver])
     
     return (
         <>
-       
             <div className="app-menu">
                 <div className="avatar avatar-null">
                     {avatarUrl ? null : (
@@ -51,7 +56,11 @@ export const AppMenu: React.FC = () => {
                             >
                                 <button
                                     onClick={async() => {
+                                        if (server.activeserver?.id == val.id) return;
+                                        socket?.emit('leave-server', server.activeserver?.id);
                                         dispatch(setActiveServer(val));
+                                        
+                                        socket?.emit('join-server', val.id)
                                     }}
                                 >
                                     {val.name}
@@ -73,7 +82,9 @@ export const AppMenu: React.FC = () => {
                     </div>
                     
                     <div className="exit settings">
-                        <button className="">
+                        <button className="" onClick={() => {
+                            navigator("/app/settings")
+                        }}>
                             <svg width="45" height="45" viewBox="0 0 45 45" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M14.7058 37.8711C18.5096 40.1237 20.4116 41.25 22.5 41.25C24.5884 41.25 26.4904 40.1237 30.2942 37.8711L31.5808 37.1091C35.3846 34.8564 37.2866 33.7301 38.3308 31.875C39.375 30.0199 39.375 27.7672 39.375 23.2618M39.0276 15C38.8736 14.3017 38.6514 13.6946 38.3308 13.125C37.2866 11.2698 35.3846 10.1435 31.5808 7.89086L30.2942 7.12896C26.4904 4.87631 24.5884 3.75 22.5 3.75C20.4116 3.75 18.5096 4.87631 14.7058 7.12896L13.4192 7.89086C9.61538 10.1435 7.71345 11.2698 6.66923 13.125C5.625 14.9802 5.625 17.2328 5.625 21.7382V23.2618C5.625 27.7672 5.625 30.0199 6.66923 31.875C7.09361 32.6289 7.65967 33.2625 8.4375 33.9004" stroke="#FFF" strokeWidth="1.25" strokeLinecap="round"/>
                                 <path d="M22.5 28.125C25.6066 28.125 28.125 25.6066 28.125 22.5C28.125 19.3934 25.6066 16.875 22.5 16.875C19.3934 16.875 16.875 19.3934 16.875 22.5C16.875 25.6066 19.3934 28.125 22.5 28.125Z" stroke="#FFF" strokeWidth="1.25"/>

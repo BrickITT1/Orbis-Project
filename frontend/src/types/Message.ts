@@ -1,14 +1,21 @@
+export interface Content {
+    id: string;
+    type: string;
+    text: string;
+    url: string;
+}
+
 export interface Message {
     id: number;
-    content: string;
+    content: Content[];
     user_id: number;
-    user_name: string;
+    username: string;
     is_edited: boolean;
     timestamp: string;
 }
 
 export interface MessageGroupp {
-    user_name: string;
+    username: string;
     user_id: number;
     minute: string; // или Date, в зависимости от вашей реализации
     messages: Message[]; // массив сообщений для этой группы

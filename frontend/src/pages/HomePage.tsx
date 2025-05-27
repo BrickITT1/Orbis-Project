@@ -31,13 +31,7 @@ export const HomePage = () => {
                     </div>
                 </div>
             </div>
-            {/* <div className="definition">
-                <div className="definition-background"></div>
-            </div> */}
             <div className="block">Демонстрация продукта,(общение)</div>
-            {/* <div className="definition">
-                <div className="definition-background"></div>
-            </div> */}
             <div className="block">(хорошее качество звука)</div>
         </>
     );

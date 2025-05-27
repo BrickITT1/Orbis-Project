@@ -19,44 +19,33 @@ export const messageApi = createApi({
         },
     }),
     endpoints: (builder) => ({
-        GetChats: builder.query({
-            query: () => ({
-                url: `/chats`,
-                method: "GET",
-            }),
-        }),
-        CreateChat: builder.mutation({
-            query: (data) => ({
-                url: `/chats`,
-                method: "POST",
-                body: data,
-            }),
-        }),
         getChatInfo: builder.query({
             query: (id) => ({
                 url: `/chat/${id}`,
                 method: "GET",
             }),
         }),
-        GetMessages: builder.mutation({
+        GetMessages: builder.query({
             query: (id) => ({
                 url: `/chats/${id}/messages`,
                 method: "GET",
             }),
         }),
         CreateMessages: builder.mutation({
-            query: (id) => ({
+            query: ({id, data}) => ({
                 url: `/chats/${id}/messages`,
-                method: "GET",
+                method: "POST",
+                body: data,
             }),
         }),
     }),
 });
 
 export const {
-    useGetChatsQuery,
-    useCreateChatMutation,
+    
     useCreateMessagesMutation,
     useLazyGetChatInfoQuery,
-    useGetMessagesMutation,
+    useLazyGetMessagesQuery,
+    useGetChatInfoQuery,
+    
 } = messageApi;

@@ -1,55 +1,45 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useChatSocket } from "./useChatSocket";
+import { useAppSelector } from "../../hooks";
+import { Message } from "../../../types/Message";
+import { useLazyGetMessagesQuery } from "../../../services/chat";
 
-interface Message {
-    id: number;
-    content: string;
-    user_id: number;
-    user_name: string;
-    is_edited: boolean;
-    timestamp: string;
-}
 
-export const useChatMessages = (
-    activeChatId: string | undefined,
-    token: string | undefined,
-    user_name: string | undefined,
-) => {
+export const useChatMessages = () => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [isSocketConnected, setIsSocketConnected] = useState(false);
-    const [start, setStartS] = useState(false);
     const { socket } = useChatSocket();
+    const activeChat = useAppSelector(s => s.chat.activeChat);
+    const activeServer = useAppSelector(s => s.server.activeserver)
+    const [getMesseges] = useLazyGetMessagesQuery();
+    
     // Группировка сообщений
     const groupedMessages = useMemo(() => {
         if (messages.length === 0) return null;
         return groupMessagesByMinuteAndUserId(messages);
     }, [messages]);
 
-    const setEnable = () => {
-        setStartS(true);
-    };
-
-    const setDisable = () => {
-        setStartS(false);
-    };
-
     // Подключение к комнате
     useEffect(() => {
-        if (socket && activeChatId) {
-            socket.emit("join-room", activeChatId);
-        }
-    }, [activeChatId, socket]);
+        if (!socket) return
+        if (!activeChat?.chat_id) return
+
+        socket.emit("join-chat", activeChat?.chat_id);
+        
+    }, [activeChat?.chat_id, socket]);
 
     // Обработчики сокетов
     useEffect(() => {
         if (!socket) return;
 
-        const handleNewMessage = (message: Message) => {
-            setMessages((prev) => [...prev, message]);
+        const handleNewMessage = () => {
+            setTimeout(()=>{
+                getMesseges(activeChat?.chat_id);
+            }, 3000)
         };
 
         const handleMessageHistory = (history: Message[]) => {
-            setMessages(history);
+            //setMessages(history);
         };
 
         const handleConnect = () => setIsSocketConnected(true);
@@ -66,39 +56,13 @@ export const useChatMessages = (
             socket.off("connect", handleConnect);
             socket.off("disconnect", handleDisconnect);
         };
-    }, [socket]);
-
+    }, [socket, activeChat?.chat_id]);
     // Отправка сообщения
-    const sendMessage = useCallback(
-        (newMessage: string) => {
-            if (
-                !newMessage.trim() ||
-                !activeChatId ||
-                !token ||
-                !socket?.connected
-            )
-                return;
-
-            try {
-                socket.emit("send-message", {
-                    room: activeChatId,
-                    user_id: token,
-                    text: newMessage,
-                    user_name: user_name,
-                });
-            } catch (error) {
-                console.error("Ошибка при отправке сообщения:", error);
-            }
-        },
-        [activeChatId, token, socket],
-    );
+    
 
     return {
         messages,
         groupedMessages,
-        sendMessage,
-        setEnable,
-        setDisable,
         isSocketConnected,
     };
 };
@@ -109,19 +73,19 @@ const groupMessagesByMinuteAndUserId = (
 ): {
     messages: Message[];
     user_id: number;
-    user_name: string;
+    username: string;
     minute: string;
 }[] => {
     const groupedMessages: {
         user_id: number;
         messages: Message[];
-        user_name: string;
+        username: string;
         minute: string;
     }[] = [];
     let currentGroup: {
         user_id: number;
         messages: Message[];
-        user_name: string;
+        username: string;
         minute: string;
     } | null = null;
 
@@ -137,7 +101,7 @@ const groupMessagesByMinuteAndUserId = (
                 user_id: message.user_id,
                 messages: [],
                 minute: minuteKey,
-                user_name: message.user_name,
+                username: message.username,
             };
             groupedMessages.push(currentGroup);
         }
@@ -151,7 +115,7 @@ const groupMessagesByMinuteAndUserId = (
             messages: group.messages,
             user_id: group.user_id,
             minute: group.minute, // Используем минуту из группы
-            user_name: group.user_name,
+            username: group.username,
         };
     });
 };

@@ -6,6 +6,8 @@ import fs from 'fs';
 import { chatRouter }from './routes/ChatRoutes.js';
 import { Server } from 'socket.io';
 import { chatSocket } from './utils/chatSocket.js'
+
+import { connectRedis } from './config/redis.config.js';
 import { authenticateSocket } from './middleware/authMiddleware.js'
 import https from 'https';
 
@@ -14,6 +16,8 @@ const options = {
   key: fs.readFileSync('./src/selfsigned_key.pem'),
   cert: fs.readFileSync('./src/selfsigned.pem'),
 };
+
+connectRedis();
 
 const app = express();
 app.use(cors({

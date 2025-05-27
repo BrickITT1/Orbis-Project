@@ -23,6 +23,8 @@ interface serverState {
     activeserver?: server | undefined;
     isActive?: boolean;
     isCreatingServer?: boolean;
+    messegerChange?: boolean;
+    userChange?: boolean;
 }
 
 const initialState: serverState = {
@@ -33,14 +35,6 @@ const serverSlice = createSlice({
     name: "server",
     initialState,
     reducers: {
-        // Авторизация
-
-        // loginSuccess(state, action: PayloadAction<UserData>) {
-        //   state.user = action.payload;
-        //   state.isAuthenticated = true;
-        //   state.loading = false;
-        //   console.log(action.payload)
-        // },
         setActiveServer(state, action: PayloadAction<server | undefined>) {
             state.activeserver = action.payload;
         },
@@ -52,6 +46,12 @@ const serverSlice = createSlice({
         },
         finallyCreateServer(state) {
             state.isCreatingServer = false; 
+        },
+        needChange(state) {
+            state.messegerChange = true;
+        },
+        clearChange(state) {
+            state.messegerChange = undefined;
         }
 
     },
@@ -72,25 +72,20 @@ const serverSlice = createSlice({
                         users: action.payload,
                     };
                 }
-            );
-        //   .addMatcher(
-        //     messageApi.endpoints.GetMessages.matchPending,
-        //     (state) => {
-        //     }
-        //   )
-        //   .addMatcher(
-        //     messageApi.endpoints.CreateChat.matchPending,
-        //     (state) => {
-        //     }
-        //   )
-        //   .addMatcher(
-        //     messageApi.endpoints.CreateMessages.matchFulfilled,
-        //     (state, action) => {
-        //     }
-        //   )
+            )
+        .addMatcher(
+            serverApi.endpoints.GetServersInside.matchFulfilled,
+            (state, action) => {
+                    if (!state.activeserver) return;
+                    state.activeserver = {
+                        ...state.activeserver,
+                        ...action.payload,
+                    };
+                }
+        )
     },
 });
 
-export const { setActiveServer, setServers, initCreateServer, finallyCreateServer } = serverSlice.actions;
+export const { setActiveServer, setServers, initCreateServer, finallyCreateServer, needChange, clearChange } = serverSlice.actions;
 
 export default serverSlice.reducer;

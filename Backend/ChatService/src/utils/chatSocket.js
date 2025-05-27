@@ -1,46 +1,33 @@
 import { v4 as uuidv4 } from "uuid";
-import {io} from "../server.js";
+import { io } from "../server.js";
+import { redisClient } from '../config/redis.config.js';
+import { pool } from "../config/db.js";
 
-const rooms = {}; 
+// Ключ для хранения списка активных чатов в Redis
+const ACTIVE_CHATS_KEY = 'active_chats';
 
 export const chatSocket = (socket) => {
-    console.log('Новый пользователь подключился:', socket.user);
-  
-    socket.on('join-room', (room) => {
-      
-      if (!rooms[room]) {
-        rooms[room] = []; // Создаем комнату, если она не существует
-      }
-      
-      socket.join(room);
-      socket.emit('message-history', rooms[room]);
-      console.log(`Пользователь присоединился к комнате: ${room}`);
-      console.log(rooms)
-    });
-  
-    socket.on('send-message', (msg) => {
-      const { room, text, user_name } = msg;
-      console.log(msg)
-      console.log(room)
-      if (rooms[room]) {
-        const message = {
-          id: uuidv4(),
-          content: text,
-          user_id: socket.user.id,
-          user_name: user_name,
-          is_edited: false,
-          timestamp: new Date().toLocaleTimeString(),
-        };
-        
-        rooms[room].push(message); // Сохраняем сообщение в комнате
-        io.to(room).emit('new-message', message); // Отправляем сообщение всем в комнате
-      } else {
-        socket.emit('error', 'Комната не найдена');
-      }
-    });
-  
-    socket.on('disconnect', () => {
-      console.log('Пользователь отключился');
-    });
-  
-  }
+  console.log('Новый пользователь подключился:', socket.user);
+
+  // Обработчик подключения к чату
+  socket.on('join-chat', async (chatId) => {
+    
+    console.log(`Пользователь ${socket.user.id} подключился к чату ${chatId}`)
+    socket.join(`chat_${chatId}`);
+  });
+
+  socket.on('leave-chat', async (chatId) => {
+    console.log(`Пользователь ${socket.user.id} отключился от чата ${chatId}`)
+    socket.leave(`chat_${chatId}`);
+  });
+
+  // Обработчик отправки сообщения
+  socket.on('send-message', async () => {
+    io.to(`chat_${chat_id}`).emit('new-message');
+  });
+
+  // Обработчик отключения
+  socket.on('disconnect', () => {
+    console.log('Пользователь отключился');
+  });
+};

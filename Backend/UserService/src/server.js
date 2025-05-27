@@ -6,13 +6,18 @@ import fs from 'fs';
 import { serverRouter } from './routes/serverRoutes.js';
 import { userRouter } from './routes/userRoutes.js'
 import { Server } from 'socket.io';
+import {journalSocket} from './utils/journalSocket.js'
 import https from 'https';
+
+import { connectRedis } from './config/redis.config.js';
 
 dotenv.config();
 const options = {
   key: fs.readFileSync('./src/selfsigned_key.pem'),
   cert: fs.readFileSync('./src/selfsigned.pem'),
 };
+
+connectRedis();
 
 const app = express();
 app.use(cors({
@@ -26,6 +31,8 @@ export const io = new Server(server, {
     origin: "https://26.234.138.233:5173",
   },
 });
+
+io.on('connection', (socket) => journalSocket(socket));
 
 app.use(cookieParser());
 

@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
-import { setMyPeer, setToggleJoin } from "../../features/voice/voiceSlices";
+import { setAudioOnlyMyPeer, setMyPeer, setToggleJoin } from "../../features/voice/voiceSlices";
+import { useLocalMedia } from "../../hooks/useLocalMedia";
 
 
 export const VoiceManager: React.FC = () => {
@@ -9,11 +10,11 @@ export const VoiceManager: React.FC = () => {
     const activeChat = useAppSelector(state => state.chat.activeChat);
     const MyPeer = useAppSelector((s) => s.voice.myPeer);
     const audioOnly = MyPeer.audioOnly;
-
-    //if (!MyPeer.audioOnly) return;
-
+    const isConnected = useAppSelector((s) => s.voice.isConnected);
+    
     const toggleAudioOnly = () => {
         dispatch(setMyPeer({ ...MyPeer, audioOnly: !MyPeer.audioOnly }));
+        
     };
     const toggleMute = () => {
         dispatch(setMyPeer({ ...MyPeer, muted: !MyPeer.muted }));
@@ -23,6 +24,8 @@ export const VoiceManager: React.FC = () => {
         if (!activeChat) return
         dispatch(setToggleJoin({isConnected: false, roomId: null}))
     }
+
+    
     
     return (
         <>
@@ -42,7 +45,7 @@ export const VoiceManager: React.FC = () => {
                     <path fillRule="evenodd" clipRule="evenodd" d="M26.001 1C46.9715 1.0013 50.2823 7.6485 50.7243 10.4505C50.8323 10.8648 52.5715 20.0957 45.7465 20.8117C28.766 22.5472 40.4397 10.792 25.9992 11.2385C11.5586 11.685 23.232 22.5473 6.25485 20.8125C-0.571774 20.095 1.16773 10.864 1.27583 10.4532C1.71635 7.6495 5.02895 1.0004 26.001 1Z" stroke="white" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
                 </button>
-                <button onClick={ toggleAudioOnly} >
+                <button onClick={ toggleAudioOnly} disabled={!isConnected}>
                     {audioOnly ? 
                      <svg width="32" height="32" viewBox="0 0 48 47" fill="none" xmlns="http://www.w3.org/2000/svg">
                      <path d="M35.693 16L46 11C46 11 47.25 16 47.25 23.5C47.25 31 46 36 46 36M35.693 16C35.3295 11.7223 34.6925 8.5814 34.0555 7.94445C33.0833 6.97223 26.2777 6 18.5 6M35.693 16C35.8845 18.2515 36 20.818 36 23.5M1 1L46 46M1.56567 13.5C1.22452 16.2492 1 19.7622 1 23.5C1 31.2777 1.97223 38.0833 2.94445 39.0555C3.91668 40.0278 10.7222 41 18.5 41C22.2378 41 25.7508 40.7755 28.5 40.4343" stroke="white" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"/>

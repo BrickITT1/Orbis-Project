@@ -26,7 +26,7 @@ export const Profile: React.FC = () => {
     }, [dispatch]);
     
     if (!check) return null
-
+    
     return (
         <ModalLayout> 
             <div className="profile" ref={profileRef}>
@@ -36,7 +36,7 @@ export const Profile: React.FC = () => {
                             <img src={userInfo && userInfo.avatar_url ? userInfo.avatar_url : "/img/icon.png"} alt="" className="" /> <span></span>
                         </div>
                         <div className="name">
-                            {userInfo?.name}
+                            {userInfo?.username}
                         </div>
                         
                     </div>

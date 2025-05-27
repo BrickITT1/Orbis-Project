@@ -30,9 +30,6 @@ export const VoiceSocketProvider: React.FC<{ children: React.ReactNode }> = ({
         return () => clearTimeout(timer);
     }, []);
 
-    if (!isConnected && showConnecting) {
-        return <div>Connecting to voice server...</div>;
-    }
 
     return (
         <VoiceSocketContext.Provider

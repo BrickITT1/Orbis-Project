@@ -19,17 +19,53 @@ export const userApi = createApi({
         },
     }),
     endpoints: (builder) => ({
+        GetChatsUsers: builder.query({
+            query: () => ({
+                url: `/chats`,
+                method: "GET",
+            }),
+        }),
+        CreateChatUsers: builder.mutation({
+            query: (data) => ({
+                url: `/chats`,
+                method: "POST",
+                body: data,
+            }),
+        }),
         getFriend: builder.query({
             query: () => ({
-                url: `/user/friends`,
+                url: `/friend`,
+                method: "GET",
+            }),
+        }),
+        getInviteMe:builder.query({
+            query: () => ({
+                url: `/friend/invme`,
+                method: "GET",
+            }),
+        }),
+        getInviteI: builder.query({
+            query: () => ({
+                url: `/friend/invi`,
                 method: "GET",
             }),
         }),
         addFriend: builder.mutation({
-            query: (data) => ({
-                url: `/user`,
+            query: (id) => ({
+                url: `/friend/${id}/invite`,
                 method: "POST",
-                body: data,
+            }),
+        }),
+        confirmFriend: builder.mutation({
+            query: (id) => ({
+                url: `/friend/${id}/confirm`,
+                method: "POST",
+            }),
+        }),
+        rejectFriend: builder.mutation({
+            query: (id) => ({
+                url: `/friend/${id}/reject`,
+                method: "POST",
             }),
         }),
         getFastInfoUserFromServer: builder.query({
@@ -44,13 +80,32 @@ export const userApi = createApi({
                 method: "GET",
             }),
         }),
+        startChatting: builder.mutation({
+            query: (id) => ({
+                url: `/user/${id}/chatstart`,
+                method: "POST",
+            }),
+        }),
+        getUserbyName: builder.query({
+            query: (name) => ({
+                url: `/user/search?name=${name}`,
+                method: "GET",
+            }),
+        })
     }),
 });
 
 export const {
+    useGetChatsUsersQuery,
+    useCreateChatUsersMutation,
     useAddFriendMutation,
     useGetFriendQuery,
     useGetFastInfoUserFromServerQuery,
     useGetInfoUserQuery,
-    useLazyGetInfoUserQuery
+    useLazyGetInfoUserQuery,
+    useStartChattingMutation,
+    useLazyGetUserbyNameQuery,
+    useLazyGetFriendQuery,
+    useLazyGetInviteIQuery,
+    useLazyGetInviteMeQuery
 } = userApi;

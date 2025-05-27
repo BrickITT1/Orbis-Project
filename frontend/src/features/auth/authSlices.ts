@@ -5,11 +5,17 @@ import { authApi } from "../../services/auth";
 import { messageApi } from "../../services/chat";
 
 interface UserData {
-    email: string;
-    displayName: string;
-    username: string;
-    birthDate: string;
+    info: {
+        id: string;
+        avatar_url: string;
+        email: string;
+        displayName: string;
+        username: string;
+        birthDate: string;
+        
+    }
     access_token: string;
+    username: string;
 }
 
 interface AuthState {
@@ -81,14 +87,6 @@ const authSlice = createSlice({
                 (state) => {
                     state.loading = true;
                     state.error = null;
-                }
-            )
-            .addMatcher(
-                authApi.endpoints.registerUser.matchFulfilled,
-                (state, action) => {
-                    state.user = action.payload;
-                    state.isAuthenticated = true;
-                    state.loading = false;
                 }
             )
             .addMatcher(

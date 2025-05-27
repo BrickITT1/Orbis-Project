@@ -29,7 +29,7 @@ export const LoginForm: React.FC = () => {
     return (
         <>
             <div className="form">
-                <form onSubmit={handleSubmit(onSubmit)}>
+                <form onSubmit={handleSubmit(onSubmit)} autoComplete="off">
                     <h1 className="">Войти в аккаунт</h1>
                     <InputField<LoginFormData>
                         type="email"

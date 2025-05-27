@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useForm, SubmitHandler } from "react-hook-form";
 import {
     useSendVerificationCodeMutation,
@@ -34,7 +34,7 @@ export const RegisterForm: React.FC = () => {
     // RTK Query мутации
     const [sendCode] = useSendVerificationCodeMutation();
     const [verifyCode] = useVerifyCodeMutation();
-    const [registerUser] = useRegisterUserMutation();
+    const [registerUser, {isSuccess, isError}] = useRegisterUserMutation();
 
     // Формы для разных шагов
     const emailForm = useForm<EmailFormData>();
@@ -78,10 +78,18 @@ export const RegisterForm: React.FC = () => {
                 email,
                 ...data,
             }).unwrap();
+            
         } catch (err) {
             console.error("Registration error:", err);
+            navigator('/login/?confirm=false')
         }
     };
+
+    useEffect(()=>{
+        if (isSuccess) {
+            navigator('/login/?confirm=true')
+        }
+    }, [isSuccess])
 
     return (
         <>
@@ -91,6 +99,7 @@ export const RegisterForm: React.FC = () => {
                         <form
                             className="email-form"
                             onSubmit={emailForm.handleSubmit(handleEmailSubmit)}
+                            autoComplete="off"
                         >
                             <h1>Подтверждение почты</h1>
                             <InputField<EmailFormData>
@@ -114,6 +123,7 @@ export const RegisterForm: React.FC = () => {
                                     : "confirm-from confirm-noneactive"
                             }
                             onSubmit={codeForm.handleSubmit(handleCodeSubmit)}
+                            autoComplete="off"
                         >
                             <InputField<CodeFormData>
                                 readOnly={true}
@@ -137,6 +147,7 @@ export const RegisterForm: React.FC = () => {
                         onSubmit={registerForm.handleSubmit(
                             handleRegisterSubmit,
                         )}
+                        autoComplete="off"
                     >
                         <h1>Регистрация</h1>
                         <InputField<RegisterFormData>

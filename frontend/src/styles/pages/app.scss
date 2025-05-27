@@ -57,6 +57,7 @@
     @extend %w100h100;
     display: flex;
     flex-direction: column;
+    justify-content: space-between;
 
     .chat-title {
         background-color: $app-bg;
@@ -127,14 +128,15 @@
         height: 100%;
         overflow-y: auto;
         word-break: break-all;
-        padding: 1em;
+        padding: 0.5em;
 
         overflow: auto;
         scrollbar-color: #555 transparent;
         scrollbar-width: thin;
+
         .messages::-webkit-scrollbar {
                 width: 1px;
-            }
+        }
 
         .messages::-webkit-scrollbar-track {
             background: transparent;
@@ -160,32 +162,33 @@
             margin-right: 0;
             padding: 0em;
             display: flex;
-            justify-content: end;
+            align-items: center;
+            height: 100%;
+        }
+
+        .avatar img {
+            display: block;
+            height: 35px;
+            width: 35px;
         }
 
         .content {
             position: relative;
-            
         }
 
         h3 {
             background-color: transparent;
-            margin: 0.5em;
-            padding: 0.5em;
+            
             margin-bottom: 0;
             font-size: 16px;
         }
 
         div.text {
-            margin: 0.5em;
-            
-            padding: 1em;
-            background-color: #3F495A;
+            padding: 0.3em;
             width: fit-content;
-            border-radius: 10px;
+            border-radius: 5px;
             border-bottom-left-radius: 0;
             position: relative;
-            margin-left: 0.5em;
             margin-bottom: 0;
             margin-top: 0;
             font-size: 16px;
@@ -199,17 +202,6 @@
             font-size: 14px;
         }
 
-        .text::before {
-            content: '';
-            position: absolute;
-            left: -1em;
-            bottom: 0;
-            width: 0;
-            height: 0;
-            border-bottom: 1em solid #3F495A;
-            border-left: 1em solid transparent;
-            border-bottom-left-radius: 10px
-        }
 
         .mess {
             flex-direction: column;
@@ -264,9 +256,10 @@
         background-color: rgba(51, 57, 68, 0.5215686275);
         .users {
             display: flex;
-            gap: 1em;
+            gap: 2em;
             padding: 1em;
             justify-content: center;
+            align-items: center;
             flex-wrap: wrap;
             min-height: 200px;
             li {
@@ -274,6 +267,15 @@
                     text-align: center;
                 }
             }
+        }
+        .voice-avatar img{
+            width: 150px;
+        }
+        .voice-avatar video{
+            display: block;
+            padding: 0;
+            width: 200px;
+            height: 150px;
         }
         .voice-buttons {
             gap: 1em;
@@ -290,6 +292,42 @@
     }
     
 }
+
+.message-container {
+    position: relative;
+    &:hover {
+        filter: brightness(1.1)
+    }
+}
+
+.message-active {
+    background-color: rgba(0, 0, 0, 0.1);
+    border-radius: 5px;
+}
+
+.message-menu {
+  position: absolute;
+  background-color: rgba(42, 61, 95, 0.85);
+  border-radius: 6px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  width: 180px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+
+  li {
+    padding: 10px 16px;
+    cursor: pointer;
+    background-color: rgba(42, 61, 95, 0.3);
+    transition: background-color 0.2s ease;
+
+    &:hover {
+      background-color: rgba(42, 61, 95, 0.5);
+    }
+  }
+}
+
+
 
 .app-menu {
     @extend %flex-col;
@@ -628,6 +666,20 @@ ul.group-list.ls .messages-menu_list-group {
     }
 }
 
+div.search-friend {
+    width: 500px;
+    height: 600px;
+
+    h2 {
+        text-align: center;
+        padding-left: 0;
+    }
+    input[type="text"] {
+        background-color: transparent;
+        border-bottom: 1px solid #fff;
+    }
+}
+
 div.friend-list {
     background-color: transparent;
     width: 100%;
@@ -703,5 +755,65 @@ div.friend-list {
         .name:hover  {
             filter: brightness(1.2);
         }
+    }
+}
+
+.upload-modal {
+    width: 600px;
+    h2 {
+        padding: 1em;
+        text-align: center;
+        font-size: 32px;
+        line-height: 32px;
+    }
+}
+
+.settings-app {
+    position: relative;
+    padding: 2em;
+}
+
+.settings-container {
+    width: 100%;
+    height: 100%;
+    background-color: #3F495A;
+    display: grid;
+    grid-template-columns: 1fr 5fr;
+}
+
+.settings-actions {
+    h2 {
+        background-color: #3F495A;
+        padding-left: 1em;
+    }   
+    .settings-content {
+        padding: 1em;
+    }
+}
+
+.settings-menu {
+    background-color: #3F495A;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    
+    button {
+        padding: 1em;
+        text-align: left;
+        background-color: #b3c7e627;
+    } 
+    .search {
+        padding: 0;
+        margin: 0;
+        input {
+            height: 100%;
+            padding: 1em;
+            background-color: #b3c7e627;
+            font-weight: bold;
+            color: #fff;
+        }
+    }
+    .active {
+        background-color: #2c77e9;
     }
 }

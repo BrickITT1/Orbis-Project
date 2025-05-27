@@ -12,7 +12,7 @@ import { AppPage } from "../pages/AppPage";
 import { AuthPageController } from "../pages/AuthForm";
 import { useAppSelector } from "../app/hooks";
 import { useRefreshTokenMutation } from "../services/auth";
-import { Test } from "../pages/Test";
+import { SettingAppPage } from "../pages/SettingAppPage";
 
 const ProtectedRoute: React.FC<{
     isAuth: boolean;
@@ -46,9 +46,9 @@ export const PagesRouter: React.FC = () => {
         refresh();
     }, []);
 
-    if (isRefreshing) {
-        return <div>Loading...</div>; // Показать индикатор загрузки, пока обновляется токен
-    }
+    // if (isRefreshing) {
+    //     return <div className="main-app">Loading...</div>; // Показать индикатор загрузки, пока обновляется токен
+    // }
 
     return (
         <BrowserRouter>
@@ -81,14 +81,6 @@ export const PagesRouter: React.FC = () => {
                         </>
                     }
                 />
-                {/* <Route
-                    path="/confirm"
-                    element={
-                        <>
-                            <LoginPage type="confirmemail"/>
-                        </>
-                    }
-                /> */}
                 <Route
                     path="/servers"
                     element={
@@ -141,6 +133,14 @@ export const PagesRouter: React.FC = () => {
                         </Layout>
                     }
                 />
+                <Route 
+                    path="/app/settings"
+                    element= {
+                        <ProtectedRoute isAuth={isAuth}>
+                            <SettingAppPage />
+                        </ProtectedRoute>
+                    }
+                />
                 <Route
                     path="/app"
                     element={
@@ -149,25 +149,7 @@ export const PagesRouter: React.FC = () => {
                         </ProtectedRoute>
                     }
                 />
-                {/* <Route 
-                    path="/app/server"
-                    element= {
-                        <ProtectedRoute isAuth={isAuth}>
-                            <AppServerPage />
-                        </ProtectedRoute>
-                    }
-                /> */}
-                <Route path="/test" element={<Test />} />
-                {/* <Route
-                    path="/profile"
-                    element={
-                        <ProtectedRoute isAuth={isAuth}>
-                            <Layout>
-                                <ProfilePage />
-                            </Layout>
-                        </ProtectedRoute>
-                    }
-                ></Route> */}
+                
             </Routes>
         </BrowserRouter>
     );

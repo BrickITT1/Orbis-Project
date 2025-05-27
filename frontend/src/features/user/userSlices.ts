@@ -9,14 +9,16 @@ interface userState {
     loadedProfiles?: UserInfo[];
     openProfile?: UserInfo;
     isOpenProfile?: boolean;
+    isSearchActive?: boolean;
     friends?: UserInfo[];
+    chats?: any[];
 }
 
 const initialState: userState = {
     loadedProfiles: undefined,
     openProfile: {
         id: 0,
-        name: "aaaaaa",
+       username: "aaaaaa",
         avatar_url: "/img/icon.png",
         about: `
         Lorem, ipsum dolor sit amet consectetur adipisicing elit. 
@@ -27,7 +29,6 @@ const initialState: userState = {
         consectetur adipisicing elit. Tempora ex error maxime quae aliquam temporibus modi repudiandae eligendi rerum 
         voluptatibus et, voluptates, velit totam dicta animi alias quibusdam dolorem! Dolorum!
         `,
-        gender: "male",
     },
     isOpenProfile: false,
 };
@@ -42,6 +43,12 @@ const userSlice = createSlice({
         closeProfile(state) {
             state.isOpenProfile = false;
             state.openProfile = undefined;
+        },
+        startSearch(state) {
+            state.isSearchActive = true;
+        },
+        endSearch(state) {
+            state.isSearchActive = false;
         }
     },
     extraReducers: (builder) => {
@@ -51,19 +58,40 @@ const userSlice = createSlice({
                 userApi.endpoints.getInfoUser.matchFulfilled,
                 (state, action) => {
                     state.isOpenProfile = true;
-                    state.openProfile = action.payload[0];
-                    state.loadedProfiles?.push(action.payload[0]);
+                    state.openProfile = action.payload;
+                    state.loadedProfiles?.push(action.payload);
                 },
+            )
+            .addMatcher(
+                userApi.endpoints.GetChatsUsers.matchFulfilled,
+                (state, action) => {
+                    state.chats = action.payload
+                }
             )
             .addMatcher(
                 userApi.endpoints.getFriend.matchFulfilled,
                 (state, action) => {
-                    state.friends = action.payload.Friends;
+                    
+                    state.friends = action.payload;
+                }
+            )
+            .addMatcher(
+                userApi.endpoints.getInviteI.matchFulfilled,
+                (state, action) => {
+                    
+                    state.friends = action.payload;
+                }
+            )
+            .addMatcher(
+                userApi.endpoints.getInviteMe.matchFulfilled,
+                (state, action) => {
+                    
+                    state.friends = action.payload;
                 }
             )
     },
 });
 
-export const { setProfile, closeProfile } = userSlice.actions;
+export const { setProfile, closeProfile, startSearch, endSearch } = userSlice.actions;
 
 export default userSlice.reducer;

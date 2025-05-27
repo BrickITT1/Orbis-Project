@@ -5,11 +5,13 @@ import { MessageMenuLayout } from "./Message/MessageMenuLayout";
 import { useNavigate } from "react-router-dom";
 import { useCreateChatMutation, useCreateVoiceMutation, useGetServersInsideQuery, useLazyGetServersInsideQuery } from "../services/server";
 import { chat } from "../features/chat/chatSlices";
-import { voice } from "../features/server/serverSlices";
+import { clearChange, voice } from "../features/server/serverSlices";
 import { useVoiceChat } from "../app/hook/voicechat/useVoiceChat";
 import AudioManager from "./Voice/AudioManager";
 import { setToggleJoin } from "../features/voice/voiceSlices";
 import { VoiceManager } from "./Voice/VoiceManager";
+import { useServerJournalContext } from "../contexts/ServerJournalSocketContext";
+import { addAction } from "../features/action/actionSlice";
 
 
 
@@ -17,20 +19,38 @@ export const MessageMenuServer: React.FC = () => {
     const dispatch = useAppDispatch();
     const [menuVisible, setMenuVisible] = useState(false);
     const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
-    const menuRef = useRef(null);
     const targetRef = useRef<HTMLUListElement>(null);
     const activeServer = useAppSelector((state) => state.server.activeserver);
     const [createVoice, {isSuccess: succVoice}] = useCreateVoiceMutation();
     const [createText, {isSuccess: succText}] = useCreateChatMutation();
     const [trigger] = useLazyGetServersInsideQuery();
+    const {socket} = useServerJournalContext();
 
     const { data, isLoading, isFetching, isError } = useGetServersInsideQuery(
         activeServer?.id,
     );
+
+
+    useEffect(()=> {
+        
+        if (!socket) return
+        if (!activeServer?.id) return
+
+        const updateServer = () => {
+            trigger(activeServer?.id);
+            dispatch(addAction({id: Date.now() ,type: 'SUCCESS', text:'Success updated', duration: 3000}))
+        }
+
+        socket.on('update-into-server', updateServer)
+        return () => {
+            socket.off('update-into-server', updateServer)
+        }
+    }, [socket, activeServer?.id, ])
+       
     const voiceState = useAppSelector((state) => state.voice);
     const navigator = useNavigate();
 
-    const { streams, roomPeers, localPeerId } =
+    const { roomPeers, localPeerId } =
         useVoiceChat();
 
     const handleContextMenu = (e: React.MouseEvent<HTMLElement>) => {
@@ -67,10 +87,6 @@ export const MessageMenuServer: React.FC = () => {
         };
   }, []);
 
-    useEffect(() => {
-        if (!activeServer) return;
-        trigger(activeServer?.id);
-    }, [succText, succVoice])
 
     useEffect(() => {
         if (!activeServer) {
@@ -78,12 +94,12 @@ export const MessageMenuServer: React.FC = () => {
         }
     }, []);
 
+
     const handleOptionClick = (option: string) => {
         console.log(`Вы выбрали: ${option}`);
         setMenuVisible(false); // Скрыть меню после клика
     };
-
-    
+    //console.log(activeServer)
 
     if (isFetching) {
         return <MessageMenuLayout>&nbsp;</MessageMenuLayout>;
@@ -102,7 +118,6 @@ export const MessageMenuServer: React.FC = () => {
         dispatch(setToggleJoin({isConnected: true, roomId: voiceId}))
     }
     
-
     return (
         <>
             <MessageMenuLayout>
@@ -111,12 +126,12 @@ export const MessageMenuServer: React.FC = () => {
                 <div className="bg-server"></div>
                 <ul ref={targetRef} className="server-list" onContextMenu={handleContextMenu} >
                     
-                    {data &&
+                    {data.chats.length > 0 &&
                         data.chats.map((val: chat, index: number) => (
                             <ChatItem key={`${index}-chat-server`} chat={val} />
                         ))}
 
-                    {data &&
+                    {data.voices.length > 0  &&
                         data.voices.map((val: voice, index: number) => (
                             <li className="voice" key={`${index}-voice-server`}>
                                 <div className="">
@@ -130,7 +145,7 @@ export const MessageMenuServer: React.FC = () => {
                                 }} 
                                 disabled={voiceState.isConnected}>
                                 
-                                    <span>#</span> {val.name}
+                                    <span>*</span> {val.name}
                                 </button>
                                 <ul className="in-voice">
                                 {voiceState.roomId == val.id && roomPeers.map(peer => (
@@ -144,10 +159,7 @@ export const MessageMenuServer: React.FC = () => {
                                 </div>
                             </li>
                         ))}
-                    {streams.audioStreams && localPeerId ? <AudioManager
-                        audioStreams={streams.audioStreams}
-                        localPeerId={localPeerId}
-                    />: null} 
+                    <AudioManager />
                     {menuVisible && (
                         <ul
                             className="manage-server-menu"
@@ -160,14 +172,20 @@ export const MessageMenuServer: React.FC = () => {
                             <li
                             className="manage-server-item"
                             onClick={() => {
+                                if (!socket) return
                                 createVoice({id: activeServer?.id})
+                                socket.emit('update-into-server', 'update-server-active', activeServer?.id);
                             }}
                             >
                             Create voice chat
                             </li>
                             <li
                             className="manage-server-item"
-                            onClick={() => createText({id: activeServer?.id})}
+                            onClick={() => {
+                                if (!socket) return
+                                createText({id: activeServer?.id});
+                                socket.emit('update-into-server', 'update-server-active',  activeServer?.id);
+                        }}
                             >
                             Create text chat
                             </li>

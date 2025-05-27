@@ -1,24 +1,46 @@
-import React, { useState } from "react";
-import { useGetFriendQuery, useLazyGetInfoUserQuery } from "../../services/user";
-import { useAppSelector } from "../../app/hooks";
+import React, { useEffect, useState } from "react";
+import { useGetFriendQuery, useLazyGetInfoUserQuery, useLazyGetFriendQuery,
+    useLazyGetInviteIQuery,
+    useLazyGetInviteMeQuery } from "../../services/user";
+import { useAppDispatch, useAppSelector } from "../../app/hooks";
+import { startSearch } from "../../features/user/userSlices";
 
-type ModeKeys = 'Online' | 'Offline' | 'All' | 'Invite';
+type ModeKeys = 'Online' | 'Offline' | 'All' | 'Invite' | 'My Invite';
 type ModeState = Record<ModeKeys, boolean>;
 
 export const FriendList: React.FC = () => {
+    const dispatch = useAppDispatch();
     const [mode, setMode] = useState<ModeState>({
-        'Online': true,
+        'All': true,
+        'Online': false,
         'Offline': false,
-        'All': false,
+        'My Invite': false,
         'Invite': false,
     });
     const friends = useAppSelector(s => s.user.friends);
     const [trigger, { data, isFetching, error }] = useLazyGetInfoUserQuery();
+    const [getFriends] = useLazyGetFriendQuery();
+    const [getInvI] = useLazyGetInviteIQuery();
+    const [getInvMe] = useLazyGetInviteMeQuery();
     
     const handleClick = (id: number) => {
         trigger(id); // Выполняем запрос с конкретным ID
     };
 
+    useEffect(()=> {
+        
+        const selectedKey = Object.entries(mode).find(([key, value]) => value === true)?.[0];
+        if (selectedKey == 'All') {
+            getFriends({})
+        }
+        if (selectedKey == 'My Invite') {
+            getInvMe({})
+        }
+        if (selectedKey == 'Invite') {
+            getInvI({})
+        }
+    }, [mode])
+    
     const {} = useGetFriendQuery({});
 
     return (
@@ -42,17 +64,17 @@ export const FriendList: React.FC = () => {
                                 {val}
                             </button>
                         ))}
-                        <button className="add-friend">Add friend</button>
+                        <button className="add-friend" onClick={() => dispatch(startSearch())}>Add friend</button>
                     </div>
                     <ul className="friend">
                     {friends && friends.map((val)=>(
-                        <li key={`friend-${val.id}-${val.name}-item`}>
+                        <li key={`friend-${val.id}-${val.username}-item`}>
                             
                                 
                                 <div className="name" onClick={()=> {
                                 handleClick(val.id)
                             }}>
-                                <img src="/img/icon.png" alt="" width={"30px"} height={"30px"}/> {val.name}
+                                <img src="/img/icon.png" alt="" width={"30px"} height={"30px"}/> {val.username}
                             </div>
                             
                             <div className="manage">

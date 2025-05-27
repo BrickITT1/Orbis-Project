@@ -20,7 +20,7 @@ const initialState: VoiceState = {
     myPeer: {
         id: "",
         username: "",
-        audioOnly: false,
+        audioOnly: true,
     },
 };
 
@@ -42,6 +42,9 @@ export const voiceSlice = createSlice({
         setMyPeer: (state, action: PayloadAction<PeerInfo>) => {
             state.myPeer = action.payload;
         },
+        setAudioOnlyMyPeer: (state, action: PayloadAction<boolean>) => {
+            state.myPeer.audioOnly = action.payload
+        },
         resetVoiceState: (state) => {
             state.roomPeers = [];
             state.isConnected = false;
@@ -56,6 +59,7 @@ export const {
     setChat,
     resetVoiceState,
     setMyPeer,
+    setAudioOnlyMyPeer
 } = voiceSlice.actions;
 
 export default voiceSlice.reducer;

@@ -27,10 +27,6 @@ export const TextChatSocketProvider: React.FC<{
         return () => clearTimeout(timer);
     }, []);
 
-    if (!isConnected && showConnecting) {
-        return <div>Connecting to voice server...</div>;
-    }
-
     return (
         <TextChatSocketContext.Provider value={{ socket, isConnected }}>
             {children}

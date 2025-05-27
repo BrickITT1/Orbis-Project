@@ -6,6 +6,8 @@ import messageReducer from "../features/chat/chatSlices";
 import voiceReducer from "../features/voice/voiceSlices";
 import serverReducer from "../features/server/serverSlices";
 import userReducer from "../features/user/userSlices";
+import uploadReducer from '../features/upload/uploadSlice';
+import actionReducer from '../features/action/actionSlice';
 import { serverApi } from "../services/server";
 import { userApi } from "../services/user";
 
@@ -16,6 +18,8 @@ export const store = configureStore({
         voice: voiceReducer,
         server: serverReducer,
         user: userReducer,
+        upload: uploadReducer,
+        action: actionReducer,
         [authApi.reducerPath]: authApi.reducer,
         [messageApi.reducerPath]: messageApi.reducer,
         [serverApi.reducerPath]: serverApi.reducer,

@@ -4,13 +4,16 @@ import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import fs from 'fs';
 import { authRoutes } from './routes/authRoutes.js';
+import { connectRedis } from './config/redis.config.js';
 import https from 'https';
 
 dotenv.config();
+
 const options = {
   key: fs.readFileSync('./src/selfsigned_key.pem'),
   cert: fs.readFileSync('./src/selfsigned.pem'),
 };
+connectRedis();
 
 const app = express();
 app.use(cors({
