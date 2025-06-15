@@ -10,6 +10,7 @@ import uploadReducer from '../features/upload/uploadSlice';
 import actionReducer from '../features/action/actionSlice';
 import { serverApi } from "../services/server";
 import { userApi } from "../services/user";
+import { voiceApi } from "../services/voice";
 
 export const store = configureStore({
     reducer: {
@@ -24,6 +25,7 @@ export const store = configureStore({
         [messageApi.reducerPath]: messageApi.reducer,
         [serverApi.reducerPath]: serverApi.reducer,
         [userApi.reducerPath]: userApi.reducer,
+        [voiceApi.reducerPath]: voiceApi.reducer,
     },
     middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware({
@@ -35,7 +37,8 @@ export const store = configureStore({
             authApi.middleware,
             messageApi.middleware,
             serverApi.middleware,
-            userApi.middleware
+            userApi.middleware,
+            voiceApi.middleware
         ),
 });
 

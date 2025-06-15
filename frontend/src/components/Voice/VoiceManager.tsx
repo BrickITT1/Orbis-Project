@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
-import { setAudioOnlyMyPeer, setMyPeer, setToggleJoin } from "../../features/voice/voiceSlices";
+import { setAudioOnlyMyPeer, setBigMode, setMyPeer, setToggleJoin } from "../../features/voice/voiceSlices";
 import { useLocalMedia } from "../../hooks/useLocalMedia";
 
 
@@ -8,9 +8,11 @@ export const VoiceManager: React.FC = () => {
 
     const dispatch = useAppDispatch();
     const activeChat = useAppSelector(state => state.chat.activeChat);
+    const activeServer = useAppSelector(s => s.server.activeserver?.id)
     const MyPeer = useAppSelector((s) => s.voice.myPeer);
     const audioOnly = MyPeer.audioOnly;
     const isConnected = useAppSelector((s) => s.voice.isConnected);
+    const bigMode = useAppSelector(s => s.voice.bigMode);
     
     const toggleAudioOnly = () => {
         dispatch(setMyPeer({ ...MyPeer, audioOnly: !MyPeer.audioOnly }));
@@ -21,12 +23,8 @@ export const VoiceManager: React.FC = () => {
     };
     
     const leaveVoiceRoom = () => {
-        if (!activeChat) return
         dispatch(setToggleJoin({isConnected: false, roomId: null}))
     }
-
-    
-    
     return (
         <>
             <div className="voice-manager">
@@ -56,6 +54,13 @@ export const VoiceManager: React.FC = () => {
                         </svg>
                     }
                 </button>
+                <button onClick={()=> dispatch(setBigMode(!bigMode))} disabled={!(activeServer || activeChat )}>{bigMode ? <svg width="32" height="32" viewBox="0 0 18 38" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M1.45728 1.5L14.3327 14C15.0169 14.6408 15.5619 15.415 15.9348 16.2752C16.3077 17.1352 16.5 18.0625 16.5 19C16.5 19.9375 16.3077 20.8648 15.9348 21.7248C15.5619 22.585 15.0169 23.3592 14.3327 24L1.45728 36.5" stroke="white" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            : <svg width="32" height="32" viewBox="0 0 18 38" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M16.5 36.5L3.62462 24C2.9404 23.3592 2.39535 22.585 2.02245 21.7248C1.64957 20.8648 1.45728 19.9375 1.45728 19C1.45728 18.0625 1.64957 17.1352 2.02245 16.2752C2.39535 15.415 2.9404 14.6408 3.62462 14L16.5 1.5" stroke="white" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                }</button>
             </div>
         </>
     );

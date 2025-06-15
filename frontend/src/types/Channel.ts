@@ -1,5 +1,5 @@
 export interface PeerInfo {
-    id: string;
+    peerId: string;
     username: string;
     muted?: boolean;
     audioOnly: boolean;

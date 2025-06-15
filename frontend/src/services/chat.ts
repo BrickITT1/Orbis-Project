@@ -38,6 +38,13 @@ export const messageApi = createApi({
                 body: data,
             }),
         }),
+        RemoveMessage: builder.mutation({
+            query: ({chat_id, id}) => ({
+                url: `/message/?chat_id=${chat_id}&message_id=${id}`,
+                method: "DELETE",
+
+            })
+        })
     }),
 });
 
@@ -47,5 +54,5 @@ export const {
     useLazyGetChatInfoQuery,
     useLazyGetMessagesQuery,
     useGetChatInfoQuery,
-    
+    useRemoveMessageMutation
 } = messageApi;

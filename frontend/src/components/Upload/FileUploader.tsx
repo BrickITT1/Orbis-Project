@@ -87,10 +87,11 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onUploaded }) => {
   };
 
   return (
-    <div>
+    <label className="custom-file-upload">
+      
       <input type="file" multiple onChange={onChange} />
-      <ul>
-        {/* {files.map(({ file, progress, error }) => (
+      {/* <ul>
+         {files.map(({ file, progress, error }) => (
           <li key={file.name}>
             {file.name} - {progress}%
             {error && <span style={{ color: "red" }}> ({error})</span>}
@@ -102,9 +103,9 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onUploaded }) => {
               />
             )}
           </li>
-        ))} */}
-      </ul>
-    </div>
+        ))} 
+      </ul> */}
+    </label>
   );
 };
 

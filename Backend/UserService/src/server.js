@@ -6,7 +6,7 @@ import fs from 'fs';
 import { serverRouter } from './routes/serverRoutes.js';
 import { userRouter } from './routes/userRoutes.js'
 import { Server } from 'socket.io';
-import {journalSocket} from './utils/journalSocket.js'
+import { journalSocket } from './utils/journalSocket.js'
 import https from 'https';
 
 import { connectRedis } from './config/redis.config.js';

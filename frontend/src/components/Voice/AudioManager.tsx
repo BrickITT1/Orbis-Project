@@ -8,7 +8,7 @@ const extractPeerId = (streamId: string) => {
 };
 
 const AudioManager: React.FC = () => {
-    const { remoteStreams } = useMediaStreamContext();
+     const { remoteAudioStreams = {} } = useMediaStreamContext();
     const audioRefs = useRef<Record<string, HTMLAudioElement>>({});
     const peers = useAppSelector(state => state.voice.roomPeers);
 
@@ -30,8 +30,8 @@ const AudioManager: React.FC = () => {
 
     return (
         <>
-            {Object.entries(remoteStreams).map(([peerId, stream]) => {
-                const matchedPeer = peers.find(peer => peer.id === peerId);
+            {Object.entries(remoteAudioStreams).map(([peerId, stream]) => {
+                const matchedPeer = peers.find(peer => peer.peerId === peerId);
                 const isMuted = matchedPeer?.muted ?? false;
 
                 return (

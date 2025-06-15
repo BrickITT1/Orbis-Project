@@ -9,6 +9,7 @@ export interface Message {
     id: number;
     content: Content[];
     user_id: number;
+    chat_id?: number;
     username: string;
     is_edited: boolean;
     timestamp: string;

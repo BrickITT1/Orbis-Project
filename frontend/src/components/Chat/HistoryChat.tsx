@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useAppSelector } from "../../app/hooks";
-import { useLazyGetMessagesQuery } from "../../services/chat";
+import { useAppDispatch, useAppSelector } from "../../app/hooks";
+import { useLazyGetMessagesQuery, useRemoveMessageMutation } from "../../services/chat";
 import { SingleMessage } from "../Message/SingleMessage";
+import { setOpenMessage } from "../../features/chat/chatSlices";
+
 
 export const HistoryChat: React.FC<{ bottomRef: React.RefObject<HTMLDivElement> }> = ({ bottomRef }) => {
     const history = useAppSelector(s => s.chat.activeHistory);
@@ -11,6 +13,9 @@ export const HistoryChat: React.FC<{ bottomRef: React.RefObject<HTMLDivElement> 
     const messageHover = useAppSelector(s => s.chat.openMessage);
     const [menuVisible, setMenuVisible] = useState(false);
     const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
+    const dispatch = useAppDispatch();
+    const isOpen = useAppSelector(s => s.chat.openMessage);
+    const [removeMessage, {isSuccess: succsessRemove}] = useRemoveMessageMutation()
 
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
@@ -23,50 +28,75 @@ export const HistoryChat: React.FC<{ bottomRef: React.RefObject<HTMLDivElement> 
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
       
+    const handleMessageClick = (e: React.MouseEvent, message: any) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setMenuPosition({ x: e.pageX, y: e.pageY });
+        setMenuVisible(true);
+        dispatch(setOpenMessage(message));
+        
+    };
+
 
     useEffect(() => {
         if (activeChat) getMessages(activeChat.chat_id);
     }, [activeChat]);
 
+
     if (!history) return null;
     
 
-    const handleContextMenu = (e: React.MouseEvent<HTMLElement>) => {
-        e.preventDefault();
-        e.stopPropagation();  // остановить всплытие, чтобы глобальный обработчик не сработал
-        setMenuPosition({ x: e.pageX, y: e.pageY });
-        setMenuVisible(true);
-  };
+    const handleOptionClick = (option: string) => {
+        console.log(`[${history[0].username}] Вы выбрали: ${option}`);
+        console.log(isOpen)
+        setMenuVisible(false);
+        dispatch(setOpenMessage(undefined));
+    };
 
-  const handleOptionClick = (option: string) => {
-    console.log(`[${history[0].username}] Вы выбрали: ${option}`);
-    setMenuVisible(false);
-  };
+    const handleRemoveMessage = () => {
+        const confirms = confirm('Вы уверены? ');
+        console.log(isOpen?.id)
+        if (confirms) {
+            removeMessage({chat_id: isOpen?.chat_id, id: isOpen?.id});
+        }
+        setMenuVisible(false);
+    }
+
+    const handleCopyMessage = () => {
+        if (!isOpen) return
+        console.log(isOpen)
+        navigator.clipboard.writeText(isOpen.content[0] && isOpen.content[0].text)
+        setMenuVisible(false);
+    }
   
     return (
-        <div className="messages" onContextMenu={handleContextMenu} >
+        <div className="messages"  >
             {history.map((message: any, idx) => (
-                <SingleMessage key={`single-${message.chat_id}-${idx}`} message={message} />
+                <SingleMessage 
+                    key={`single-${message.chat_id}-${idx}`} 
+                    message={message} 
+                    onClick={(e) => handleMessageClick(e, message)}
+                />
             ))}
             <div ref={bottomRef} />
                 {menuVisible && (
             <ul
-            ref={menuRef}
-            className="message-menu"
-            
-            style={{
-                position: "fixed",
-                top: `${menuPosition.y}px`,
-                left: `${menuPosition.x}px`,
-                zIndex: 9999,
-            }}
-            onContextMenu={(e) => e.preventDefault()}
+                ref={menuRef}
+                className="message-menu"
+                
+                style={{
+                    position: "fixed",
+                    top: `${menuPosition.y}px`,
+                    left: `${menuPosition.x}px`,
+                    zIndex: 9999,
+                }}
+                onContextMenu={(e) => e.preventDefault()}
             >
             <li onClick={() => handleOptionClick("Reply")}>Reply</li>
             <li onClick={() => handleOptionClick("Edit")}>Edit</li>
             <li onClick={() => handleOptionClick("Pin")}>Pin</li>
-            <li onClick={() => handleOptionClick("Pin")}>Copy</li>
-            <li onClick={() => handleOptionClick("Pin")}>Delete</li>
+            <li onClick={handleCopyMessage}>Copy text</li>
+            <li onClick={handleRemoveMessage}>Delete</li>
             </ul>
       )}
         </div>

@@ -18,33 +18,39 @@ import { setActiveChat } from "../features/chat/chatSlices";
 import { useLazyGetServersMembersQuery } from "../services/server";
 import { Search } from "../components/Search/Search";
 import { VideoManager } from "../components/Voice/VideoManager";
+import { VoiceMemberManager } from "../components/Voice/VoiceMemberManager";
+import { setBigMode } from "../features/voice/voiceSlices";
 
 export const AppPage: React.FC = () => {
     const dispatch = useAppDispatch();
 
     const server = useAppSelector((state) => state.server);
     const activeChat = useAppSelector((state) => state.chat.activeChat);
+    const isConnection = useAppSelector(s => s.voice.isConnected);
+    const bigMode = useAppSelector(s => s.voice.bigMode);
     const [trigger] = useLazyGetServersMembersQuery();
-
+    
     const activeServerId = server.activeserver?.id;
     
     useEffect(() => {
         if (activeServerId) {
+            dispatch(setBigMode(false));
             trigger(activeServerId);
             dispatch(setActiveChat(undefined));
         }
     }, [activeServerId]);
 
     useEffect(() => {
+        dispatch(setBigMode(false));
         dispatch(setActiveServer(undefined));
         dispatch(setActiveChat(undefined));
     }, [dispatch]);
 
     const {} = useChatMessages();
 
-    const {
-        localPeerId,
-    } = useDelayedVoiceChat();
+    // const {
+    //     localPeerId,
+    // } = useDelayedVoiceChat();
 
     const hasActiveChat = Boolean(activeChat);
     const hasActiveServer = Boolean(server.activeserver);
@@ -67,6 +73,12 @@ export const AppPage: React.FC = () => {
             {/* {На сервере: чаты и голосовые сервера, в лс: чаты пользователя} */}
             {hasActiveServer ? <MessageMenuServer /> : <MessageMenu />}
 
+            {(isConnection && bigMode) &&
+                <div className="actions-voice">
+                <VoiceMemberManager />
+                 </div>
+            }
+
             {/* {Чат} */}
             {hasActiveChat && (
                 <Action />
@@ -76,11 +88,11 @@ export const AppPage: React.FC = () => {
             {!hasActiveChat && !hasActiveServer && <FriendList />}
 
             {/* {Заглушка} */}
-            {hasActiveServer && !hasActiveChat && <div className="actions"></div>}
+            {hasActiveServer && !hasActiveChat && !(bigMode && isConnection)  && <div className="actions"></div>}
 
             {/* {Аудио менеджер} */}
             
-            <AudioManager />
+            {/* <AudioManager /> */}
             
             {/* {Видео менеджер}*/}
                 {/* <VideoManager videoStreams={streams.videoStreams!}

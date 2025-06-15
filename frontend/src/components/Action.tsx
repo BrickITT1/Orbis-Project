@@ -1,10 +1,11 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useAppSelector, useAppDispatch } from "../app/hooks";
-import { setToggleJoin } from "../features/voice/voiceSlices";
+import { setAudioOnlyMyPeer, setChat, setToggleJoin } from "../features/voice/voiceSlices";
 import { VoiceRoomChat } from "./Voice/VoiceRoomChat";
-import { setActiveChat } from "../features/chat/chatSlices";
 import { HistoryChat } from "./Chat/HistoryChat";
 import { InputChat } from "./Chat/InputChat";
+import { useJoinVoiceRoom, useConnectToVoiceRoom, useLeaveRoom } from "../app/socket/voice/voiceAction";
+import { useLazyGetPeersInRoomQuery } from "../services/voice";
 
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
     state = { hasError: false };
@@ -27,6 +28,28 @@ export const Action: React.FC = () => {
     const activeChat = useAppSelector(state => state.chat.activeChat);
     const activeServer = useAppSelector(state => state.server.activeserver);
     const voiceState = useAppSelector(state => state.voice);
+    const bigMode = useAppSelector(s => s.voice.bigMode);
+    const authInfo = useAppSelector(s => s.auth.user?.info)
+    const isConnection = useAppSelector(s => s.voice.isConnected);
+    const join = useJoinVoiceRoom();
+    const connectStatus = useConnectToVoiceRoom();
+    const leaveStatus = useLeaveRoom();
+
+    const [getPeers, {data, isSuccess}] = useLazyGetPeersInRoomQuery();
+    const roomPeers = useAppSelector((s) => s.voice.roomPeers);
+    
+    useEffect(()=> {
+        if (activeServer) return
+        if (!activeChat) return
+        
+        getPeers(`ls-${activeChat?.chat_id}`);
+    }, [activeChat, ])
+
+    useEffect(() => {
+        if (!voiceState.roomId) return;
+        getPeers(voiceState.roomId);
+    }, [voiceState.roomId]);
+
 
     const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -34,26 +57,33 @@ export const Action: React.FC = () => {
         bottomRef.current?.scrollIntoView({ behavior: "smooth" });
     };
 
-    const joinVoiceRoom = () => {
-        if (!activeChat) return;
-        dispatch(setToggleJoin({ isConnected: true, roomId: Number(activeChat.chat_id) }));
+    const joinVoiceRoom = async () => {
+        if (!activeChat || !authInfo) return;
+
+        const roomId = `ls-${activeChat.chat_id}`;
+        const success = join(roomId); // вызов useJoinVoiceRoom
+
+        if (!success) {
+            console.error("Не удалось инициировать данные для подключения к голосовой комнате");
+            return;
+        }
+
+        // Хук useConnectToVoiceRoom выполнит подключение сам (у тебя он срабатывает по useEffect)
+        //dispatch(setToggleJoin({ isConnected: true, roomId: String(activeChat.chat_id) }));
+
     };
 
-    useEffect(() => {
-        if (!activeServer) return;
-        if (!activeServer.chats || !activeServer.chats.length) {
-            dispatch(setActiveChat(undefined));
-        }
-    }, [activeServer]);
+
 
     return (
         <ErrorBoundary>
-            {activeChat && (
+            {!(bigMode && isConnection) && <>
+                {activeChat && (
                 <div className="actions">
                     <div className="actions-main">
                         <div className="chat-title">
                             <div className="title">
-                                {activeServer ? activeChat.name : activeChat.username}
+                                {activeServer ? activeChat.name : activeChat.username} { roomPeers.length > 0 && <span>Активный звонок {roomPeers.length}</span>}
                             </div>
                             <div className="buttons">
                                 {!activeServer && (
@@ -61,6 +91,7 @@ export const Action: React.FC = () => {
                                         className="voice"
                                         onClick={joinVoiceRoom}
                                         disabled={voiceState.isConnected}
+                                        
                                     >
                                         {/* SVG-иконка */}
                                         <svg width="31" height="30" viewBox="0 0 31 30" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -71,9 +102,9 @@ export const Action: React.FC = () => {
                             </div>
                         </div>
 
-                        {voiceState.isConnected && voiceState.roomId === Number(activeChat.chat_id) && (
-                            <VoiceRoomChat/>
-                        )}
+                        
+                        {activeChat && voiceState.isConnected && voiceState.roomId === `ls-${activeChat.chat_id}`  &&  <VoiceRoomChat/>}
+                        
 
                         {/* История чатов с ref */}
                         <HistoryChat bottomRef={bottomRef} />
@@ -83,6 +114,8 @@ export const Action: React.FC = () => {
                     </div>
                 </div>
             )}
+            </>}
+            
         </ErrorBoundary>
     );
 };

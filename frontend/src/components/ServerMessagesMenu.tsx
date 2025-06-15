@@ -20,6 +20,7 @@ export const MessageMenuServer: React.FC = () => {
     const [menuVisible, setMenuVisible] = useState(false);
     const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
     const targetRef = useRef<HTMLUListElement>(null);
+    const isConnectedVoice = useAppSelector(s => s.voice.isConnected);
     const activeServer = useAppSelector((state) => state.server.activeserver);
     const [createVoice, {isSuccess: succVoice}] = useCreateVoiceMutation();
     const [createText, {isSuccess: succText}] = useCreateChatMutation();
@@ -113,9 +114,13 @@ export const MessageMenuServer: React.FC = () => {
         return <MessageMenuLayout>&nbsp;</MessageMenuLayout>;
     }
 
-    const joinVoiceRoom = (voiceId: number) => {
+    const joinVoiceRoom = async (voiceId: number) => {
         if (!activeServer) return
+        dispatch(setToggleJoin({isConnected: false, roomId: null}))
+        setTimeout(()=> {
+            
         dispatch(setToggleJoin({isConnected: true, roomId: voiceId}))
+        }, 3000)
     }
     
     return (
@@ -142,8 +147,7 @@ export const MessageMenuServer: React.FC = () => {
                                     } catch (error) {
                                         console.error('Join room error:', error);
                                     }
-                                }} 
-                                disabled={voiceState.isConnected}>
+                                }} >
                                 
                                     <span>*</span> {val.name}
                                 </button>

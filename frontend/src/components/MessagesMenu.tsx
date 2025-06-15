@@ -31,7 +31,10 @@ export const MessageMenu: React.FC = () => {
                             <ChatItem key={index} chat={val} />
                         ))}
                 </ul>
-                <VoiceManager />
+                <div className="personal-manager">
+                        <VoiceManager />
+                </div>
+                
             </MessageMenuLayout>
         </>
     );

@@ -1,16 +1,18 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { PeerInfo } from "../../types/Channel";
+import { voiceApi } from "../../services/voice";
 
 interface VoiceState {
     roomPeers: PeerInfo[];
     isConnected: boolean;
-    roomId: number | null;
+    roomId: string | null;
     myPeer: PeerInfo;
+    bigMode: boolean
 }
 
 interface Info {
     isConnected: boolean;
-    roomId: number | null;
+    roomId: string | null;
 }
 
 const initialState: VoiceState = {
@@ -18,10 +20,11 @@ const initialState: VoiceState = {
     isConnected: false,
     roomId: null,
     myPeer: {
-        id: "",
+        peerId: "",
         username: "",
         audioOnly: true,
     },
+    bigMode: false,
 };
 
 export const voiceSlice = createSlice({
@@ -32,12 +35,11 @@ export const voiceSlice = createSlice({
             state.roomPeers = action.payload;
         },
         setToggleJoin: (state, action: PayloadAction<Info>) => {
-            console.log(action)
             state.isConnected = action.payload.isConnected;
-            state.roomId = action.payload.roomId;
         },
-        setChat: (state, action: PayloadAction<number | null>) => {
+        setChat: (state, action: PayloadAction<string | null>) => {
             state.roomId = action.payload;
+            state.isConnected = true;
         },
         setMyPeer: (state, action: PayloadAction<PeerInfo>) => {
             state.myPeer = action.payload;
@@ -50,7 +52,27 @@ export const voiceSlice = createSlice({
             state.isConnected = false;
             state.roomId = null;
         },
+        setBigMode: (state, action: PayloadAction<boolean>) => {
+            state.bigMode = action.payload
+        }
     },
+     extraReducers: (builder) => {
+        // Обработка состояний для регистрации и авторизации
+        builder
+            .addMatcher(
+                voiceApi.endpoints.getPeersInRoom.matchFulfilled,
+                (state, action) => {
+                    state.roomPeers = action.payload.peers
+                },
+            )
+            .addMatcher(
+                voiceApi.endpoints.getPeersInRoom.matchRejected,
+                (state, action) => {
+                    state.roomPeers = []
+                },
+            )
+                
+        },
 });
 
 export const {
@@ -59,7 +81,8 @@ export const {
     setChat,
     resetVoiceState,
     setMyPeer,
-    setAudioOnlyMyPeer
+    setAudioOnlyMyPeer,
+    setBigMode
 } = voiceSlice.actions;
 
 export default voiceSlice.reducer;
