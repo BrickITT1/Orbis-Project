@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useAppSelector, useAppDispatch } from "../app/hooks";
-import { setAudioOnlyMyPeer, setChat, setToggleJoin } from "../features/voice/voiceSlices";
+import { setAudioOnlyMyPeer, setChat, setStatus } from "../features/voice/voiceSlices";
 import { VoiceRoomChat } from "./Voice/VoiceRoomChat";
 import { HistoryChat } from "./Chat/HistoryChat";
 import { InputChat } from "./Chat/InputChat";
@@ -29,8 +29,9 @@ export const Action: React.FC = () => {
     const activeServer = useAppSelector(state => state.server.activeserver);
     const voiceState = useAppSelector(state => state.voice);
     const bigMode = useAppSelector(s => s.voice.bigMode);
-    const authInfo = useAppSelector(s => s.auth.user?.info)
-    const isConnection = useAppSelector(s => s.voice.isConnected);
+    const authInfo = useAppSelector(s => s.auth.user?.info);
+    const statusVoice = useAppSelector(s => s.voice.status);
+    const isConnection = (statusVoice == "connected");
     const join = useJoinVoiceRoom();
     const connectStatus = useConnectToVoiceRoom();
     const leaveStatus = useLeaveRoom();
@@ -61,6 +62,7 @@ export const Action: React.FC = () => {
         if (!activeChat || !authInfo) return;
 
         const roomId = `ls-${activeChat.chat_id}`;
+        
         const success = join(roomId); // вызов useJoinVoiceRoom
 
         if (!success) {
@@ -69,7 +71,7 @@ export const Action: React.FC = () => {
         }
 
         // Хук useConnectToVoiceRoom выполнит подключение сам (у тебя он срабатывает по useEffect)
-        //dispatch(setToggleJoin({ isConnected: true, roomId: String(activeChat.chat_id) }));
+        dispatch(setStatus('needconn'));
 
     };
 
@@ -90,7 +92,7 @@ export const Action: React.FC = () => {
                                     <button
                                         className="voice"
                                         onClick={joinVoiceRoom}
-                                        disabled={voiceState.isConnected}
+                                        disabled={isConnection}
                                         
                                     >
                                         {/* SVG-иконка */}
@@ -103,7 +105,7 @@ export const Action: React.FC = () => {
                         </div>
 
                         
-                        {activeChat && voiceState.isConnected && voiceState.roomId === `ls-${activeChat.chat_id}`  &&  <VoiceRoomChat/>}
+                        {activeChat && isConnection && voiceState.roomId === `ls-${activeChat.chat_id}`  &&  <VoiceRoomChat/>}
                         
 
                         {/* История чатов с ref */}

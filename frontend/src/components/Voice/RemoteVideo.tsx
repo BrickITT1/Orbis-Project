@@ -10,6 +10,8 @@ interface RemoteVideoProps {
 export const RemoteVideo: React.FC<RemoteVideoProps> = ({ peer, stream }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
 
+  
+
   useEffect(() => {
     if (videoRef.current) {
       if (videoRef.current.srcObject !== stream) {
@@ -19,7 +21,7 @@ export const RemoteVideo: React.FC<RemoteVideoProps> = ({ peer, stream }) => {
   }, [stream]);
 
   const hasVideo = !peer.audioOnly;
-
+  
   return (
     <li key={peer.peerId}>
       <div

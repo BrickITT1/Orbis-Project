@@ -5,20 +5,23 @@ import { ServerJournalProvider } from "./contexts/ServerJournalSocketContext";
 import { ManagerVisible } from "./components/ActionVisible/ManagerVisible";
 import { MediaStreamProvider } from "./contexts/MediaStreamContext";
 import { DeviceProvider } from "./contexts/DeviceContext";
+import { TransportProvider } from "./contexts/TransportContext";
 
 export const App: React.FC = () => {
     return (
         <>
+        <TransportProvider>
             <VoiceSocketProvider>
-                 <MediaStreamProvider>
+                <MediaStreamProvider>
                     <DeviceProvider>
-                <ServerJournalProvider>
-                    <PagesRouter />
-                </ServerJournalProvider>
-                </DeviceProvider>
+                        <ServerJournalProvider>
+                            <PagesRouter />
+                        </ServerJournalProvider>
+                    </DeviceProvider>
                 </MediaStreamProvider>
             </VoiceSocketProvider>
-            <ManagerVisible />
+        </TransportProvider>
+        <ManagerVisible />
         </>
     );
 };

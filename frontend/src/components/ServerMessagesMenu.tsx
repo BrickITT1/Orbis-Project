@@ -8,7 +8,6 @@ import { chat } from "../features/chat/chatSlices";
 import { clearChange, voice } from "../features/server/serverSlices";
 import { useVoiceChat } from "../app/hook/voicechat/useVoiceChat";
 import AudioManager from "./Voice/AudioManager";
-import { setToggleJoin } from "../features/voice/voiceSlices";
 import { VoiceManager } from "./Voice/VoiceManager";
 import { useServerJournalContext } from "../contexts/ServerJournalSocketContext";
 import { addAction } from "../features/action/actionSlice";
@@ -20,7 +19,8 @@ export const MessageMenuServer: React.FC = () => {
     const [menuVisible, setMenuVisible] = useState(false);
     const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
     const targetRef = useRef<HTMLUListElement>(null);
-    const isConnectedVoice = useAppSelector(s => s.voice.isConnected);
+    const statusVoice = useAppSelector(s => s.voice.status);
+    const isConnection = (statusVoice == "connected");
     const activeServer = useAppSelector((state) => state.server.activeserver);
     const [createVoice, {isSuccess: succVoice}] = useCreateVoiceMutation();
     const [createText, {isSuccess: succText}] = useCreateChatMutation();
@@ -114,14 +114,14 @@ export const MessageMenuServer: React.FC = () => {
         return <MessageMenuLayout>&nbsp;</MessageMenuLayout>;
     }
 
-    const joinVoiceRoom = async (voiceId: number) => {
-        if (!activeServer) return
-        dispatch(setToggleJoin({isConnected: false, roomId: null}))
-        setTimeout(()=> {
+    // const joinVoiceRoom = async (voiceId: number) => {
+    //     if (!activeServer) return
+    //     dispatch(setToggleJoin({isConnected: false, roomId: null}))
+    //     setTimeout(()=> {
             
-        dispatch(setToggleJoin({isConnected: true, roomId: voiceId}))
-        }, 3000)
-    }
+    //     dispatch(setToggleJoin({isConnected: true, roomId: voiceId}))
+    //     }, 3000)
+    // }
     
     return (
         <>
@@ -143,7 +143,7 @@ export const MessageMenuServer: React.FC = () => {
                                 <button
                                 onClick={() => {
                                     try {
-                                        joinVoiceRoom(val.id);
+                                        //joinVoiceRoom(val.id);
                                     } catch (error) {
                                         console.error('Join room error:', error);
                                     }

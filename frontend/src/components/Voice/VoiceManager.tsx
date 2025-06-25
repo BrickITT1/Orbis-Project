@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
-import { setAudioOnlyMyPeer, setBigMode, setMyPeer, setToggleJoin } from "../../features/voice/voiceSlices";
+import { setAudioOnlyMyPeer, setBigMode, setMyPeer, setStatus } from "../../features/voice/voiceSlices";
 import { useLocalMedia } from "../../hooks/useLocalMedia";
 
 
@@ -11,7 +11,8 @@ export const VoiceManager: React.FC = () => {
     const activeServer = useAppSelector(s => s.server.activeserver?.id)
     const MyPeer = useAppSelector((s) => s.voice.myPeer);
     const audioOnly = MyPeer.audioOnly;
-    const isConnected = useAppSelector((s) => s.voice.isConnected);
+    const status = useAppSelector(s => s.voice.status)
+    const isConnected = (status == 'connected');
     const bigMode = useAppSelector(s => s.voice.bigMode);
     
     const toggleAudioOnly = () => {
@@ -23,7 +24,7 @@ export const VoiceManager: React.FC = () => {
     };
     
     const leaveVoiceRoom = () => {
-        dispatch(setToggleJoin({isConnected: false, roomId: null}))
+        dispatch(setStatus('needdisc'))
     }
     return (
         <>

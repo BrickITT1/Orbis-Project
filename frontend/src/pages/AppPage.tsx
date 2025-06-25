@@ -26,7 +26,8 @@ export const AppPage: React.FC = () => {
 
     const server = useAppSelector((state) => state.server);
     const activeChat = useAppSelector((state) => state.chat.activeChat);
-    const isConnection = useAppSelector(s => s.voice.isConnected);
+    const status = useAppSelector(s => s.voice.status)
+    const isConnection = (status === 'connected');
     const bigMode = useAppSelector(s => s.voice.bigMode);
     const [trigger] = useLazyGetServersMembersQuery();
     
@@ -92,7 +93,7 @@ export const AppPage: React.FC = () => {
 
             {/* {Аудио менеджер} */}
             
-            {/* <AudioManager /> */}
+             <AudioManager />
             
             {/* {Видео менеджер}*/}
                 {/* <VideoManager videoStreams={streams.videoStreams!}

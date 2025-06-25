@@ -8,7 +8,7 @@ const extractPeerId = (streamId: string) => {
 };
 
 const AudioManager: React.FC = () => {
-     const { remoteAudioStreams = {} } = useMediaStreamContext();
+    const { remoteAudioStreams = {} } = useMediaStreamContext();
     const audioRefs = useRef<Record<string, HTMLAudioElement>>({});
     const peers = useAppSelector(state => state.voice.roomPeers);
 
@@ -27,6 +27,7 @@ const AudioManager: React.FC = () => {
             audioRefs.current = {};
         };
     }, []);
+
 
     return (
         <>

@@ -4,7 +4,7 @@ import { voiceApi } from "../../services/voice";
 
 interface VoiceState {
     roomPeers: PeerInfo[];
-    isConnected: boolean;
+    status: 'idle' | 'connecting' | 'connected' | 'error' | 'disconnecting' | 'disconnected' | 'needdisc' | 'needconn';
     roomId: string | null;
     myPeer: PeerInfo;
     bigMode: boolean
@@ -17,14 +17,16 @@ interface Info {
 
 const initialState: VoiceState = {
     roomPeers: [],
-    isConnected: false,
+    status: 'idle',
     roomId: null,
     myPeer: {
         peerId: "",
         username: "",
         audioOnly: true,
+        userId: "",
     },
     bigMode: false,
+
 };
 
 export const voiceSlice = createSlice({
@@ -34,27 +36,32 @@ export const voiceSlice = createSlice({
         setPeers: (state, action: PayloadAction<PeerInfo[]>) => {
             state.roomPeers = action.payload;
         },
-        setToggleJoin: (state, action: PayloadAction<Info>) => {
-            state.isConnected = action.payload.isConnected;
-        },
-        setChat: (state, action: PayloadAction<string | null>) => {
-            state.roomId = action.payload;
-            state.isConnected = true;
-        },
         setMyPeer: (state, action: PayloadAction<PeerInfo>) => {
             state.myPeer = action.payload;
+        },
+        setChat: (state, action: PayloadAction<string>) => {
+            state.roomId = action.payload;
+        },
+        setPeerId: (state, action: PayloadAction<string>) => {
+            state.myPeer.peerId = action.payload
         },
         setAudioOnlyMyPeer: (state, action: PayloadAction<boolean>) => {
             state.myPeer.audioOnly = action.payload
         },
+        setToggleJoin: (state, action: PayloadAction<Info>) => {
+             state.roomId = action.payload.roomId;
+        },
         resetVoiceState: (state) => {
             state.roomPeers = [];
-            state.isConnected = false;
+            state.status = 'idle';
             state.roomId = null;
         },
         setBigMode: (state, action: PayloadAction<boolean>) => {
             state.bigMode = action.payload
-        }
+        },
+        setStatus: (state, action: PayloadAction<'idle' | 'connecting' | 'connected' | 'error' | 'disconnecting' | 'disconnected' | 'needdisc' | 'needconn'>) => {
+            state.status = action.payload
+        },
     },
      extraReducers: (builder) => {
         // Обработка состояний для регистрации и авторизации
@@ -62,7 +69,8 @@ export const voiceSlice = createSlice({
             .addMatcher(
                 voiceApi.endpoints.getPeersInRoom.matchFulfilled,
                 (state, action) => {
-                    state.roomPeers = action.payload.peers
+                    console.log(action)
+                    state.roomPeers = Object.values(action.payload)
                 },
             )
             .addMatcher(
@@ -77,12 +85,13 @@ export const voiceSlice = createSlice({
 
 export const {
     setPeers,
-    setToggleJoin,
-    setChat,
     resetVoiceState,
     setMyPeer,
+    setChat,
     setAudioOnlyMyPeer,
-    setBigMode
+    setBigMode,
+    setPeerId,
+    setStatus
 } = voiceSlice.actions;
 
 export default voiceSlice.reducer;
