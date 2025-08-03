@@ -1,6 +1,6 @@
+import { useServerJournalSocket } from "@/features/server";
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { Socket } from "socket.io-client";
-import { useServerJournalSocket } from "../app/hook/serverjournal/useServerJournalSocket";
 
 interface ServerJournalSocketContextType {
     socket: Socket | null;

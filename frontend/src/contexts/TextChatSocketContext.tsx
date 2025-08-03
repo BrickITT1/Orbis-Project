@@ -1,6 +1,6 @@
+import { useChatSocket } from "@/features/chat";
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { Socket } from "socket.io-client";
-import { useChatSocket } from "../app/hook/textchat/useChatSocket";
 
 interface TextChatSocketContextType {
     socket: Socket | null;

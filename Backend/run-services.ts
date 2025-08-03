@@ -12,8 +12,7 @@ const childProcesses: ChildProcess [] = [];
 function startServices() {
   console.log(serviceDirs)
   serviceDirs.forEach((serviceName) => {
-
-    if (serviceName == 'MediaService') return;
+    
     const servicePath = path.join(servicesDir, serviceName);
 
     const proc = spawn('npm', ['run', 'start'], {

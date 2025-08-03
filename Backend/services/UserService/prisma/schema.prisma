@@ -1,0 +1,258 @@
+generator client {
+  provider = "prisma-client-js"
+  binaryTargets = ["native", "windows", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model block_reason_type {
+  id   Int    @id @default(autoincrement())
+  name String @db.VarChar(100)
+
+  users_blocks users_blocks[]
+}
+
+model chat_settings {
+  id_chats         Int
+  id_settings_type Int
+  value            String?
+
+  chats         chats         @relation(fields: [id_chats], references: [id])
+  settings_type settings_type @relation(fields: [id_settings_type], references: [id])
+
+  @@id([id_chats, id_settings_type])
+}
+
+model chat_users {
+  user_id    Int
+  chat_id    Int
+  role_id    Int?
+  created_at DateTime?
+  updated_at DateTime?
+
+  users     users     @relation(fields: [user_id], references: [id])
+  chats     chats     @relation(fields: [chat_id], references: [id])
+  role_chat role_chat? @relation(fields: [role_id], references: [id])
+
+  @@id([user_id, chat_id])
+}
+
+model chats {
+  id         Int     @id @default(autoincrement())
+  creator_id Int?
+  created_at DateTime?
+  name       String?
+
+  creator users? @relation("UserCreatedChats", fields: [creator_id], references: [id])
+
+  chat_users    chat_users[]
+  chat_settings chat_settings[]
+  messages      messages[]
+  server_chats  server_chats[]
+}
+
+model content {
+  id   String @id
+  text String?
+  url  String?
+
+  messages_content messages_content[]
+}
+
+model friend_requests {
+  from_user_id Int
+  to_user_id   Int
+  status       String
+  created_at   DateTime? @default(now())
+
+  from_user users @relation("RequestFrom", fields: [from_user_id], references: [id])
+  to_user   users @relation("RequestTo", fields: [to_user_id], references: [id])
+
+  @@id([from_user_id, to_user_id])
+}
+
+model messages {
+  id          Int       @id @default(autoincrement())
+  chat_id     Int?
+  user_id     Int?
+  reply_to_id Int?
+  is_edited   Boolean?
+  updated_at  DateTime?
+  created_at  DateTime?
+
+  chat     chats?    @relation(fields: [chat_id], references: [id])
+  user     users?    @relation(fields: [user_id], references: [id])
+  reply_to messages? @relation("MessageReply", fields: [reply_to_id], references: [id])
+  replies  messages[] @relation("MessageReply")
+
+  messages_content messages_content[]
+}
+
+model messages_content {
+  id_messages Int
+  type        String? @db.VarChar(50)
+  size        Int?
+  uploaded_at DateTime?
+  id_content  String
+
+  message messages @relation(fields: [id_messages], references: [id])
+  content content  @relation(fields: [id_content], references: [id])
+
+  @@id([id_messages, id_content])
+}
+
+model permission_type {
+  id   Int    @id @default(autoincrement())
+  name String @db.VarChar(100)
+
+  role_permission role_permission[]
+}
+
+model role_chat {
+  id   Int    @id @default(autoincrement())
+  name String @db.VarChar(50)
+
+  chat_users chat_users[]
+}
+
+model role_permission {
+  role_id       Int
+  permission_id Int
+  granted_at    DateTime?
+
+  role       role_server     @relation(fields: [role_id], references: [id])
+  permission permission_type @relation(fields: [permission_id], references: [id])
+
+  @@id([role_id, permission_id])
+}
+
+model role_server {
+  id   Int    @id @default(autoincrement())
+  name String @db.VarChar(50)
+
+  role_permission role_permission[]
+  user_server     user_server[]
+}
+
+model server_chats {
+  id_server Int
+  id_chats  Int
+
+  server servers @relation(fields: [id_server], references: [id])
+  chat   chats   @relation(fields: [id_chats], references: [id])
+
+  @@id([id_server, id_chats])
+}
+
+model server_voice {
+  id_server Int
+  id_voice  Int
+
+  server servers @relation(fields: [id_server], references: [id])
+  voice  voices  @relation(fields: [id_voice], references: [id])
+
+  @@id([id_server, id_voice])
+}
+
+model servers {
+  id         Int    @id @default(autoincrement())
+  creator_id Int?
+  name       String @db.VarChar(100)
+  avatar_url String?
+  created_at DateTime?
+  updated_at DateTime?
+
+  creator users? @relation("UserCreatedServers", fields: [creator_id], references: [id])
+  user_server  user_server[]
+  server_chats server_chats[]
+  server_voice server_voice[]
+}
+
+model settings_type {
+  id   Int    @id @default(autoincrement())
+  name String @db.VarChar(50)
+
+  chat_settings chat_settings[]
+}
+
+model user_preferences {
+  user_id          Int    @id
+  privacy_settings String?
+  timezone         String? @db.VarChar(50)
+  created_at       DateTime?
+  updated_at       DateTime?
+  confirmed_at     DateTime?
+
+  user users @relation(fields: [user_id], references: [id])
+}
+
+model user_profile {
+  user_id    Int    @id
+  first_name String? @db.VarChar(100)
+  last_name  String? @db.VarChar(100)
+  birth_date DateTime?
+  avatar_url String?
+  gender     String? @db.VarChar(20)
+  location   String? @db.VarChar(100)
+  about      String?
+
+  user users @relation(fields: [user_id], references: [id])
+}
+
+model user_server {
+  user_id    Int
+  server_id  Int
+  role_id    Int?
+  created_at DateTime?
+
+  user   users        @relation(fields: [user_id], references: [id])
+  server servers      @relation(fields: [server_id], references: [id])
+  role   role_server? @relation(fields: [role_id], references: [id])
+
+  @@id([user_id, server_id])
+}
+
+model users {
+  id            Int    @id @default(autoincrement())
+  email         String? @unique @db.VarChar(255)
+  username      String? @unique @db.VarChar(255)
+  password_hash String?
+
+  user_preferences user_preferences?
+  user_profile     user_profile?
+  user_server      user_server[]
+  chats            chats[]       @relation("UserCreatedChats")
+  chat_users       chat_users[]
+  users_blocks     users_blocks[]
+  messages         messages[]
+  friend_requests_from friend_requests[] @relation("RequestFrom")
+  friend_requests_to   friend_requests[] @relation("RequestTo")
+  created_servers      servers[]         @relation("UserCreatedServers")
+  created_voices       voices[]          @relation("UserCreatedVoices")
+}
+
+model users_blocks {
+  id_users       Int
+  reason_type_id Int
+  created_at     DateTime?
+  end_at         DateTime?
+
+  users             users             @relation(fields: [id_users], references: [id])
+  block_reason_type block_reason_type @relation(fields: [reason_type_id], references: [id])
+
+  @@id([id_users, reason_type_id])
+}
+
+model voices {
+  id         Int    @id @default(autoincrement())
+  creator_id Int?
+  created_at DateTime?
+  name       String?
+
+  creator users? @relation("UserCreatedVoices", fields: [creator_id], references: [id])
+
+  server_voice server_voice[]
+}

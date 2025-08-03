@@ -1,7 +1,6 @@
+import { useVoiceSocket, useVoiceStreams } from "@/features/voice";
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { Socket } from "socket.io-client";
-import { useVoiceSocket } from "../app/hook/voicechat/useVoiceSocket";
-import { useVoiceStreams } from "../app/hook/voicechat/useVoiceStreams";
 
 interface VoiceSocketContextType {
     socket: Socket | null;
@@ -10,16 +9,12 @@ interface VoiceSocketContextType {
     videoStreams: Record<string, MediaStream> | null;
 }
 
-const VoiceSocketContext = createContext<VoiceSocketContextType>({
-    socket: null,
-    isConnected: false,
-    audioStreams: null,
-    videoStreams: null,
-});
+const VoiceSocketContext = createContext<VoiceSocketContextType | undefined>(undefined);
 
-export const VoiceSocketProvider: React.FC<{ children: React.ReactNode }> = ({
+
+export function VoiceSocketProvider({
     children,
-}) => {
+}: { children: React.ReactNode }) {
     const { socket, isConnected } = useVoiceSocket();
     const { audioStreams, videoStreams } = useVoiceStreams();
 
@@ -40,12 +35,12 @@ export const VoiceSocketProvider: React.FC<{ children: React.ReactNode }> = ({
     );
 };
 
-export const useVoiceSocketContext = () => {
+export function useVoiceSocketContext() {
     const context = useContext(VoiceSocketContext);
+
     if (!context) {
-        throw new Error(
-            "useVoiceSocketContext must be used within a VoiceSocketProvider",
-        );
+        throw new Error("useVoiceSocketContext must be used within a VoiceSocketProvider");
     }
+
     return context;
-};
+}

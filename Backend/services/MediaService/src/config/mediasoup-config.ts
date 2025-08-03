@@ -16,7 +16,7 @@ export const createWorker = async () => {
   const worker = await mediasoup.createWorker({
     logLevel: 'debug',        // Детальные логи для отладки
     rtcMinPort: 40000,       // Минимальный порт для WebRTC
-    rtcMaxPort: 49999        // Максимальный порт для WebRTC
+    rtcMaxPort: 40100        // Максимальный порт для WebRTC
   });
 
   /**

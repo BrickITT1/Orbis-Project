@@ -1,39 +1,48 @@
 import { v4 as uuidv4 } from "uuid";
 import jwt from 'jsonwebtoken'
-
 import { pool } from "../config/db";
 import { Request, Response } from "express";
+import { prisma } from '../config/prismaClient';
 
   
 const getUsersFriends = async (req: Request, res: Response) => {
-    const client = await pool.connect();
-    try {
-        const token = req.headers['authorization']?.split(' ')[1]; // Extract token from header
-        if (!token) return res.sendStatus(401);
-        const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET!) as any;
-        if (!decoded) return res.sendStatus(401);
+  try {
+    const token = req.headers['authorization']?.split(' ')[1];
+    if (!token) return res.sendStatus(401);
 
+    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET!) as any;
+    if (!decoded) return res.sendStatus(401);
 
+    const userId = decoded.id;
 
-        const friends = await client.query(`
-            SELECT u.*
-            FROM users u
-            JOIN friend_requests fr
-            ON (
-                (fr.from_user_id = u.id AND fr.to_user_id = $1) OR
-                (fr.to_user_id = u.id AND fr.from_user_id = $1)
-                )
-            WHERE fr.status = 'accepted';
+    const friends = await prisma.users.findMany({
+      where: {
+        OR: [
+          {
+            friend_requests_to: {
+              some: {
+                from_user_id: userId,
+                status: 'accepted',
+              },
+            },
+          },
+          {
+            friend_requests_from: {
+              some: {
+                to_user_id: userId,
+                status: 'accepted',
+              },
+            },
+          },
+        ],
+      },
+    });
 
-        `, [ decoded?.id]);
-
-        res.status(200).json(friends.rows);
-    } catch (err) {
-        console.log(err)
-        res.status(500).json({ message: 'Server error' });
-    } finally {
-        client.release();
-    }
+    res.status(200).json(friends);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
 };
 
 const getUserInvite = async (req: Request, res: Response) => {
@@ -63,192 +72,223 @@ const getUserInvite = async (req: Request, res: Response) => {
 };
 
 const getUsersInviteMe = async (req: Request, res: Response) => {
-    const client = await pool.connect();
-    
-    try {
-        const token = req.headers['authorization']?.split(' ')[1]; // Extract token from header
-        if (!token) return res.sendStatus(401);
-        const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET!) as any; 
-        if (!decoded) return res.sendStatus(401);
+  try {
+    const token = req.headers['authorization']?.split(' ')[1];
+    if (!token) return res.sendStatus(401);
 
+    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET!) as any;
+    if (!decoded) return res.sendStatus(401);
 
-        const friends = await client.query(`
-            SELECT u.*
-            FROM users u
-            JOIN friend_requests fr ON fr.from_user_id = u.id
-            WHERE fr.to_user_id = $1 AND fr.status = 'pending';
+    const userId = decoded.id;
 
+    // Получаем пользователей, которые отправили заявку текущему пользователю
+    const invites = await prisma.users.findMany({
+      where: {
+        friend_requests_from: {
+          some: {
+            to_user_id: userId,
+            status: 'pending',
+          },
+        },
+      },
+    });
 
-        `, [ decoded?.id]);
-            console.log(friends.rows)
-        res.status(200).json(friends.rows);
-    } catch (err) {
-        console.log(err)
-        res.status(500).json({ message: 'Server error' });
-    } finally {
-        client.release();
-    }
-}; 
+    res.status(200).json(invites);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
 
 const getUserInfo = async (req: Request, res: Response) => {
-    const client = await pool.connect();
-    const userId = parseInt(req.params.id);
+  const userId = parseInt(req.params.id);
 
-    try {
-        const user = await client.query(`
-            select u.id, u.username, up.avatar_url, up.about from users u
-            JOIN user_profile up ON up.user_id = u.id 
-            WHERE u.id = $1
-        `, [userId])
-    
-        res.json(user.rows[0]);
-    } catch (err) {
-        console.log(err)
-        res.status(401).json({message: 'need refresh'})
-    } finally {
-        client.release();
+  try {
+    const user = await prisma.users.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        username: true,
+        user_profile: {
+          select: {
+            avatar_url: true,
+            about: true,
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
     }
-    
-}
+
+    // Объединяем данные пользователя и профиля
+    const userInfo = {
+      id: user.id,
+      username: user.username,
+      avatar_url: user.user_profile?.avatar_url ?? null,
+      about: user.user_profile?.about ?? null,
+    };
+
+    res.json(userInfo);
+  } catch (err) {
+    console.log(err);
+    res.status(401).json({ message: 'need refresh' });
+  }
+};
 
 const getChats = async (req: Request, res: Response) => {
-    const client = await pool.connect();
-    try {
-        const token = req.headers['authorization']?.split(' ')[1]; // Extract token from header
-        if (!token) return res.sendStatus(401);
-        const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET!) as any;
-        if (!decoded) return res.sendStatus(401);
+  try {
+    const token = req.headers['authorization']?.split(' ')[1];
+    if (!token) return res.sendStatus(401);
 
-        const chats = await client.query(`
-            select u.id, c.name as "username", up.avatar_url, up.about, cu.chat_id from users u
-            JOIN user_profile up ON up.user_id = u.id 
-            JOIN chat_users cu ON cu.user_id = u.id 
-            JOIN chats c ON c.id = cu.chat_id
-            WHERE u.id = $1
-        `, [decoded.id])
-            console.log(chats.rows)
-        res.json(chats.rows);
-    } catch (err) {
-        console.log(err)
-        res.status(401).json({message: 'need refresh'})
-    } finally {
-        client.release();
-    }
-}
+    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET!) as any;
+    if (!decoded) return res.sendStatus(401);
+
+    const chats = await prisma.chat_users.findMany({
+      where: {
+        user_id: decoded.id,
+      },
+      select: {
+        chat_id: true,
+        chats: {
+          select: {
+            name: true,
+          },
+        },
+        users: {
+          select: {
+            id: true,
+            username: true,
+            user_profile: {
+              select: {
+                avatar_url: true,
+                about: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // Преобразуем результат для удобства клиента
+    const result = chats.map((item) => ({
+      id: item.users.id,
+      username: item.chats.name,  // В исходном SQL было c.name AS username — возможно, ошибка, тут исправлено
+      avatar_url: item.users.user_profile?.avatar_url ?? null,
+      about: item.users.user_profile?.about ?? null,
+      chat_id: item.chat_id,
+    }));
+
+    res.json(result);
+  } catch (err) {
+    console.log(err);
+    res.status(401).json({ message: 'need refresh' });
+  }
+};
 
 const createChat = async (req: Request, res: Response) => {
-    const client = await pool.connect();
-    const {id} = req.body;
-    
-    try {
-        const token = req.headers['authorization']?.split(' ')[1]; // Extract token from header
-        if (!token) return res.sendStatus(401);
-        const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET!) as any;
-        if (!decoded) return res.sendStatus(401);
+  const { id } = req.body; // id пользователя для добавления в чат
 
-        await client.query('BEGIN');
+  try {
+    const token = req.headers['authorization']?.split(' ')[1];
+    if (!token) return res.sendStatus(401);
 
-        const chat = await client.query(
-            `INSERT INTO chats 
-            (name, creator_id, created_at) 
-            VALUES ($1, $2, NOW()) 
-            RETURNING id`,
-            ['default chat', decoded.id]
-        );
+    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET!) as any;
+    if (!decoded) return res.sendStatus(401);
 
-        await client.query(
-            `INSERT INTO chat_users(user_id, chat_id)
-            VALUES ($1, $2)`, 
-            [id, chat.rows[0].id]
-        );
+    // Создаем чат и одновременно добавляем создателя в чат
+    const chat = await prisma.$transaction(async (prisma) => {
+      const createdChat = await prisma.chats.create({
+        data: {
+          name: 'default chat',
+          creator_id: decoded.id,
+          created_at: new Date(),
+        },
+      });
 
-        await client.query('COMMIT');
-    
-        res.json({message: "Create chat succesfull"});
-    } catch (err) {
-        await client.query('ROLLBACK');
-        res.sendStatus(401).json({message: 'need refresh'})
-    } finally {
-        client.release();
-    }
-}
+      // Добавляем пользователя в чат
+      await prisma.chat_users.create({
+        data: {
+          user_id: id,
+          chat_id: createdChat.id,
+        },
+      });
+
+      return createdChat;
+    });
+
+    res.json({ message: 'Create chat successful', chatId: chat.id });
+  } catch (err) {
+    console.error(err);
+    res.status(401).json({ message: 'need refresh' });
+  }
+};
 
 const startchat = async (req: Request, res: Response) => {
-    const client = await pool.connect();
-    
-    const id_user = req.params.id;
-    
-    try {
-        const token = req.headers['authorization']?.split(' ')[1]; // Extract token from header
-        if (!token) return res.sendStatus(401);
-        const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET!) as any;
-        if (!decoded) return res.sendStatus(401);
-
-        const existingChat = await client.query(`
-            SELECT cu1.chat_id, u1.username as "u1" , u2.username as "u2"
-FROM chat_users cu1
-JOIN chat_users cu2 ON cu1.chat_id = cu2.chat_id
-JOIN users u1 ON u1.id = cu1.user_id
-JOIN users u2 ON u2.id = cu2.user_id
-WHERE cu1.user_id = $1 AND cu2.user_id = $2
-        `, [decoded.id, id_user]);
-
-        const {rows: u1} = await client.query(`
-            SELECT username from users
-            
-            WHERE id = $1
-            `, [decoded.id])
-
-        const {rows: u2} = await client.query(`
-        SELECT username from users
-        
-        WHERE id = $1
-        `, [id_user])
-
-        console.log(`${u1[0].username}, ${u2[0].username}`)
-
-        if (existingChat.rows.length > 0) {
-            return res.status(400).json({ 
-                message: 'Chat already exists', 
-                chatId: existingChat.rows[0].chat_id 
-            });
-        }
-
-        await client.query('BEGIN');
-
-        const chat = await client.query(
-            `INSERT INTO chats 
-            (name, creator_id, created_at) 
-            VALUES ($1, $2, NOW()) 
-            RETURNING id`,
-            [`${u1[0].username}, ${u2[0].username}`, decoded.id]
-        );
-
-        // Добавление источника запроса
-        await client.query(
-            `INSERT INTO chat_users(user_id, chat_id)
-            VALUES ($1, $2)`, 
-            [decoded.id, chat.rows[0].id]
-        );
-
-        // Добавление приемника запроса
-        await client.query(
-            `INSERT INTO chat_users(user_id, chat_id)
-            VALUES ($1, $2)`, 
-            [id_user, chat.rows[0].id]
-        );
-
-        await client.query('COMMIT');
-    
-        res.json({message: 'Success'});
-    } catch (err) {
-        await client.query('ROLLBACK');
-        console.log(err)
-        res.status(401).json({message: 'need refresh'})
-    } finally {
-        client.release();
+    const id_user = parseInt(req.params.id, 10);
+    if (isNaN(id_user)) {
+        return res.status(400).json({ error: 'Invalid user id' });
     }
-}
+
+
+  try {
+    const token = req.headers['authorization']?.split(' ')[1];
+    if (!token) return res.sendStatus(401);
+    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET!) as any;
+    if (!decoded) return res.sendStatus(401);
+
+    // Проверяем, есть ли уже чат между двумя пользователями
+    const existingChat = await prisma.$queryRaw<{ chat_id: number; u1: string; u2: string }[]>`
+      SELECT cu1.chat_id, u1.username as u1, u2.username as u2
+      FROM chat_users cu1
+      JOIN chat_users cu2 ON cu1.chat_id = cu2.chat_id
+      JOIN users u1 ON u1.id = cu1.user_id
+      JOIN users u2 ON u2.id = cu2.user_id
+      WHERE cu1.user_id = ${Number(decoded.id)} AND cu2.user_id = ${id_user}
+    `;
+
+    // Получаем имена пользователей
+    const u1 = await prisma.users.findUnique({ where: { id: Number(decoded.id) }, select: { username: true } });
+    const u2 = await prisma.users.findUnique({ where: { id: Number(id_user) }, select: { username: true } });
+
+    if (!u1 || !u2) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (existingChat.length > 0) {
+      return res.status(400).json({
+        message: 'Chat already exists',
+        chatId: existingChat[0].chat_id,
+      });
+    }
+
+    // Создаем чат и добавляем пользователей в транзакции
+    const chat = await prisma.$transaction(async (tx) => {
+      const createdChat = await tx.chats.create({
+        data: {
+          name: `${u1.username}, ${u2.username}`,
+          creator_id: decoded.id,
+          created_at: new Date(),
+        },
+      });
+
+      await tx.chat_users.createMany({
+        data: [
+          { user_id: decoded.id, chat_id: createdChat.id },
+          { user_id: Number(id_user), chat_id: createdChat.id },
+        ],
+      });
+
+      return createdChat;
+    });
+
+    res.json({ message: 'Success', chatId: chat.id });
+  } catch (err) {
+    console.error(err);
+    res.status(401).json({ message: 'need refresh' });
+  }
+};
 
 const friendInvite = async (req: Request, res: Response) => {
     const client = await pool.connect();
@@ -261,7 +301,18 @@ const friendInvite = async (req: Request, res: Response) => {
         const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET!) as any;
         if (!decoded) return res.sendStatus(401);
 
+        const check = await client.query(`SELECT * FROM friend_requests
+            WHERE (from_user_id = $1 AND to_user_id = $2)
+            OR (from_user_id = $2 AND to_user_id = $1);
+        `, [id_user, decoded.id]);
+
+        if (check.rows.length > 0 ) {
+            console.log(check.rows)
+            return res.status(401).json({message: 'no'})
+        }
+
         await client.query('BEGIN');
+
 
         // status:1-inv,2-conf,3-black
         await client.query(
@@ -284,98 +335,98 @@ const friendInvite = async (req: Request, res: Response) => {
 }
 
 const confirmFriendInvite = async (req: Request, res: Response) => {
-    const client = await pool.connect();
-    
-    const id_user = req.params.id;
-    
-    try {
-        const token = req.headers['authorization']?.split(' ')[1]; // Extract token from header
-        if (!token) return res.sendStatus(401);
-        const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET!) as any;
-        if (!decoded) return res.sendStatus(401);
+  const id_user = Number(req.params.id);
 
-        await client.query('BEGIN');
+  try {
+    const token = req.headers['authorization']?.split(' ')[1];
+    if (!token) return res.sendStatus(401);
+    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET!) as any;
+    if (!decoded) return res.sendStatus(401);
 
-        // status:1-inv,2-conf,3-black
-        await client.query(
-            `UPDATE friend_requests
-                SET status = 'accepted'
-                WHERE from_user_id = $1 AND to_user_id = $2;
-                `,
-            [decoded.id, id_user]
-        );
+    // Обновляем статус приглашения
+    await prisma.friend_requests.updateMany({
+      where: {
+        from_user_id: id_user,
+        to_user_id: decoded.id,
+      },
+      data: {
+        status: 'accepted',
+      },
+    });
 
-        await client.query('COMMIT');
-    
-        res.json({message: 'Success'});
-    } catch (err) {
-        await client.query('ROLLBACK');
-        console.log(err)
-        res.status(401).json({message: 'need refresh'})
-    } finally {
-        client.release();
-    }
-}
+    res.json({ message: 'Success' });
+  } catch (err) {
+    console.error(err);
+    res.status(401).json({ message: 'need refresh' });
+  }
+};
 
 const rejectFriendInvite = async (req: Request, res: Response) => {
-    const client = await pool.connect();
-    
-    const id_user = req.params.id;
-    
-    try {
-        const token = req.headers['authorization']?.split(' ')[1]; // Extract token from header
-        if (!token) return res.sendStatus(401);
-        const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET!) as any;
-        if (!decoded) return res.sendStatus(401);
+  const id_user = Number(req.params.id);
 
-        await client.query('BEGIN');
+  try {
+    const token = req.headers['authorization']?.split(' ')[1];
+    if (!token) return res.sendStatus(401);
+    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET!) as any;
+    if (!decoded) return res.sendStatus(401);
 
-        await client.query(
-            `UPDATE friend_requests
-                SET status = 'rejected'
-                WHERE from_user_id = 1 AND to_user_id = 2;
-                `,
-            [decoded.id, id_user]
-        );
+    // Удаляем заявку на дружбу
+    await prisma.friend_requests.deleteMany({
+      where: {
+        from_user_id: id_user,
+        to_user_id: decoded.id,
+      },
+    });
 
-        await client.query('COMMIT');
-    
-        res.json({message: 'Success'});
-    } catch (err) {
-        await client.query('ROLLBACK');
-        console.log(err)
-        res.status(401).json({message: 'need refresh'})
-    } finally {
-        client.release();
-    }
-}
+    res.json({ message: 'Success' });
+  } catch (err) {
+    console.error(err);
+    res.status(401).json({ message: 'need refresh' });
+  }
+};
+
 
 const getUserbyName = async (req: Request, res: Response) => {
-    const client = await pool.connect();
-    const userName = req.query.name;
-    try {
-        const token = req.headers['authorization']?.split(' ')[1]; // Extract token from header
-        if (!token) return res.status(401);
-        const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET!) as any;
-        if (!decoded) return res.status(401);
+  const userName = req.query.name as string;
 
-        const users = await client.query(`
-            SELECT u.id, u.username, up.avatar_url
-            FROM users u
-            JOIN user_profile up ON up.user_id = u.id
-            WHERE u.username LIKE $1 || '%'
-            LIMIT 10;
+  try {
+    const token = req.headers['authorization']?.split(' ')[1];
+    if (!token) return res.sendStatus(401);
+    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET!) as any;
+    if (!decoded) return res.sendStatus(401);
 
-        `, [userName])
-    
-        res.json(users.rows);
-    } catch (err) {
-        console.log(err)
-        res.sendStatus(401).json({message: 'need refresh'})
-    } finally {
-        client.release();
-    }
-}
+    const users = await prisma.users.findMany({
+      where: {
+        username: {
+          startsWith: userName,
+          mode: 'insensitive', // если нужен регистронезависимый поиск
+        },
+      },
+      select: {
+        id: true,
+        username: true,
+        user_profile: {
+          select: {
+            avatar_url: true,
+          },
+        },
+      },
+      take: 10,
+    });
+
+    // Преобразуем структуру, если нужно (Prisma вложенность)
+    const result = users.map(u => ({
+      id: u.id,
+      username: u.username,
+      avatar_url: u.user_profile?.avatar_url || null,
+    }));
+
+    res.json(result);
+  } catch (err) {
+    console.error(err);
+    res.status(401).json({ message: 'need refresh' });
+  }
+};
   
 
 export { 

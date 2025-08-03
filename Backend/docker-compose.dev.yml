@@ -1,0 +1,91 @@
+version: '3.9'
+
+services:
+  db:
+    image: postgres:15
+    restart: always
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: orbis
+      POSTGRES_USER: orbis
+      POSTGRES_PASSWORD: orbis
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    command: ["redis-server", "--requirepass", "admin"]
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+
+  migration:
+    build:
+      context: ./services/MigrationService
+    env_file:
+      - ./services/MigrationService/.env
+    depends_on:
+      - db
+
+  auth:
+    build:
+      context: ./services/AuthService
+    env_file:
+      - ./services/AuthService/.env
+    depends_on:
+      - db
+      - redis
+    ports:
+      - "3002:3002"
+
+  chat:
+    build:
+      context: ./services/ChatService
+    env_file:
+      - ./services/ChatService/.env
+    depends_on:
+      - db
+      - redis
+    ports:
+      - "3004:3004"
+
+  user:
+    build:
+      context: ./services/UserService
+    env_file:
+      - ./services/UserService/.env
+    depends_on:
+      - db
+      - redis
+    ports:
+      - "3003:3003"
+
+  media:
+    build:
+      context: ./services/MediaService
+    env_file:
+      - ./services/MediaService/.env
+    depends_on:
+      - redis
+    ports:
+      - "3007:3007"
+      - "40000-40100:40000-40100/udp"
+      - "4443:4443"
+
+
+  cdn:
+    build:
+      context: ./services/CDN
+    env_file:
+      - ./services/CDN/.env
+    depends_on:
+      - redis
+    ports:
+      - "3006:3006"
+
+volumes:
+  postgres_data:
+  redis_data:

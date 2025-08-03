@@ -3,7 +3,7 @@ import { REDIS_HOST, REDIS_PORT, REDIS_PASSWORD } from "./app.config";
 
 export const redisClient = createClient({
     socket: {
-        host: REDIS_HOST || "127.0.0.1",
+        host: REDIS_HOST || "redis",
         port: Number(REDIS_PORT) || 6379,
     },
     password: REDIS_PASSWORD,

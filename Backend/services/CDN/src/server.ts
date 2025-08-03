@@ -1,5 +1,5 @@
 import express from 'express';
-import type { Request, Response, NextFunction } from 'express';
+import type { Request, Response } from 'express';
 import serveStatic from 'serve-static';
 import compression from 'compression';
 import morgan from 'morgan';
@@ -7,11 +7,10 @@ import cors from 'cors';
 import fs from 'fs';
 import path from 'path';
 import multer from 'multer';
-import { createClient } from 'redis';
-import type { IncomingHttpHeaders } from 'http';
 import dotenv from 'dotenv';
 import axios from 'axios';
 import https from 'https';
+import { connectRedis, redisClient } from './config/redis.config';
 
 dotenv.config();
 const { diskStorage } = multer;
@@ -27,8 +26,7 @@ const PORT = process.env.PORT || 3006;
 const __dirnameResolved = path.resolve();
 
 // Redis client
-const redisClient = createClient({ url: process.env.REDIS_URL });
-redisClient.connect().catch(console.error);
+connectRedis();
 
 // Middleware
 app.use(cors({

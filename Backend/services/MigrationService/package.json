@@ -1,0 +1,11 @@
+{
+  "name": "migrationservice",
+  "version": "1.0.0",
+  "scripts": {
+    "migrate": "prisma migrate deploy"
+  },
+  "devDependencies": {
+    "@prisma/client": "^6.12.0",
+    "prisma": "^6.12.0"
+  }
+}

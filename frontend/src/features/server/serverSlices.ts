@@ -1,31 +1,9 @@
 // features/authSlice.ts
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
-import { serverApi } from "../../services/server";
-import { chat } from "../chat/chatSlices";
-import { fastUserInfo } from "../../types/User";
+import { serverApi } from "./api/serverApi";
+import { server, serverState } from "./types/server.types";
 
-export interface voice {
-    id: number;
-    name: string;
-}
-
-export interface server {
-    id: number;
-    name: string;
-    voices: voice[];
-    chats: chat[];
-    users: fastUserInfo[];
-}
-
-interface serverState {
-    servers?: server[];
-    activeserver?: server | undefined;
-    isActive?: boolean;
-    isCreatingServer?: boolean;
-    messegerChange?: boolean;
-    userChange?: boolean;
-}
 
 const initialState: serverState = {
     isCreatingServer: false,

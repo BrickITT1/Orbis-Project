@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { throttle } from "../../utils/throttle";
+import { throttle } from "@/utils/throttle";
 
 export default function ScrollTop() {
     const [isVisible, setIsVisible] = useState(false); // Состояние видимости кнопки

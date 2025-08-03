@@ -1,0 +1,50 @@
+@import "tailwindcss/preflight";
+@tailwind utilities;
+
+@import "tailwindcss";
+
+@layer utilities {
+  .bg-custom {
+    background-image: url('/img/backgroundbig.jpg');
+  }
+}
+
+@font-face {
+  font-family: 'poppins';
+  src: url('/fonts/Roboto-Regular.ttf');
+}
+
+@font-face {
+  font-family: 'sarpanch';
+  src: url('/fonts/Sarpanch-Regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+body {
+  font-family: 'poppins';
+}
+
+.shadow {
+  text-shadow: 0 2px 10px rgba(255,255,255, 0.5);
+}
+
+
+.auth span {
+  position: absolute;
+}
+
+.auth-code {
+  position: relative;
+  button {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    padding: 8px;
+  }
+}
+
+input:-webkit-autofill {
+  box-shadow: 0 0 0px 1000px white inset;
+  -webkit-text-fill-color: #000;
+}

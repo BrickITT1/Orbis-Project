@@ -1,16 +1,17 @@
 import { configureStore } from "@reduxjs/toolkit";
-import { authApi } from "../services/auth";
-import { messageApi } from "../services/chat";
-import authReducer from "../features/auth/authSlices";
-import messageReducer from "../features/chat/chatSlices";
+import { messageApi } from "../features/chat/api/chatApi";
+import authReducer from "../features/auth/authSlice";
+import messageReducer from "../features/chat/chatSlice";
 import voiceReducer from "../features/voice/voiceSlices";
 import serverReducer from "../features/server/serverSlices";
 import userReducer from "../features/user/userSlices";
 import uploadReducer from '../features/upload/uploadSlice';
 import actionReducer from '../features/action/actionSlice';
-import { serverApi } from "../services/server";
-import { userApi } from "../services/user";
-import { voiceApi } from "../services/voice";
+import  userSettingsReducer from "../features/usersettings/userSettingsSlice";
+import { serverApi } from "../features/server/api/serverApi";
+import { voiceApi } from "../features/voice/api/voiceApi";
+import { authApi } from "@/features/auth";
+import { userApi } from "@/features/user";
 
 export const store = configureStore({
     reducer: {
@@ -21,6 +22,7 @@ export const store = configureStore({
         user: userReducer,
         upload: uploadReducer,
         action: actionReducer,
+        usersettings: userSettingsReducer,
         [authApi.reducerPath]: authApi.reducer,
         [messageApi.reducerPath]: messageApi.reducer,
         [serverApi.reducerPath]: serverApi.reducer,

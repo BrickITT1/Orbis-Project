@@ -2,9 +2,8 @@ import jwt from 'jsonwebtoken'
 import { pool } from "../config/db";
 import { io } from "../server";
 import { Request, Response } from "express";
+import { prisma } from '../config/prismaClient';
 
-
-// Получить список серверов пользователя
 const getServers = async (req: Request, res: Response) => {
     const client = await pool.connect();
     try {
@@ -13,19 +12,26 @@ const getServers = async (req: Request, res: Response) => {
             return res.status(401).json({ message: 'Authorization token missing' });
         }
 
-        // jwt.verify либо вернет decoded объект, либо выбросит исключение
         const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET!) as any;
 
-        const server = await client.query(
-            `SELECT DISTINCT ON (s.id) s.name, s.avatar_url, s.id
-            FROM servers s
-            JOIN user_server us ON s.id = us.server_id
-            JOIN users u ON u.id = us.user_id
-            WHERE u.id = $1`,
-            [decoded.id]
-        );
+        const servers = await prisma.servers.findMany({
+            where: {
+                user_server: {
+                some: {
+                    user_id: decoded.id
+                }
+                }
+            },
+            distinct: ['id'],
+            select: {
+                id: true,
+                name: true,
+                avatar_url: true,
+            }
+        });
 
-        return res.json(server.rows);
+
+        return res.json(servers);
         
     } catch (err) {
         console.error('Error in getServers:', err);
@@ -40,22 +46,33 @@ const getServers = async (req: Request, res: Response) => {
     }
 };
 
-// Получить список пользователей на сервере
 const getFastInfoUserServer = async (req: Request, res: Response) => {
     const serverId = req.params.id
     const client = await pool.connect();
 
     try {
-        const userInfo = await client.query(
-        `
-            select u.id, u.username, up.avatar_url, up.about from servers s
-            JOIN user_server us ON us.server_id = s.id
-            JOIN users u ON u.id = us.user_id
-            JOIN user_profile up ON up.user_id = u.id 
-            WHERE s.id = $1
-        `, [serverId])
+        const userInfo = await prisma.users.findMany({
+            where: {
+                user_server: {
+                some: {
+                    server_id: Number(serverId),
+                }
+                }
+            },
+            select: {
+                id: true,
+                username: true,
+                user_profile: {
+                select: {
+                    avatar_url: true,
+                    about: true,
+                }
+                }
+            }
+            });
 
-        res.json(userInfo.rows)
+
+        res.json(userInfo)
     } catch (err) {
         res.status(401).json({ message: 'need refresh' })
     } finally {
@@ -63,247 +80,242 @@ const getFastInfoUserServer = async (req: Request, res: Response) => {
     }
 }
 
-// Получить информацию о содержимым на сервере
 const getServerInfo = async (req: Request, res: Response) => {
-    const client = await pool.connect();
-    const serverId = parseInt(req.params.id);
+  const serverId = parseInt(req.params.id);
 
-    try {
-        const token = req.headers['authorization']?.split(' ')[1];
-        if (!token) return res.sendStatus(401);
-        const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET!) as any;
+  try {
+    const token = req.headers['authorization']?.split(' ')[1];
+    if (!token) return res.sendStatus(401);
 
-        const server = await client.query(
-            `SELECT * from servers
-            where id = $1`,
-            [serverId]
-        );
-        if (!server.rowCount) return res.status(404).json({ message: 'Server not found' });
-        
-        if (server.rowCount < 0) {
-            return res.status(404).json({ message: 'Server not found' });
+    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET!) as any;
+
+    // Получаем сервер с чатами и голосовыми каналами
+    const server = await prisma.servers.findUnique({
+      where: { id: serverId },
+      include: {
+        server_chats: {
+          include: {
+            chat: {
+              select: {
+                id: true,
+                name: true
+              }
+            }
+          }
+        },
+        server_voice: {
+          include: {
+            voice: {
+              select: {
+                id: true,
+                name: true
+              }
+            }
+          }
         }
+      }
+    });
 
-        // Get chat details for this server
-        const serverChats = 
-        await client.query(
-            `SELECT c.id AS "chat_id", c.name from server_chats sc
-            JOIN chats c ON c.id = sc.id_chats
-            where sc.id_server = $1`,
-            [serverId]
-        );
-        const serverVoices = 
-        await client.query(
-            `SELECT v.id, v.name from server_voice sv
-            JOIN voices v ON v.id = sv.id_voice
-            where sv.id_server = $1`,
-            [serverId]
-        );
-        const serverInfo = {
-            ...server.rows[0],
-            chats: serverChats.rows,
-            voices: serverVoices.rows
-        };
-
-        res.json(serverInfo);
-    } catch (err) {
-        console.log(err)
-        res.status(401).json({message: 'need refresh'})
-    } finally {
-        client.release();
+    if (!server) {
+      return res.status(404).json({ message: 'Server not found' });
     }
-    
-}
 
-// Создать сервер
+    // Формируем ответ, чтобы чаты и голоса были в удобном формате
+    const chats = server.server_chats.map(sc => sc.chat);
+    const voices = server.server_voice.map(sv => sv.voice);
+
+    const serverInfo = {
+      id: server.id,
+      name: server.name,
+      avatar_url: server.avatar_url,
+      created_at: server.created_at,
+      updated_at: server.updated_at,
+      chats,
+      voices
+    };
+
+    res.json(serverInfo);
+  } catch (err) {
+    console.error(err);
+    res.status(401).json({ message: 'need refresh' });
+  }
+};
 const createServer = async (req: Request, res: Response) => {
-    const client = await pool.connect();
-    const { name } = req.body;
+  const { name } = req.body;
 
-    try {
-        const token = req.headers['authorization']?.split(' ')[1];
-        if (!token) {
-            client.release();
-            return res.status(401).json({ message: 'Token is missing' });
-        }
-
-        const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET!) as any;
-        if (!decoded) {
-            client.release();
-            return res.status(401).json({ message: 'Invalid token' });
-        }
-
-        await client.query('BEGIN');
-
-        const result = await client.query(
-            `INSERT INTO servers 
-            (creator_id, name, created_at, updated_at) 
-            VALUES ($1, $2, NOW(), NOW()) 
-            RETURNING id`,
-            [decoded.id, name]
-        );
-
-        await client.query(
-            `INSERT INTO user_server(user_id, server_id, created_at)
-            VALUES ($1, $2, NOW())`, 
-            [decoded.id, result.rows[0].id]
-        );
-
-        await client.query('COMMIT');
-
-        res.status(200).json({ message: 'Server created successfully' });
-    } catch (err) {
-        await client.query('ROLLBACK');
-        
-        if (err instanceof jwt.JsonWebTokenError) {
-            return res.status(401).json({ message: 'Invalid or expired token' });
-        }
-        
-        console.error('Server creation error:', err);
-        res.status(500).json({ message: 'Internal server error' });
-    } finally {
-        client.release();
+  try {
+    const token = req.headers['authorization']?.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({ message: 'Token is missing' });
     }
+
+    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET!) as any;
+    if (!decoded) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    // Создаем сервер и добавляем запись в user_server в одной транзакции
+    const result = await prisma.$transaction(async (tx) => {
+      const server = await tx.servers.create({
+        data: {
+          creator_id: decoded.id,
+          name,
+          created_at: new Date(),
+          updated_at: new Date()
+        }
+      });
+
+      await tx.user_server.create({
+        data: {
+          user_id: decoded.id,
+          server_id: server.id,
+          created_at: new Date()
+        }
+      });
+
+      return server;
+    });
+
+    res.status(200).json({ message: 'Server created successfully', serverId: result.id });
+  } catch (err) {
+    if (err instanceof jwt.JsonWebTokenError) {
+      return res.status(401).json({ message: 'Invalid or expired token' });
+    }
+
+    console.error('Server creation error:', err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
 };
 
-// Присоединиться в сервер
 const joinServer = async (req: Request, res: Response) => {
-    const client = await pool.connect();
-    const serverId = parseInt(req.params.id);
+  const serverId = parseInt(req.params.id);
 
-    try {
-        if (!serverId) return res.status(400).json({ message: 'Server ID is required' });
-        const token = req.headers['authorization']?.split(' ')[1];
-        if (!token) {
-            client.release();
-            return res.status(401).json({ message: 'Token is missing' });
-        }
+  if (!serverId) {
+    return res.status(400).json({ message: 'Server ID is required' });
+  }
 
-        const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET!) as any;
-        if (!decoded) {
-            client.release();
-            return res.status(401).json({ message: 'Invalid token' });
-        }
-
-        await client.query('BEGIN');
-
-        await client.query(
-            `INSERT INTO user_server(user_id, server_id, created_at)
-             VALUES ($1, $2, NOW())`, [decoded.id, serverId]
-        )
-
-        await client.query('COMMIT');
-
-        res.status(200).json({ message: 'Successfully joined the server' });
-    } catch (err) {
-        await client.query('ROLLBACK');
-        console.error(err);
-        res.sendStatus(401).json({ message: 'need refresh' });
-    } finally {
-        client.release();
+  try {
+    const token = req.headers['authorization']?.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({ message: 'Token is missing' });
     }
+
+    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET!) as any;
+    if (!decoded) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    await prisma.user_server.create({
+      data: {
+        user_id: decoded.id,
+        server_id: serverId,
+        created_at: new Date(),
+      },
+    });
+
+    res.status(200).json({ message: 'Successfully joined the server' });
+  } catch (err) {
+    console.error(err);
+    if (err instanceof jwt.JsonWebTokenError) {
+      return res.status(401).json({ message: 'Invalid or expired token' });
+    }
+    res.status(500).json({ message: 'Internal server error' });
+  }
 };
 
-// Создать голосовой чат
 const createVoice = async (req: Request, res: Response) => {
-    const client = await pool.connect();
-    const { id } = req.params;
+  const { id } = req.params; // id сервера
 
-    try {
-        const token = req.headers['authorization']?.split(' ')[1]; // Extract token from header
-        if (!token) return res.sendStatus(401);
-        const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET!) as any;
-        if (!decoded) return res.sendStatus(401);
-        
-        const server = await client.query(
-            `
-                SELECT * FROM servers
-                WHERE id = $1`,
-            [id]
-        );
+  try {
+    const token = req.headers['authorization']?.split(' ')[1];
+    if (!token) return res.sendStatus(401);
 
-        if (server.rows.length != 1) {
-            return res.status(404).json({ message: 'Server not found' });
-        };
+    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET!) as any;
+    if (!decoded) return res.sendStatus(401);
 
-        await client.query('BEGIN');
+    // Проверяем, существует ли сервер с таким id
+    const server = await prisma.servers.findUnique({
+      where: { id: Number(id) },
+    });
 
-        const voice = await client.query(
-            `INSERT INTO voices 
-            (name, creator_id, created_at) 
-            VALUES ($1, $2, NOW()) 
-            RETURNING id`,
-            ['default voice', decoded.id]
-        );
-
-        await client.query(
-            `INSERT INTO server_voice(id_server, id_voice)
-            VALUES ($1, $2)`, 
-            [id, voice.rows[0].id]
-        );
-
-        await client.query('COMMIT');
-        
-        io.to(`server:${id}`).emit('chat-created', { chatId: voice.rows[0].id });
-        res.status(200).json({ message: 'Successfully create the chat' });
-    } catch (err) {
-        await client.query('ROLLBACK');
-        res.sendStatus(401).json({message: 'need refresh'})
-    } finally {
-        client.release();
+    if (!server) {
+      return res.status(404).json({ message: 'Server not found' });
     }
-}
 
-// Создать текстовый чат
+    // Создаём голосовой чат
+    const voice = await prisma.voices.create({
+      data: {
+        name: 'default voice',
+        creator_id: decoded.id,
+        created_at: new Date(),
+        server_voice: {
+          create: {
+            id_server: Number(id),
+          },
+        },
+      },
+      include: {
+        server_voice: true,
+      },
+    });
+
+    // Уведомляем через сокеты
+    io.to(`server:${id}`).emit('chat-created', { chatId: voice.id });
+
+    res.status(200).json({ message: 'Successfully created the chat' });
+  } catch (err) {
+    console.error(err);
+    if (err instanceof jwt.JsonWebTokenError) {
+      return res.status(401).json({ message: 'Invalid or expired token' });
+    }
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
 const createChat = async (req: Request, res: Response) => {
-    
-    const client = await pool.connect();
-    const { id } = req.params;
+  const { id } = req.params; // id сервера
 
-    try {
-        const token = req.headers['authorization']?.split(' ')[1]; // Extract token from header
-        if (!token) return res.sendStatus(401);
-        const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET!) as any;
-        if (!decoded) return res.sendStatus(401);
+  try {
+    const token = req.headers['authorization']?.split(' ')[1];
+    if (!token) return res.sendStatus(401);
 
-        const server = await client.query(
-            `
-                SELECT * FROM servers
-                WHERE id = $1`,
-            [id]
-        );
-        
-        if (server.rows.length != 1) {
-            return res.status(404).json({ message: 'Server not found' });
-        }
-        
-        await client.query('BEGIN');
+    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET!) as any;
+    if (!decoded) return res.sendStatus(401);
 
-        const chat = await client.query(
-            `INSERT INTO chats 
-            (name, creator_id, created_at) 
-            VALUES ($1, $2, NOW()) 
-            RETURNING id`,
-            ['default chat', decoded.id]
-        );
+    // Проверяем, что сервер существует
+    const server = await prisma.servers.findUnique({
+      where: { id: Number(id) },
+    });
 
-        await client.query(
-            `INSERT INTO server_chats(id_server, id_chats)
-            VALUES ($1, $2)`, 
-            [id, chat.rows[0].id]
-        );
-
-        await client.query('COMMIT');
-        io.to(`server:${id}`).emit('chat-created', { chatId: chat.rows[0].id });
-
-        res.status(200).json({ message: 'Successfully create the voice' });
-    } catch (err) {
-        await client.query('ROLLBACK');
-        console.log(err)
-        res.status(401).json({message: 'Error'})
-    } finally {
-        client.release();
+    if (!server) {
+      return res.status(404).json({ message: 'Server not found' });
     }
-}
+
+    // Создаём чат и привязываем его к серверу через server_chats
+    const chat = await prisma.chats.create({
+      data: {
+        name: 'default chat',
+        creator_id: decoded.id,
+        created_at: new Date(),
+        server_chats: {
+          create: {
+            id_server: Number(id),
+          },
+        },
+      },
+    });
+
+    // Отправляем уведомление через сокеты
+    io.to(`server:${id}`).emit('chat-created', { chatId: chat.id });
+
+    res.status(200).json({ message: 'Successfully created the chat' });
+  } catch (err) {
+    console.error(err);
+    if (err instanceof jwt.JsonWebTokenError) {
+      return res.status(401).json({ message: 'Invalid or expired token' });
+    }
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
 
 export { getServers, getServerInfo, createServer, joinServer, createVoice, createChat, getFastInfoUserServer };

@@ -1,19 +1,6 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { PeerInfo } from "../../types/Channel";
-import { voiceApi } from "../../services/voice";
-
-interface VoiceState {
-    roomPeers: PeerInfo[];
-    status: 'idle' | 'connecting' | 'connected' | 'error' | 'disconnecting' | 'disconnected' | 'needdisc' | 'needconn';
-    roomId: string | null;
-    myPeer: PeerInfo;
-    bigMode: boolean
-}
-
-interface Info {
-    isConnected: boolean;
-    roomId: string | null;
-}
+import { voiceApi } from "./api/voiceApi";
+import { Info, PeerInfo, VoiceState } from "./types/voice.types";
 
 const initialState: VoiceState = {
     roomPeers: [],
@@ -79,7 +66,7 @@ export const voiceSlice = createSlice({
                     state.roomPeers = []
                 },
             )
-                
+            
         },
 });
 

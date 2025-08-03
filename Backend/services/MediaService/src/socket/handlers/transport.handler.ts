@@ -29,9 +29,9 @@ export const transportHandlers = (socket: Socket) => {
                 if (!roomId) throw new Error('No room assigned');
 
                 const transport = await transportService.createTransportForPeer({
-                roomId,
-                peerId: socket.id,
-                sender,
+                    roomId,
+                    peerId: socket.id,
+                    sender,
                 });
 
                 callback({ transport });

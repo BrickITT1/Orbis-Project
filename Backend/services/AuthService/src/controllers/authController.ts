@@ -1,8 +1,9 @@
 import jwt from "jsonwebtoken";
 import { redisClient } from "../config/redis.config";
-import { pool } from "../config/db";
 import bcrypt from "bcrypt";
 import { Request, Response } from "express";
+import { prisma } from '../config/prismaClient';
+
 
 export const sendCodeCheck = async (req: Request, res: Response) => {
     try {
@@ -71,7 +72,6 @@ export const verifyCode = async (req: Request, res: Response) => {
 };
 
 export const register = async (req: Request, res: Response) => {
-    const client = await pool.connect();
     try {
         const { email, password, display_name, username, birth_date } =
             req.body;
@@ -95,12 +95,13 @@ export const register = async (req: Request, res: Response) => {
         }
 
         // Проверка уникальности email и username
-        const userCheck = await client.query(
-            `SELECT 1 FROM users WHERE email = $1 OR username = $2`,
-            [email, username],
-        );
+        const existingUser = await prisma.users.findFirst({
+            where: {
+                OR: [{ email }, { username }],
+            },
+        });
 
-        if (userCheck.rows.length > 0) {
+        if (existingUser) {
             return res
                 .status(409)
                 .json({ error: "Email or username already exists" });
@@ -111,33 +112,43 @@ export const register = async (req: Request, res: Response) => {
         const hashedPassword = await bcrypt.hash(password, saltRounds);
 
         // Преобразование даты рождения
+        // Преобразование и валидация даты рождения
         const birthDate = new Date(birth_date);
 
-        // Создание пользователя в транзакции
-        await client.query("BEGIN");
-        const result = await client.query(
-            `INSERT INTO users 
-       (email, password_hash, username) 
-       VALUES ($1, $2, $3) 
-       RETURNING id`,
-            [email, hashedPassword, username],
-        );
+        // Проверка на валидную дату
+        if (isNaN(birthDate.getTime())) {
+            return res.status(400).json({ error: "Invalid birth date format" });
+        }
 
-        // Создание профиля пользователя
-        await client.query(
-            `INSERT INTO user_profile 
-        (user_id, birth_date, avatar_url) VALUES ($1, $2, $3)`,
-            [result.rows[0].id, birthDate, "/img/icon.png"],
-        );
+        // Проверка диапазона (например, пользователи не старше 120 лет и не младше 13)
+        const now = new Date();
+        const earliestAllowed = new Date(now.getFullYear() - 120, 0, 1); // примерно 1905
+        const latestAllowed = new Date(now.getFullYear() - 13, 11, 31); // минимум 13 лет
 
-        // Создание настроек пользователя
-        await client.query(
-            `INSERT INTO user_preferences 
-        (user_id, created_at, confirmed_at) VALUES ($1, NOW(), NOW())`,
-            [result.rows[0].id],
-        );
+        if (birthDate < earliestAllowed || birthDate > latestAllowed) {
+            return res.status(400).json({ error: "Birth date is out of allowed range" });
+        }
 
-        await client.query("COMMIT");
+        const user = await prisma.users.create({
+            data: {
+                email,
+                password_hash: hashedPassword,
+                username,
+                user_profile: {
+                create: {
+                    birth_date: birthDate,
+                    avatar_url: '/img/icon.png',
+                },
+                },
+                user_preferences: {
+                create: {},
+                },
+            },
+            include: {
+                user_profile: true,
+                user_preferences: true,
+            },
+            });
 
         // Удаляем verification code из Redis если он был
         await redisClient.del(email);
@@ -148,54 +159,48 @@ export const register = async (req: Request, res: Response) => {
         res.status(201).json({
             message: "User registered successfully",
             user: {
-                id: result.rows[0].id,
+                id: user.id,
             },
             // token: token // если используется JWT
         });
     } catch (err: any) {
-        await client.query("ROLLBACK");
         console.error("Registration error:", err);
-        if (err.code === "23505") {
-            // Ошибка уникальности в PostgreSQL
+        if (err.code === 'P2002') { // Prisma unique constraint error code
             return res.status(409).json({ error: "User already exists" });
         }
         res.status(500).json({ error: "Internal server error" });
-    } finally {
-        client.release();
     }
 };
 
 export const login = async (req: Request, res: Response) => {
-    const client = await pool.connect();
-
     try {
         const { email, password } = req.body;
-        console.log(password);
-        const user = await client.query(
-            `SELECT * FROM users WHERE email = $1`,
-            [email],
-        );
 
-        if (user.rows.length != 1) {
-            return res.status(409).json({ error: "Not Found" });
+        const user = await prisma.users.findUnique({
+            where: { email },
+            include: {
+                user_profile: true,
+                },
+            });
+
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
         }
-        const isPasswordValid = await bcrypt.compare(
-            password,
-            user.rows[0].password_hash,
-        );
 
+        const isPasswordValid = await bcrypt.compare(password, user.password_hash ?? "");
         if (!isPasswordValid) {
-            return res.status(401).json({ error: "Invalid credentials" });
+        return res.status(401).json({ error: "Invalid credentials" });
         }
+
         const accessToken = jwt.sign(
-            { id: user.rows[0].id },
+            { id: user.id },
             process.env.ACCESS_TOKEN_SECRET!,
-            { expiresIn: "15m" },
+            { expiresIn: "15m" }
         );
         const refreshToken = jwt.sign(
-            { id: user.rows[0].id },
+            { id: user.id },
             process.env.REFRESH_TOKEN_SECRET!,
-            { expiresIn: "7d" },
+            { expiresIn: "7d" }
         );
 
         res.clearCookie("refresh_token", {
@@ -212,30 +217,22 @@ export const login = async (req: Request, res: Response) => {
             maxAge: 7 * 24 * 60 * 60 * 1000,
         });
 
-        const userInformation = await client.query(
-            `
-        select u.id, u.username, up.avatar_url from users u
-        JOIN user_profile up ON up.user_id = u.id 
-        WHERE u.id = $1
-      `,
-            [user.rows[0].id],
-        );
-
         res.json({
             access_token: accessToken,
-            username: user.rows[0].username,
-            info: userInformation.rows[0],
+            username: user.username,
+            info: {
+                id: user.id,
+                username: user.username,
+                avatar_url: user.user_profile?.avatar_url || null,
+            },
         });
     } catch (error) {
         console.log(error);
         res.status(500).json({ error: "Internal server error" });
-    } finally {
-        client.release();
     }
 };
 
 export const refresh = async (req: Request, res: Response) => {
-    const client = await pool.connect();
     const refreshToken = req.cookies.refresh_token;
 
     if (!refreshToken) {
@@ -247,42 +244,39 @@ export const refresh = async (req: Request, res: Response) => {
             refreshToken,
             process.env.REFRESH_TOKEN_SECRET!,
         ) as jwt.JwtPayload;
-        const user = await client.query(`SELECT * FROM users WHERE id = $1`, [
-            decoded.id,
-        ]);
+        
+        const user = await prisma.users.findUnique({
+            where: { id: decoded.id },
+            include: {
+                user_profile: true,
+            },
+        });
 
-        if (user.rows.length != 1) {
+        if (!user) {
             return res.status(401).json({ error: "User not found" });
         }
 
         // Генерация нового access-токена
         const accessToken = jwt.sign(
-            { id: user.rows[0].id },
+            { id: user.id },
             process.env.ACCESS_TOKEN_SECRET!,
             {
                 expiresIn: "15m",
             },
         );
 
-        const userInformation = await client.query(
-            `
-        select u.id, u.username, up.avatar_url from users u
-        JOIN user_profile up ON up.user_id = u.id 
-        WHERE u.id = $1
-      `,
-            [decoded.id],
-        );
-
         res.json({
             access_token: accessToken,
-            username: user.rows[0].username,
-            info: userInformation.rows[0],
+            username: user.username,
+            info: {
+                id: user.id,
+                username: user.username,
+                avatar_url: user.user_profile?.avatar_url || null,
+            },
         });
     } catch (error) {
         console.log(error);
         res.status(401).json({ error: "Invalid refresh token" });
-    } finally {
-        client.release();
     }
 };
 

@@ -4,6 +4,7 @@ import jwt, { JwtPayload } from "jsonwebtoken";
 
 import { io } from "../server";
 import { pool } from "../config/db";
+import { prisma } from '../config/prismaClient';
 
 // Тип для содержимого сообщения
 interface ContentItem {
@@ -14,200 +15,210 @@ interface ContentItem {
 }
 
 const getMessages = async (req: Request, res: Response) => {
-  const client = await pool.connect();
-  const chatId = req.params.id;
+  const chatId = parseInt(req.params.id);
 
   try {
-    const contentsRow: ContentItem[][] = [];
+    const messages = await prisma.messages.findMany({
+      where: { chat_id: chatId },
+      orderBy: { created_at: 'desc' },
+      take: 20,
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+          },
+        },
+        messages_content: {
+          include: {
+            content: {
+              select: {
+                id: true,
+                text: true,
+                url: true,
+              },
+            },
+          },
+        },
+      },
+    });
 
-    // Получаем историю сообщений      
-    const { rows: Messages } = await client.query(
-      `
-      SELECT *
-      FROM (
-        SELECT
-          m.id as "message_id",
-          m.chat_id,
-          m.is_edited,
-          mc.type,
-          m.reply_to_id,
-          m.created_at,
-          m.updated_at,
-          u.id as user_id,
-          u.username
-        FROM messages m
-        JOIN users u ON m.user_id = u.id
-        JOIN chats c ON c.id = m.chat_id
-        JOIN messages_content mc ON mc.id_messages = m.id
-        WHERE m.chat_id = $1
-        ORDER BY m.created_at DESC
-        LIMIT 20
-      ) sub
-      ORDER BY sub.created_at ASC;
-      `,
-      [chatId]
-    );
-
-    // Получаем содержимое сообщений (content)
-    for (let idx = 0; idx < Messages.length; idx++) {
-      const messageInside = await client.query(
-        `
-        SELECT
-          mc.type,
-          co.id,
-          co.text,
-          co.url
-        FROM content co
-        JOIN messages_content mc ON mc.id_content = co.id
-        WHERE mc.id_messages = $1
-        `,
-        [Messages[idx].message_id]
-      );
-      contentsRow.push(messageInside.rows);
-    }
-
-    const formattedMessages = Messages.map((msg, idx) => ({
-      id: msg.message_id,
+    const formatted = messages.reverse().map((msg) => ({
+      id: msg.id,
       chat_id: msg.chat_id,
-      user_id: msg.user_id,
-      username: msg.username,
+      user_id: msg.user?.id || null,
+      username: msg.user?.username || 'Unknown',
       reply_to_id: msg.reply_to_id,
-      is_edited: msg.is_edited,
-      content: contentsRow[idx],
-      timestamp: new Date(msg.created_at).toLocaleTimeString(),
-      updated_at: msg.updated_at ? new Date(msg.updated_at).toLocaleTimeString() : null,
+      is_edited: msg.is_edited || false,
+      content: msg.messages_content.map((mc) => ({
+        type: mc.type,
+        id: mc.content.id,
+        text: mc.content.text ?? '',
+        url: mc.content.url ?? '',
+
+      })),
+      timestamp: msg.created_at?.toLocaleTimeString() || null,
+      updated_at: msg.updated_at?.toLocaleTimeString() || null,
     }));
 
-    res.status(200).json(formattedMessages);
+    res.status(200).json(formatted);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Internal server error" });
-  } finally {
-    client.release();
+    res.status(500).json({ error: 'Internal server error' });
   }
 };
 
 const sendMessages = async (req: Request, res: Response) => {
-  const client = await pool.connect();
   const { chat_id, username, content, reply_to_id, user_id } = req.body;
 
   try {
-    await client.query('BEGIN');
-
     const types = Object.keys(content);
     const values = Object.values(content);
-    const contentsRow: ContentItem[] = [];
+    console.log(types)
+    const contentsRow: any[] = [];
 
-    // Здесь был дублированный вложенный цикл — исправил
+    // Сохраняем content (текст или файл)
     for (let idx = 0; idx < types.length; idx++) {
-      const content_id = uuidv4();
+      const contentId = uuidv4();
 
-      if (types[idx] === 'file') {
-        const result = await client.query(
-          `INSERT INTO content (id, url) VALUES ($1, $2) RETURNING id`,
-          [content_id, values[idx]]
-        );
+      if (types[idx] === 'url') {
+        const fileUrl = values[idx] as string;
+        // Извлечь имя файла из URL, например:
+        const urlParts = fileUrl.split('/');
+        const fileName = urlParts[urlParts.length - 1]; // последний сегмент URL
+
+        const createdContent = await prisma.content.create({
+          data: {
+            id: contentId,
+            text: fileName,   // сохраняем имя файла
+            url: fileUrl,
+          },
+        });
+
         contentsRow.push({
-          id: result.rows[0].id,
-          type: types[idx],
-          url: values[idx] as string | undefined
+          id: createdContent.id,
+          type: 'url',
+          text: fileName,
+          url: fileUrl,
         });
       } else {
-        const result = await client.query(
-          `INSERT INTO content (id, text) VALUES ($1, $2) RETURNING id`,
-          [content_id, values[idx]]
-        );
+        // для текста
+        const textContent = values[idx] as string;
+        const createdContent = await prisma.content.create({
+          data: {
+            id: contentId,
+            text: textContent,
+            url: null,
+          },
+        });
+
         contentsRow.push({
-          id: result.rows[0].id,
-          type: types[idx],
-          text: values[idx] as string | undefined
+          id: createdContent.id,
+          type: 'text',
+          text: textContent,
+          url: null,
         });
       }
     }
 
-    // Создаем запись сообщения
-    const message = await client.query(
-      `INSERT INTO messages 
-       (chat_id, user_id, reply_to_id, is_edited, created_at)
-       VALUES ($1, $2, $3, $4, NOW())
-       RETURNING id, created_at`,
-      [chat_id, user_id, reply_to_id || null, false]
-    );
 
-    const messageId = message.rows[0].id;
-
-    // Вставляем связи content с message
-    for (const content of contentsRow) {
-      await client.query(
-        `INSERT INTO messages_content (id_content, id_messages, type, size, uploaded_at)
-         VALUES ($1, $2, $3, $4, NOW())`,
-        [content.id, messageId, content.type, null]
-      );
-    }
+    // Создаём сообщение
+    const message = await prisma.messages.create({
+      data: {
+        chat_id: chat_id,
+        user_id: user_id,
+        reply_to_id: reply_to_id || null,
+        is_edited: false,
+        created_at: new Date(),
+        messages_content: {
+          create: contentsRow.map((content) => ({
+            id_content: content.id,
+            type: content.type,
+            uploaded_at: new Date(),
+            size: null,
+          })),
+        },
+      },
+    });
 
     const fullMessage = {
-      id: messageId,
+      id: message.id,
       chat_id,
       user_id,
       username,
-      reply_to_id: reply_to_id || null,
-      is_edited: false,
+      reply_to_id: message.reply_to_id,
+      is_edited: message.is_edited,
       content: contentsRow,
-      timestamp: new Date(message.rows[0].created_at).toLocaleTimeString(),
-      updated_at: null
+      timestamp: message.created_at ? new Date(message.created_at).toLocaleTimeString() : null,
+      updated_at: null,
     };
 
-    await client.query('COMMIT');
-
     io.to(`chat_${chat_id}`).emit('new-message', fullMessage);
+
     res.status(200).json(fullMessage);
   } catch (err) {
-    await client.query('ROLLBACK');
     console.error(err);
-    res.status(500).json({ error: "Internal server error" });
-  } finally {
-    client.release();
+    res.status(500).json({ error: 'Internal server error' });
   }
 };
 
 const deleteMessage = async (req: Request, res: Response) => {
   const { chat_id, message_id } = req.query;
-  const client = await pool.connect();
 
   try {
     const token = req.headers['authorization']?.split(' ')[1];
     if (!token) return res.sendStatus(401);
 
-    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET!) as JwtPayload;
+    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET!) as { id: number };
     if (!decoded) return res.sendStatus(401);
 
-    if (!chat_id || !message_id) return res.status(400).json({ message: "Not enough params" });
+    const chatId = parseInt(chat_id as string, 10);
+    const messageId = parseInt(message_id as string, 10);
 
-    await client.query('BEGIN');
-
-    // Удаляем content связанные с сообщением
-    const content = await client.query(
-      `DELETE FROM messages_content WHERE id_messages = $1 RETURNING id_content`,
-      [message_id]
-    );
-
-    for (const row of content.rows) {
-      await client.query(`DELETE FROM content WHERE id = $1`, [row.id_content]);
+    if (isNaN(chatId) || isNaN(messageId)) {
+      return res.status(400).json({ message: 'Invalid chat_id or message_id' });
     }
 
-    // Удаляем само сообщение
-    await client.query(`DELETE FROM messages WHERE id=$2 AND chat_id=$1`, [chat_id, message_id]);
+    // Проверка, принадлежит ли сообщение пользователю
+    const message = await prisma.messages.findUnique({
+      where: { id: messageId },
+      select: { user_id: true, chat_id: true },
+    });
 
-    await client.query('COMMIT');
+    if (!message || message.user_id !== decoded.id || message.chat_id !== chatId) {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
 
-    io.to(`chat_${chat_id}`).emit('new-message', {});
-    res.status(200).json({ message: "Confirm Delete" });
+    // Удаляем сообщения и связанные content через messages_content
+    await prisma.$transaction(async (tx) => {
+      const contentLinks = await tx.messages_content.findMany({
+        where: { id_messages: messageId },
+        select: { id_content: true },
+      });
+
+      // Удалить связи
+      await tx.messages_content.deleteMany({
+        where: { id_messages: messageId },
+      });
+
+      // Удалить content
+      const contentIds = contentLinks.map((c) => c.id_content);
+      await tx.content.deleteMany({
+        where: { id: { in: contentIds } },
+      });
+
+      // Удалить само сообщение
+      await tx.messages.delete({
+        where: { id: messageId },
+      });
+    });
+
+    io.to(`chat_${chatId}`).emit('delete-message', { message_id: messageId });
+
+    return res.status(200).json({ message: 'Confirm Delete' });
   } catch (err) {
-    await client.query('ROLLBACK');
     console.error(err);
-    res.status(500).json({ error: "Internal server error" });
-  } finally {
-    client.release();
+    return res.status(500).json({ error: 'Internal server error' });
   }
 };
 

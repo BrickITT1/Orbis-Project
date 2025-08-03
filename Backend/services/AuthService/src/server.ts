@@ -18,7 +18,7 @@ connectRedis();
 const app = express();
 app.use(
     cors({
-        origin: "https://26.234.138.233:5173",
+        origin:  process.env.FRONTENDADDRES || "https://192.168.1.10:5173",
         credentials: true,
     }),
 );
