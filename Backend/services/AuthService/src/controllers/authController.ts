@@ -180,6 +180,7 @@ export const login = async (req: Request, res: Response) => {
             where: { email },
             include: {
                 user_profile: true,
+                user_preferences: true,
                 },
             });
 
@@ -224,6 +225,7 @@ export const login = async (req: Request, res: Response) => {
                 id: user.id,
                 username: user.username,
                 avatar_url: user.user_profile?.avatar_url || null,
+                email: user.email
             },
         });
     } catch (error) {

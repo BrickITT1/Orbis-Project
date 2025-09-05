@@ -30,7 +30,7 @@ connectRedis();
 
 // Middleware
 app.use(cors({
-  origin: "https://26.234.138.233:5173",
+  origin:  process.env.FRONTENDADDRES || "https://26.234.138.233:5173",
   credentials: true,
 }));
 app.use(morgan('combined'));
@@ -191,4 +191,5 @@ app.use((req: Request, res: Response) => {
 
 server.listen(PORT, () => {
   console.log(`🚀 CDN-сервер запущен: https://localhost:${PORT}`);
+  console.log(`Server for frontend: ${ process.env.FRONTENDADDRES || "https://26.234.138.233:5173"}`);
 });

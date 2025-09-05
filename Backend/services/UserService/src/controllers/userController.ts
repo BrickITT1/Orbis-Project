@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken'
 import { pool } from "../config/db";
 import { Request, Response } from "express";
 import { prisma } from '../config/prismaClient';
-
+import bcrypt from "bcrypt"
   
 const getUsersFriends = async (req: Request, res: Response) => {
   try {
@@ -428,6 +428,73 @@ const getUserbyName = async (req: Request, res: Response) => {
   }
 };
   
+const editUser = async (req: Request, res: Response) => {
+  const {username, email, password, number} = req.body;
+  const token = req.headers['authorization']?.split(' ')[1];
+  if (!token) return res.sendStatus(401);
+  const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET!) as any;
+  if (!decoded) return res.sendStatus(401);
+
+  try {
+    if (username) {
+      await prisma.users.update(
+        {
+          where: {
+            id: decoded.id
+          },
+          data: {
+            username: username
+          }
+        }
+      )
+    }
+
+    if (email) {
+      await prisma.users.update(
+        {
+          where: {
+            id: decoded.id
+          },
+          data: {
+            email: email
+          }
+        }
+      )
+    }
+
+    if (password) {
+      
+      const saltRounds = 10;
+      const hashedPassword = await bcrypt.hash(password, saltRounds);
+      await prisma.users.update(
+        {
+          where: {
+            id: decoded.id
+          },
+          data: {
+            password_hash: hashedPassword
+          }
+        }
+      )
+    }
+
+    if (number) {
+      await prisma.users.update(
+        {
+          where: {
+            
+          },
+          data: {
+            email: email
+          }
+        }
+      )
+    }
+  } catch (error) {
+    console.log(error)
+  }
+
+}
 
 export { 
     getUserInfo, 

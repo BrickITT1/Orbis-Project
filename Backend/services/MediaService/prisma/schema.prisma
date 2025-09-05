@@ -78,7 +78,7 @@ model messages {
   id          Int       @id @default(autoincrement())
   chat_id     Int?
   user_id     Int?
-  reply_to_id Int?
+  reply_to_id String?
   is_edited   Boolean?
   updated_at  DateTime?
   created_at  DateTime?
@@ -220,6 +220,7 @@ model users {
   email         String? @unique @db.VarChar(255)
   username      String? @unique @db.VarChar(255)
   password_hash String?
+  number        String?
 
   user_preferences user_preferences?
   user_profile     user_profile?

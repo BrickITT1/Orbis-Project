@@ -32,4 +32,5 @@ const PORT = process.env.AUTHPORT || 3002;
 server.listen(PORT, () => {
     // Запускаем сервер
     console.log(`Server is running on port ${PORT}`);
+    console.log(`Server for frontend: ${ process.env.FRONTENDADDRES || "https://26.234.138.233:5173"}`);
 });

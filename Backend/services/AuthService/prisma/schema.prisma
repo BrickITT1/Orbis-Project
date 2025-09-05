@@ -78,14 +78,14 @@ model messages {
   id          Int       @id @default(autoincrement())
   chat_id     Int?
   user_id     Int?
-  reply_to_id Int?
+  reply_to_id String?
   is_edited   Boolean?
   updated_at  DateTime?
   created_at  DateTime?
 
   chat     chats?    @relation(fields: [chat_id], references: [id])
   user     users?    @relation(fields: [user_id], references: [id])
-  reply_to messages? @relation("MessageReply", fields: [reply_to_id], references: [id])
+  reply_to_id messages? @relation("MessageReply", fields: [reply_to_id], references: [id])
   replies  messages[] @relation("MessageReply")
 
   messages_content messages_content[]
@@ -220,6 +220,7 @@ model users {
   email         String? @unique @db.VarChar(255)
   username      String? @unique @db.VarChar(255)
   password_hash String?
+  number        String?
 
   user_preferences user_preferences?
   user_profile     user_profile?

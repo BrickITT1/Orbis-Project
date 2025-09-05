@@ -36,4 +36,5 @@ const PORT = process.env.MEDIAPORT || 3000;
 // Запуск сервера
 server.listen(PORT , () => {
   console.log(`Mediaservice: https://26.234.138.233:${PORT}`);
+  console.log(`Server for frontend: ${ process.env.FRONTENDADDRES || "https://26.234.138.233:5173"}`);
 });

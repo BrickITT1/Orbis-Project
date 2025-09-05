@@ -3,8 +3,9 @@
   "version": "1.0.0",
   "main": "server.js",
   "scripts": {
-    "start": "npx ts-node src/server.ts",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "npx ts-node ./src/server.ts",
+    "lint": "eslint --config eslint.config.mjs",
+    "lint:fix": "eslint --config eslint.config.mjs --fix"
   },
   "keywords": [],
   "author": "",
